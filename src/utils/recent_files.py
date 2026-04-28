@@ -1,11 +1,10 @@
 import json
 from pathlib import Path
-from typing import List
 
 from utils.config import MAX_RECENT_FILES, RECENT_FILES_PATH
 
 
-def _load_raw() -> List[str]:
+def _load_raw() -> list[str]:
     try:
         if RECENT_FILES_PATH.exists():
             data = json.loads(RECENT_FILES_PATH.read_text(encoding="utf-8"))
@@ -16,7 +15,7 @@ def _load_raw() -> List[str]:
     return []
 
 
-def _save_raw(paths: List[str]) -> None:
+def _save_raw(paths: list[str]) -> None:
     try:
         RECENT_FILES_PATH.parent.mkdir(parents=True, exist_ok=True)
         RECENT_FILES_PATH.write_text(
@@ -27,7 +26,7 @@ def _save_raw(paths: List[str]) -> None:
         pass
 
 
-def get_recent_files() -> List[Path]:
+def get_recent_files() -> list[Path]:
     """Restituisce la lista dei file recenti che esistono ancora su disco."""
     return [Path(p) for p in _load_raw() if Path(p).exists()]
 

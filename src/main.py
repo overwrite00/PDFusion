@@ -4,8 +4,8 @@ from pathlib import Path
 # Aggiunge src/ al path così tutti i moduli trovano i propri import
 sys.path.insert(0, str(Path(__file__).parent))
 
-from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication
 
 from styles.theme import apply_theme
 from utils.config import APP_NAME, VERSION

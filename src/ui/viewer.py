@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import fitz
-from PyQt6.QtCore import Qt, pyqtSignal, QThread, QObject, pyqtSlot
-from PyQt6.QtGui import QImage, QPixmap, QWheelEvent, QKeyEvent
+from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QImage, QKeyEvent, QPixmap, QWheelEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -16,7 +15,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
 
 # ---------------------------------------------------------------------------
 # Worker: renderizza una pagina su un thread separato
@@ -30,7 +28,7 @@ class _RenderWorker(QObject):
         super().__init__()
         self._path = doc_path
         self._password = password
-        self._doc: Optional[fitz.Document] = None
+        self._doc: fitz.Document | None = None
         self._closed = False   # impedisce riapertura dopo close()
 
     @pyqtSlot(int, float)
@@ -94,14 +92,14 @@ class PDFViewer(QWidget):
         super().__init__(parent)
         self.setObjectName("viewerArea")
 
-        self._doc_path: Optional[str] = None
+        self._doc_path: str | None = None
         self._password: str = ""
         self._total_pages: int = 0
         self._current_page: int = 0
         self._zoom_idx: int = DEFAULT_ZOOM_INDEX
 
         self._thread = QThread(self)
-        self._worker: Optional[_RenderWorker] = None
+        self._worker: _RenderWorker | None = None
 
         self._setup_ui()
 
@@ -346,7 +344,7 @@ class PDFViewer(QWidget):
             return
         zoom = ZOOM_LEVELS[self._zoom_idx]
         # Invoca il metodo sul thread worker tramite invokeMethod
-        from PyQt6.QtCore import QMetaObject, Q_ARG
+        from PyQt6.QtCore import Q_ARG, QMetaObject
         QMetaObject.invokeMethod(
             self._worker,
             "render",

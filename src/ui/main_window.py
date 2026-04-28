@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject, pyqtSlot
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QCloseEvent, QDragEnterEvent, QDropEvent, QKeySequence
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -29,9 +28,9 @@ from utils.recent_files import add_recent_file
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self._current_path: Optional[Path] = None
+        self._current_path: Path | None = None
         self._current_password: str = ""
-        self._pending_preview: Optional[Path] = None   # file temp anteprima corrente
+        self._pending_preview: Path | None = None   # file temp anteprima corrente
         self._temp_files: list[Path] = []              # tutti i temp creati nella sessione
 
         self.setWindowTitle(f"{APP_NAME} {VERSION}")
@@ -108,22 +107,22 @@ class MainWindow(QMainWindow):
         self._set_status("Pronto")
 
     def _load_panels(self) -> None:
-        from ui.panels.split_panel import SplitPanel
-        from ui.panels.merge_panel import MergePanel
-        from ui.panels.delete_panel import DeletePanel
-        from ui.panels.insert_panel import InsertPanel
-        from ui.panels.compress_panel import CompressPanel
-        from ui.panels.protect_panel import ProtectPanel
-        from ui.panels.watermark_panel import WatermarkPanel
-        from ui.panels.license_panel import LicensePanel
-        from ui.panels.headers_footers_panel import HeadersFootersPanel
-        from ui.panels.rotate_panel import RotatePanel
-        from ui.panels.reorder_panel import ReorderPanel
-        from ui.panels.extract_panel import ExtractPanel
-        from ui.panels.metadata_panel import MetadataPanel
-        from ui.panels.export_images_panel import ExportImagesPanel
-        from ui.panels.import_images_panel import ImportImagesPanel
         from ui.panels.batch_panel import BatchPanel
+        from ui.panels.compress_panel import CompressPanel
+        from ui.panels.delete_panel import DeletePanel
+        from ui.panels.export_images_panel import ExportImagesPanel
+        from ui.panels.extract_panel import ExtractPanel
+        from ui.panels.headers_footers_panel import HeadersFootersPanel
+        from ui.panels.import_images_panel import ImportImagesPanel
+        from ui.panels.insert_panel import InsertPanel
+        from ui.panels.license_panel import LicensePanel
+        from ui.panels.merge_panel import MergePanel
+        from ui.panels.metadata_panel import MetadataPanel
+        from ui.panels.protect_panel import ProtectPanel
+        from ui.panels.reorder_panel import ReorderPanel
+        from ui.panels.rotate_panel import RotatePanel
+        from ui.panels.split_panel import SplitPanel
+        from ui.panels.watermark_panel import WatermarkPanel
 
         panel_classes = {
             "split": SplitPanel,
@@ -320,7 +319,7 @@ class MainWindow(QMainWindow):
         self._tb_next_btn.setEnabled(False)
         self._save_act.setEnabled(False)
 
-    def current_path(self) -> Optional[Path]:
+    def current_path(self) -> Path | None:
         return self._current_path
 
     def current_password(self) -> str:

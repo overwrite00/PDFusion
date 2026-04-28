@@ -1,7 +1,8 @@
-import pytest
 import pikepdf
-from core.protect import protect, remove_protection, ProtectConfig, EncryptionLevel
-from utils.exceptions import PDFusionError, EncryptedPDFError
+import pytest
+
+from core.protect import EncryptionLevel, ProtectConfig, protect, remove_protection
+from utils.exceptions import PDFusionError
 
 
 class TestProtect:
@@ -31,7 +32,15 @@ class TestProtect:
             assert len(pdf.pages) == 1
 
     def test_no_password_no_restrictions_raises(self, sample_pdf, tmp_output):
-        cfg = ProtectConfig()  # tutti i permessi aperti, nessuna password
+        # ProtectConfig con tutte le restrizioni aperte e nessuna password → deve sollevare
+        cfg = ProtectConfig(
+            allow_print=True,
+            allow_print_highres=True,
+            allow_copy=True,
+            allow_edit=True,
+            allow_annotations=True,
+            allow_forms=True,
+        )
         with pytest.raises(PDFusionError):
             protect(sample_pdf, tmp_output, cfg)
 
@@ -43,5 +52,5 @@ class TestRemoveProtection:
             assert len(pdf.pages) == 1
 
     def test_wrong_password_raises(self, encrypted_pdf, tmp_output):
-        with pytest.raises(pikepdf.PasswordError):
+        with pytest.raises(PDFusionError):
             remove_protection(encrypted_pdf, tmp_output, password="wrong")

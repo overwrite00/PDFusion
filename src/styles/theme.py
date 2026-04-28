@@ -46,7 +46,7 @@ def apply_theme(app: QApplication) -> None:
     accent = QColor(Colors.ACCENT)
     text = QColor(Colors.TEXT_PRIMARY)
     text_disabled = QColor(Colors.TEXT_DISABLED)
-    border = QColor(Colors.BORDER)
+    QColor(Colors.BORDER)
 
     palette.setColor(QPalette.ColorRole.Window, bg)
     palette.setColor(QPalette.ColorRole.WindowText, text)

@@ -1,7 +1,7 @@
 from pathlib import Path
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QButtonGroup,
     QCheckBox,
     QFormLayout,
     QGroupBox,
@@ -12,10 +12,9 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PyQt6.QtCore import Qt
 
-from ui.panels.base_panel import BasePanelWidget
 from core.compress import CompressConfig, CompressPreset
+from ui.panels.base_panel import BasePanelWidget
 
 
 class CompressPanel(BasePanelWidget):

@@ -1,9 +1,8 @@
 from pathlib import Path
-from typing import List
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
-from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget, QFileDialog
+from PyQt6.QtWidgets import QFileDialog, QLabel, QVBoxLayout, QWidget
 
 
 class DropZone(QWidget):

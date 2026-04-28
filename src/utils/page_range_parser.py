@@ -1,5 +1,4 @@
 import re
-from typing import List, Optional, Tuple
 
 from utils.exceptions import InvalidPageRangeError
 
@@ -9,8 +8,8 @@ _RANGE_SEP = r"[-–]"
 
 def parse_page_ranges(
     text: str,
-    total_pages: Optional[int] = None,
-) -> List[Tuple[int, int]]:
+    total_pages: int | None = None,
+) -> list[tuple[int, int]]:
     """
     Converte una stringa come "1-3, 5, 7-9" in [(1,3), (5,5), (7,9)].
 
@@ -32,7 +31,7 @@ def parse_page_ranges(
         raise InvalidPageRangeError("Inserisci almeno un numero di pagina.")
 
     parts = re.split(r"[,;]", text)
-    ranges: List[Tuple[int, int]] = []
+    ranges: list[tuple[int, int]] = []
 
     for raw in parts:
         part = raw.strip()
@@ -65,7 +64,7 @@ def parse_page_ranges(
     return ranges
 
 
-def _validate_range(start: int, end: int, total_pages: Optional[int]) -> None:
+def _validate_range(start: int, end: int, total_pages: int | None) -> None:
     if start < 1:
         raise InvalidPageRangeError(
             f"Numero pagina non valido: {start}. Le pagine partono da 1."
@@ -80,7 +79,7 @@ def _validate_range(start: int, end: int, total_pages: Optional[int]) -> None:
         )
 
 
-def ranges_to_indices(ranges: List[Tuple[int, int]]) -> List[int]:
+def ranges_to_indices(ranges: list[tuple[int, int]]) -> list[int]:
     """Converte range 1-based in lista ordinata di indici 0-based univoci."""
     indices: set[int] = set()
     for start, end in ranges:
@@ -89,7 +88,7 @@ def ranges_to_indices(ranges: List[Tuple[int, int]]) -> List[int]:
     return sorted(indices)
 
 
-def format_page_ranges(ranges: List[Tuple[int, int]]) -> str:
+def format_page_ranges(ranges: list[tuple[int, int]]) -> str:
     """Converte [(1,3),(5,5),(7,9)] in '1-3, 5, 7-9'."""
     parts = []
     for start, end in ranges:

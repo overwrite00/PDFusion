@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Optional
 
 import pikepdf
 
@@ -12,10 +11,10 @@ VALID_ANGLES = {90, 180, 270}
 
 def rotate_pages(
     input_path: Path,
-    page_indices: List[int],
+    page_indices: list[int],
     angle: int,
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Ruota le pagine indicate di `angle` gradi (90, 180 o 270).
@@ -64,7 +63,7 @@ def rotate_all(
     input_path: Path,
     angle: int,
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     return rotate_pages(input_path, [], angle, output_path, password)
 
@@ -74,7 +73,7 @@ def rotate_by_range_string(
     range_string: str,
     angle: int,
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     try:
         kwargs = {"password": password} if password else {}

@@ -1,17 +1,16 @@
 import io
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 import pikepdf
-from reportlab.lib.pagesizes import A4, LETTER, A3
+from reportlab.lib.pagesizes import A3, A4, LETTER
 from reportlab.pdfgen import canvas
 
 from utils.exceptions import PDFusionError, UnsupportedFormatError
-from utils.page_range_parser import parse_page_ranges, ranges_to_indices
+from utils.page_range_parser import ranges_to_indices
 from utils.temp_manager import atomic_write
 
 # Formati pagina disponibili per l'inserimento di pagine bianche
-PAGE_SIZES: dict[str, Tuple[float, float]] = {
+PAGE_SIZES: dict[str, tuple[float, float]] = {
     "A4": A4,
     "A3": A3,
     "Letter": LETTER,
@@ -23,7 +22,7 @@ def insert_blank_page(
     position: int,
     output_path: Path,
     page_size: str = "A4",
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Inserisce una pagina bianca nel PDF alla posizione indicata.
@@ -47,11 +46,11 @@ def insert_blank_page(
 def insert_from_pdf(
     input_path: Path,
     source_path: Path,
-    source_ranges: List[Tuple[int, int]],
+    source_ranges: list[tuple[int, int]],
     position: int,
     output_path: Path,
-    password: Optional[str] = None,
-    source_password: Optional[str] = None,
+    password: str | None = None,
+    source_password: str | None = None,
 ) -> Path:
     """
     Inserisce pagine da un altro PDF alla posizione indicata.
@@ -97,7 +96,7 @@ def _insert_pdf_bytes(
     pages_bytes: bytes,
     position: int,
     output_path: Path,
-    password: Optional[str],
+    password: str | None,
 ) -> Path:
     """
     Inserisce le pagine da bytes nel PDF di destinazione alla posizione indicata.
@@ -127,7 +126,7 @@ def _insert_pdf_bytes(
     return output_path
 
 
-def _create_blank_page_bytes(size: Tuple[float, float]) -> bytes:
+def _create_blank_page_bytes(size: tuple[float, float]) -> bytes:
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=size)
     c.showPage()

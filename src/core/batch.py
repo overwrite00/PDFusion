@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import concurrent.futures
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any
 
 
 class BatchOperation(Enum):
@@ -21,9 +22,9 @@ class BatchOperation(Enum):
 @dataclass
 class BatchResult:
     input_path: Path
-    output_path: Optional[Path]
+    output_path: Path | None
     success: bool
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -35,19 +36,19 @@ class BatchJob:
     # Suffisso aggiunto al nome del file di output (es. "_compressed")
     output_suffix: str = ""
     # Numero di worker paralleli (None = cpu_count)
-    max_workers: Optional[int] = None
+    max_workers: int | None = None
     # Password comune per tutti i file (None = nessuna)
-    password: Optional[str] = None
+    password: str | None = None
 
 
 ProgressCallback = Callable[[int, int, str], None]
 
 
 def run_batch(
-    input_paths: List[Path],
+    input_paths: list[Path],
     job: BatchJob,
-    progress_callback: Optional[ProgressCallback] = None,
-) -> List[BatchResult]:
+    progress_callback: ProgressCallback | None = None,
+) -> list[BatchResult]:
     """
     Esegue la stessa operazione su tutti i file in input.
 
@@ -59,14 +60,13 @@ def run_batch(
     Returns:
         Lista di BatchResult, uno per file.
     """
-    from utils.exceptions import PDFusionError
 
     if not input_paths:
         return []
 
     job.output_dir.mkdir(parents=True, exist_ok=True)
     total = len(input_paths)
-    results: List[BatchResult] = []
+    results: list[BatchResult] = []
 
     # Operazioni che richiedono tutti i file insieme non si parallelizzano
     if job.operation == BatchOperation.MERGE_TO_ONE:
@@ -147,7 +147,7 @@ def _dispatch(input_path: Path, output_path: Path, job: BatchJob) -> None:
         raise NotImplementedError(f"Operazione non supportata in batch: {job.operation}")
 
 
-def _run_merge(input_paths: List[Path], output_path: Path, job: BatchJob) -> None:
+def _run_merge(input_paths: list[Path], output_path: Path, job: BatchJob) -> None:
     from core.merge import merge
     passwords = [job.password] * len(input_paths) if job.password else None
     merge(input_paths, output_path, passwords)

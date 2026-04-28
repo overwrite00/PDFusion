@@ -1,6 +1,7 @@
-import pytest
 import pikepdf
-from core.rotate import rotate_pages, rotate_all
+import pytest
+
+from core.rotate import rotate_all, rotate_pages
 from utils.exceptions import PDFusionError
 
 

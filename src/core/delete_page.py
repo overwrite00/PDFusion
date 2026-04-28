@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Optional
 
 import pikepdf
 
@@ -10,9 +9,9 @@ from utils.temp_manager import atomic_write
 
 def delete_pages(
     input_path: Path,
-    page_indices: List[int],
+    page_indices: list[int],
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Elimina le pagine indicate dal PDF.
@@ -64,7 +63,7 @@ def delete_page_by_number(
     input_path: Path,
     page_number: int,
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Elimina una singola pagina (1-based).
@@ -76,7 +75,7 @@ def delete_pages_by_range_string(
     input_path: Path,
     range_string: str,
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Elimina pagine indicate da stringa tipo "1-3, 5".

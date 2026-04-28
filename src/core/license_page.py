@@ -1,22 +1,19 @@
 from __future__ import annotations
 
 import io
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
-import pikepdf
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from utils.config import BUNDLED_FONT_PATH, LICENSE_TEMPLATES_DIR
-from utils.exceptions import PDFusionError, UnsupportedFormatError
-from utils.temp_manager import atomic_write
+from utils.exceptions import PDFusionError
 
 # Palette dell'app usata nelle pagine di licenza
 _ACCENT = colors.HexColor("#4A6FA5")
@@ -57,17 +54,17 @@ LICENSE_LABELS = {
 class LicenseConfig:
     license_type: LicenseType = LicenseType.COPYRIGHT
     author: str = ""
-    year: Optional[int] = None
-    document_title: Optional[str] = None
+    year: int | None = None
+    document_title: str | None = None
     language: str = "it"                        # "it" oppure "en"
-    cover_image_path: Optional[Path] = None     # immagine di copertina opzionale
+    cover_image_path: Path | None = None     # immagine di copertina opzionale
 
 
 def insert_license_page(
     input_path: Path,
     output_path: Path,
     config: LicenseConfig,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Genera una pagina di licenza e la inserisce in prima posizione nel PDF.
@@ -116,7 +113,7 @@ def _load_license_text(
     license_type: LicenseType,
     author: str,
     year: int,
-    title: Optional[str],
+    title: str | None,
     language: str = "it",
 ) -> str:
     """
@@ -160,16 +157,15 @@ def _register_fonts() -> None:
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    if "PDFusionFont" not in pdfmetrics.getRegisteredFontNames():
-        if BUNDLED_FONT_PATH.exists():
-            try:
-                pdfmetrics.registerFont(TTFont("PDFusionFont", str(BUNDLED_FONT_PATH)))
-            except Exception:
-                pass
+    if "PDFusionFont" not in pdfmetrics.getRegisteredFontNames() and BUNDLED_FONT_PATH.exists():
+        try:
+            pdfmetrics.registerFont(TTFont("PDFusionFont", str(BUNDLED_FONT_PATH)))
+        except Exception:
+            pass
 
 
 def _build_styles() -> dict:
-    base = getSampleStyleSheet()
+    getSampleStyleSheet()
     font = "PDFusionFont" if _font_registered() else "Helvetica"
 
     return {
@@ -194,7 +190,9 @@ def _build_styles() -> dict:
 
 def _build_story(text: str, config: LicenseConfig, styles: dict, year: int) -> list:
     import io as _io
-    from reportlab.platypus import Image as RLImage, PageBreak
+
+    from reportlab.platypus import Image as RLImage
+    from reportlab.platypus import PageBreak
 
     label = LICENSE_LABELS.get(config.license_type, "Licenza")
     story: list = []

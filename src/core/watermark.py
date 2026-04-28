@@ -4,13 +4,9 @@ import io
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Tuple
 
 import fitz  # PyMuPDF
-import pikepdf
 from PIL import Image
-from reportlab.lib.colors import Color
-from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas as rl_canvas
 
 from utils.config import BUNDLED_FONT_PATH
@@ -47,9 +43,9 @@ class WatermarkConfig:
     # Testo
     text: str = "RISERVATO"
     font_size: int = 48
-    font_color: Tuple[float, float, float] = (0.6, 0.6, 0.6)  # RGB 0-1
+    font_color: tuple[float, float, float] = (0.6, 0.6, 0.6)  # RGB 0-1
     # Immagine
-    image_path: Optional[Path] = None
+    image_path: Path | None = None
     image_scale: float = 0.5           # 0.1 – 2.0
     # Posizionamento
     position: WatermarkPosition = WatermarkPosition.CENTER_DIAGONAL
@@ -64,7 +60,7 @@ def apply_watermark(
     input_path: Path,
     output_path: Path,
     config: WatermarkConfig,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Applica il watermark al PDF.
@@ -90,10 +86,9 @@ def apply_watermark(
     except Exception as exc:
         raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
-    if password:
-        if not doc.authenticate(password):
-            doc.close()
-            raise PDFusionError("Password errata o mancante per aprire il PDF.")
+    if password and not doc.authenticate(password):
+        doc.close()
+        raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
     try:
         total = doc.page_count
@@ -226,10 +221,7 @@ def _draw_image_watermark(
         draw_w = img_w * scale
         draw_h = img_h * scale
 
-        if config.position == WatermarkPosition.CENTER_DIAGONAL:
-            x = (width - draw_w) / 2
-            y = (height - draw_h) / 2
-        elif config.position == WatermarkPosition.CENTER:
+        if config.position == WatermarkPosition.CENTER_DIAGONAL or config.position == WatermarkPosition.CENTER:
             x = (width - draw_w) / 2
             y = (height - draw_h) / 2
         elif config.position == WatermarkPosition.TOP_LEFT:

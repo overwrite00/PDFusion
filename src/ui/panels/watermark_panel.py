@@ -1,9 +1,7 @@
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QButtonGroup,
     QComboBox,
     QDoubleSpinBox,
     QFileDialog,
@@ -22,20 +20,20 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.panels.base_panel import BasePanelWidget
 from core.watermark import (
+    PageSelection,
     WatermarkConfig,
     WatermarkMode,
     WatermarkPosition,
-    PageSelection,
 )
+from ui.panels.base_panel import BasePanelWidget
 from utils.config import WATERMARK_PRESETS_IT
 
 
 class WatermarkPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Watermark / Filigrana", parent)
-        self._image_path: Optional[Path] = None
+        self._image_path: Path | None = None
         self._setup_content()
 
     def _setup_content(self) -> None:

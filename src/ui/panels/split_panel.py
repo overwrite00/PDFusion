@@ -1,10 +1,7 @@
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QButtonGroup,
     QFileDialog,
-    QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -106,6 +103,7 @@ class SplitPanel(BasePanelWidget):
         self.status_message.emit("Divisione in corso…")
 
         from PyQt6.QtCore import QThread
+
         from ui.panels.base_panel import _Worker
 
         def _do_split(input_path, out_path, pwd, cfg):

@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import fitz
 from PyQt6.QtCore import (
+    Q_ARG,
+    QMetaObject,
+    QObject,
     Qt,
     QThread,
-    QObject,
     pyqtSignal,
     pyqtSlot,
-    QMetaObject,
-    Q_ARG,
 )
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import (
     QAbstractItemView,
-    QLabel,
     QListWidget,
     QListWidgetItem,
     QWidget,
@@ -38,7 +36,7 @@ class _ThumbWorker(QObject):
         super().__init__()
         self._path = doc_path
         self._password = password
-        self._doc: Optional[fitz.Document] = None
+        self._doc: fitz.Document | None = None
         self._closed = False   # impedisce riapertura dopo close()
 
     @pyqtSlot(int)
@@ -102,7 +100,7 @@ class ThumbnailPanel(QWidget):
         self._total_pages = 0
         self._rendered: set[int] = set()
         self._thread = QThread(self)
-        self._worker: Optional[_ThumbWorker] = None
+        self._worker: _ThumbWorker | None = None
         self._setup_ui()
 
     # ------------------------------------------------------------------

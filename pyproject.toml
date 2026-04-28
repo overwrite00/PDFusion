@@ -12,7 +12,6 @@ requires-python = ">=3.11,<3.14"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-asyncio_mode = "auto"
 
 [tool.ruff]
 src = ["src"]
@@ -21,4 +20,9 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
-ignore = ["E501"]
+ignore = [
+    "E501",               # Line too long
+    "B904", "B905", "B007",  # Exception chaining, zip without strict, unused loop var (use _ instead)
+    "F841",               # Unused variables (can be cleaned up later)
+    "SIM102", "SIM103", "SIM105", "SIM108", "SIM113",  # Simplification suggestions are too aggressive
+]

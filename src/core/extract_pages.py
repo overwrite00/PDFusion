@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 from core.split import split_ranges
 from utils.page_range_parser import parse_page_ranges
@@ -7,9 +6,9 @@ from utils.page_range_parser import parse_page_ranges
 
 def extract_pages(
     input_path: Path,
-    ranges: List[Tuple[int, int]],
+    ranges: list[tuple[int, int]],
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Estrae le pagine indicate in un unico nuovo PDF.
@@ -53,12 +52,13 @@ def extract_pages_by_range_string(
     input_path: Path,
     range_string: str,
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Convenience wrapper: accetta una stringa tipo "1-3, 5, 7-9".
     """
     import pikepdf
+
     from utils.exceptions import PDFusionError
 
     try:

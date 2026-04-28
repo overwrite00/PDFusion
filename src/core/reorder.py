@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Optional
 
 import pikepdf
 
@@ -9,9 +8,9 @@ from utils.temp_manager import atomic_write
 
 def reorder_pages(
     input_path: Path,
-    new_order: List[int],
+    new_order: list[int],
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Riordina le pagine del PDF secondo la nuova sequenza indicata.
@@ -54,7 +53,7 @@ def reorder_pages(
     return output_path
 
 
-def _validate_order(new_order: List[int], total: int) -> None:
+def _validate_order(new_order: list[int], total: int) -> None:
     if len(new_order) != total:
         raise PDFusionError(
             f"Il nuovo ordine deve contenere esattamente {total} elementi "

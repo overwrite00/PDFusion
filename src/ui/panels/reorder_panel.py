@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Optional
 
 from PyQt6.QtWidgets import QLabel, QWidget
 
@@ -9,7 +8,7 @@ from ui.panels.base_panel import BasePanelWidget
 class ReorderPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Riordina pagine", parent)
-        self._new_order: Optional[List[int]] = None
+        self._new_order: list[int] | None = None
         self._setup_content()
 
     def _setup_content(self) -> None:
@@ -22,7 +21,7 @@ class ReorderPanel(BasePanelWidget):
         hint.setWordWrap(True)
         self._content_layout.addWidget(hint)
 
-    def apply_order(self, new_order: List[int], path: Path, password: str) -> None:
+    def apply_order(self, new_order: list[int], path: Path, password: str) -> None:
         """Chiamato da MainWindow quando il thumbnail panel emette order_changed."""
         self._new_order = new_order
         self._current_path = path

@@ -1,8 +1,6 @@
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QButtonGroup,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -114,7 +112,11 @@ class DeletePanel(BasePanelWidget):
             return {"mode": "ranges", "ranges": ranges}
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
-        from core.delete_page import delete_pages, delete_page_by_number, delete_pages_by_range_string
+        from core.delete_page import (
+            delete_page_by_number,
+            delete_pages,
+            delete_pages_by_range_string,
+        )
         from utils.page_range_parser import format_page_ranges
 
         mode = config["mode"]

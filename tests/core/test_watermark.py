@@ -1,11 +1,12 @@
-import pytest
 import pikepdf
+import pytest
+
 from core.watermark import (
-    apply_watermark,
+    PageSelection,
     WatermarkConfig,
     WatermarkMode,
     WatermarkPosition,
-    PageSelection,
+    apply_watermark,
 )
 
 

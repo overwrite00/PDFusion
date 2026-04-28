@@ -1,10 +1,9 @@
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtWidgets import QFormLayout, QLabel, QLineEdit, QWidget
 
-from ui.panels.base_panel import BasePanelWidget
 from core.metadata import PDFMetadata
+from ui.panels.base_panel import BasePanelWidget
 
 
 class MetadataPanel(BasePanelWidget):
@@ -35,7 +34,7 @@ class MetadataPanel(BasePanelWidget):
         form.addRow("Applicazione:", self._creator)
         self._content_layout.addLayout(form)
 
-    def _on_file_changed(self, path: Optional[Path]) -> None:
+    def _on_file_changed(self, path: Path | None) -> None:
         if not path:
             return
         try:
@@ -50,7 +49,7 @@ class MetadataPanel(BasePanelWidget):
             pass
 
     def _collect_config(self) -> PDFMetadata:
-        def _val(edit: QLineEdit) -> Optional[str]:
+        def _val(edit: QLineEdit) -> str | None:
             t = edit.text()
             if not t:
                 return None  # non toccare

@@ -1,6 +1,6 @@
-import pytest
 import pikepdf
-from core.compress import compress, CompressConfig, CompressPreset
+
+from core.compress import CompressConfig, CompressPreset, compress
 
 
 class TestCompress:

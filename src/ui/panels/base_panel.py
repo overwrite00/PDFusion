@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Optional
 
-from PyQt6.QtCore import pyqtSignal, QThread, QObject, pyqtSlot, Qt
+from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -85,13 +84,13 @@ class BasePanelWidget(QWidget):
     def __init__(self, title: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("toolPanel")
-        self._current_path: Optional[Path] = None
+        self._current_path: Path | None = None
         self._current_password: str = ""
-        self._thread: Optional[QThread] = None
-        self._worker: Optional[_Worker] = None   # ← mantiene il riferimento vivo
-        self._preview_thread: Optional[QThread] = None
-        self._preview_worker: Optional[_Worker] = None
-        self._preview_tmp: Optional[Path] = None  # temp corrente: tracciato dal momento della creazione
+        self._thread: QThread | None = None
+        self._worker: _Worker | None = None   # ← mantiene il riferimento vivo
+        self._preview_thread: QThread | None = None
+        self._preview_worker: _Worker | None = None
+        self._preview_tmp: Path | None = None  # temp corrente: tracciato dal momento della creazione
         self._original_stem: str = ""             # stem del file originale per il dialogo di salvataggio
         self._supports_preview: bool = True       # le sottoclassi possono disabilitarlo
         self._setup_ui(title)
@@ -181,7 +180,7 @@ class BasePanelWidget(QWidget):
     # Public API
     # ------------------------------------------------------------------
 
-    def set_current_file(self, path: Optional[Path], password: str = "") -> None:
+    def set_current_file(self, path: Path | None, password: str = "") -> None:
         self._current_path = path
         self._current_password = password
         # Aggiorna _original_stem solo con file "reali":
@@ -228,7 +227,7 @@ class BasePanelWidget(QWidget):
     def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         raise NotImplementedError
 
-    def _on_file_changed(self, path: Optional[Path]) -> None:
+    def _on_file_changed(self, path: Path | None) -> None:
         pass
 
     # ------------------------------------------------------------------
@@ -402,7 +401,7 @@ class BasePanelWidget(QWidget):
         else:
             self._status_label.setText("")
 
-    def _ask_save_path(self) -> Optional[Path]:
+    def _ask_save_path(self) -> Path | None:
         # Usa il nome del file originale aperto dall'utente, non quello del temp
         # di anteprima (es. ".pdfusion_preview_xyz") che sarebbe fuorviante.
         stem = self._original_stem or (

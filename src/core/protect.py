@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 import pikepdf
 
@@ -33,7 +32,7 @@ def protect(
     input_path: Path,
     output_path: Path,
     config: ProtectConfig,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Applica protezione password e restrizioni di permesso al PDF.

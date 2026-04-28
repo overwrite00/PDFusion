@@ -1,8 +1,9 @@
-import pytest
+
 import pikepdf
-from pathlib import Path
+import pytest
+
 from core.split import split_every_n, split_ranges
-from utils.exceptions import InvalidPageRangeError
+from utils.exceptions import PDFusionError
 
 
 class TestSplitEveryN:
@@ -28,11 +29,12 @@ class TestSplitEveryN:
 
     def test_output_filenames(self, multipage_pdf, tmp_dir):
         files = split_every_n(multipage_pdf, 5, tmp_dir)
-        assert files[0].name.endswith("_part001.pdf")
-        assert files[1].name.endswith("_part002.pdf")
+        # Il suffisso usa il formato {stem}_{NNN}.pdf
+        assert files[0].name.endswith("_001.pdf")
+        assert files[1].name.endswith("_002.pdf")
 
     def test_n_zero_raises(self, multipage_pdf, tmp_dir):
-        with pytest.raises(ValueError):
+        with pytest.raises(PDFusionError):
             split_every_n(multipage_pdf, 0, tmp_dir)
 
     def test_encrypted(self, encrypted_pdf, tmp_dir):
@@ -56,5 +58,5 @@ class TestSplitRanges:
             assert len(pdf.pages) == 1
 
     def test_out_of_bounds_raises(self, sample_pdf, tmp_dir):
-        with pytest.raises(InvalidPageRangeError):
+        with pytest.raises(PDFusionError):
             split_ranges(sample_pdf, [(1, 5)], tmp_dir)

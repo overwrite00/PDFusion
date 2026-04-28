@@ -4,7 +4,6 @@ import io
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 import fitz  # PyMuPDF
 import pikepdf
@@ -62,8 +61,8 @@ class CompressConfig:
 def compress(
     input_path: Path,
     output_path: Path,
-    config: Optional[CompressConfig] = None,
-    password: Optional[str] = None,
+    config: CompressConfig | None = None,
+    password: str | None = None,
 ) -> Path:
     """
     Comprime il PDF ottimizzando immagini e struttura interna.
@@ -199,4 +198,9 @@ def _strip_metadata(pdf: pikepdf.Pdf) -> None:
                 del xmp[key]
             except Exception:
                 pass
-    pdf.docinfo.clear()
+    # pikepdf.Dictionary non supporta .clear(); rimuoviamo ogni chiave singolarmente
+    for key in list(pdf.docinfo.keys()):
+        try:
+            del pdf.docinfo[key]
+        except Exception:
+            pass

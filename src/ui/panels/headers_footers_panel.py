@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtWidgets import (
@@ -17,8 +16,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.panels.base_panel import BasePanelWidget
 from core.headers_footers import HeaderFooterConfig, HeaderFooterSection
+from ui.panels.base_panel import BasePanelWidget
 
 
 class HeadersFootersPanel(BasePanelWidget):
@@ -43,9 +42,9 @@ class HeadersFootersPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         # Inizializzati prima di super().__init__() perché set_current_file
         # può essere chiamato durante la costruzione della base.
-        self._hf_base_path: Optional[Path] = None
+        self._hf_base_path: Path | None = None
         self._hf_base_password: str = ""
-        self._hf_last_output: Optional[Path] = None
+        self._hf_last_output: Path | None = None
         super().__init__("Intestazioni / Piè di pagina", parent)
         self._setup_content()
 
@@ -62,7 +61,7 @@ class HeadersFootersPanel(BasePanelWidget):
     # Base-path tracking
     # ------------------------------------------------------------------
 
-    def set_current_file(self, path: Optional[Path], password: str = "") -> None:
+    def set_current_file(self, path: Path | None, password: str = "") -> None:
         """
         Aggiorna il base-path solo quando il path NON è l'ultimo output
         prodotto da questo pannello (preview temp). Se è il nostro temp,
@@ -209,7 +208,7 @@ class HeadersFootersPanel(BasePanelWidget):
     # Abilita/disabilita pulsante rimozione insieme agli altri
     # ------------------------------------------------------------------
 
-    def _on_file_changed(self, path: Optional[Path]) -> None:
+    def _on_file_changed(self, path: Path | None) -> None:
         self._remove_btn.setEnabled(path is not None)
 
     # ------------------------------------------------------------------

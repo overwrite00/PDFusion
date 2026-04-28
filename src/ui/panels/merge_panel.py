@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Optional
 
 from PyQt6.QtWidgets import (
     QGroupBox,
@@ -19,7 +18,7 @@ from ui.widgets.drop_zone import DropZone
 class MergePanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Unisci PDF", parent)
-        self._insert_path: Optional[Path] = None
+        self._insert_path: Path | None = None
         self._total_pages: int = 1
         self._setup_content()
 
@@ -110,7 +109,7 @@ class MergePanel(BasePanelWidget):
     # Gestione file da inserire
     # ------------------------------------------------------------------
 
-    def _on_file_dropped(self, paths: List[Path]) -> None:
+    def _on_file_dropped(self, paths: list[Path]) -> None:
         if paths:
             p = paths[0]
             self._insert_path = p
@@ -127,7 +126,7 @@ class MergePanel(BasePanelWidget):
     # Aggiornamenti in risposta al cambio di file base
     # ------------------------------------------------------------------
 
-    def _on_file_changed(self, path: Optional[Path]) -> None:
+    def _on_file_changed(self, path: Path | None) -> None:
         if path:
             try:
                 import fitz
@@ -153,7 +152,7 @@ class MergePanel(BasePanelWidget):
             self._base_label.setText("Nessun file aperto")
             self._page_spin.setRange(1, 1)
 
-    def set_current_file(self, path: Optional[Path], password: str = "") -> None:
+    def set_current_file(self, path: Path | None, password: str = "") -> None:
         super().set_current_file(path, password)
         # Applica richiede entrambi i file: base E da inserire
         self._update_buttons()
