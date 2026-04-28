@@ -1,4 +1,4 @@
-from core.pdf_to_images import ImageFormat, ExportImagesConfig, export_pages_as_images
+from core.pdf_to_images import ExportImagesConfig, ImageFormat, export_pages_as_images
 
 
 class TestPdfToImages:
