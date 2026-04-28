@@ -21,4 +21,8 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
-ignore = ["E501", "SIM105", "SIM108", "SIM113"]  # Simplification suggestions are too aggressive
+ignore = [
+    "E501",               # Line too long
+    "B904",               # Allow raising exceptions without chaining when custom error message is appropriate
+    "SIM102", "SIM105", "SIM108", "SIM113",  # Simplification suggestions are too aggressive for dev
+]
