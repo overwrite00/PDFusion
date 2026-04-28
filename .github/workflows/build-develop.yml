@@ -1,0 +1,171 @@
+name: Build pre-release (develop)
+
+on:
+  push:
+    tags:
+      - "v*-beta*"   # es. v0.1.0-beta1
+    paths-ignore:
+      - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "CLAUDE.md"
+      - ".gitignore"
+      - "**/*.md"
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Windows — NSIS installer .exe
+  # -----------------------------------------------------------------------
+  build-windows:
+    name: Build Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Build with PyInstaller
+        run: pyinstaller PDFusion.spec --noconfirm
+
+      - name: Install NSIS
+        run: choco install nsis --no-progress -y
+
+      - name: Build NSIS installer
+        run: |
+          $version = "${{ github.ref_name }}" -replace "^v", ""
+          makensis /DVERSION=$version installer/windows/installer.nsi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDFusion-${{ github.ref_name }}-windows-setup
+          path: installer/windows/PDFusion-*-windows-setup.exe
+          retention-days: 14
+
+  # -----------------------------------------------------------------------
+  # Linux — AppImage
+  # -----------------------------------------------------------------------
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-glx libglib2.0-0 fuse libfuse2 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 \
+            libxcb-xfixes0 libxkbcommon-x11-0
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Build with PyInstaller
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x24 &
+          pyinstaller PDFusion.spec --noconfirm
+
+      - name: Download AppImageTool
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage \
+            -O /usr/local/bin/appimagetool
+          chmod +x /usr/local/bin/appimagetool
+
+      - name: Build AppImage
+        run: bash installer/linux/build_appimage.sh "${{ github.ref_name }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDFusion-${{ github.ref_name }}-linux
+          path: installer/linux/PDFusion-*-linux.AppImage
+          retention-days: 14
+
+  # -----------------------------------------------------------------------
+  # macOS — .dmg
+  # -----------------------------------------------------------------------
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Build with PyInstaller
+        run: pyinstaller PDFusion.spec --noconfirm
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Sign app (conditional)
+        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+        run: bash installer/macos/sign.sh
+
+      - name: Build DMG
+        run: bash installer/macos/create_dmg.sh "${{ github.ref_name }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDFusion-${{ github.ref_name }}-macos
+          path: installer/macos/PDFusion-*-macos.dmg
+          retention-days: 14
+
+  # -----------------------------------------------------------------------
+  # Crea la pre-release su GitHub (aspetta tutti i build)
+  # -----------------------------------------------------------------------
+  create-prerelease:
+    name: Create pre-release
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Create GitHub pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          tag_name: ${{ github.ref_name }}
+          name: "PDFusion ${{ github.ref_name }} (pre-release)"
+          body: |
+            ## Pre-release di test — ${{ github.ref_name }}
+
+            Questa è una build automatica dal ramo **develop**. Non è una release stabile.
+
+            ### Download
+            - **Windows**: `PDFusion-*-windows-setup.exe`
+            - **Linux**: `PDFusion-*-linux.AppImage`
+            - **macOS**: `PDFusion-*-macos.dmg`
+          files: dist/**/*

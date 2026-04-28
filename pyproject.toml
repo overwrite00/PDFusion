@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=72"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "pdfusion"
+version = "0.1.0"
+description = "Cross-platform PDF management desktop application"
+license = { text = "MIT" }
+requires-python = ">=3.11,<3.14"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
