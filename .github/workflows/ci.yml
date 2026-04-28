@@ -57,7 +57,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            libgl1 libEGL1 libglib2.0-0 libxcb-icccm4 libxcb-image0 \
+            libgl1 libegl1-mesa libglib2.0-0 libxcb-icccm4 libxcb-image0 \
             libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
             libxcb-xinerama0 libxcb-xfixes0 libxkbcommon-x11-0 \
             libx11-6 libxext6 libxcb-xkb1 \
