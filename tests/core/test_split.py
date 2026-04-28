@@ -1,6 +1,7 @@
-import pytest
+
 import pikepdf
-from pathlib import Path
+import pytest
+
 from core.split import split_every_n, split_ranges
 from utils.exceptions import InvalidPageRangeError
 

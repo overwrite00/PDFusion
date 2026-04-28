@@ -1,21 +1,19 @@
 from __future__ import annotations
 
+import datetime
 import io
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
-import datetime
 
 import fitz  # PyMuPDF
-from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib.colors import HexColor
+from reportlab.pdfgen import canvas as rl_canvas
 
 from utils.config import BUNDLED_FONT_PATH
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 from utils.page_range_parser import parse_page_ranges, ranges_to_indices
 from utils.temp_manager import atomic_write
-
 
 # Variabili supportate nel testo: {page}, {total}, {date}, {title}, {author}
 _DEFAULT_DATE = datetime.date.today().strftime("%d/%m/%Y")
@@ -42,7 +40,7 @@ class HeaderFooterConfig:
     margin_horizontal: float = 36.0   # ~1.27 cm
     margin_vertical: float = 28.0     # ~1.00 cm  (Word default: ~1.27 cm)
     # Range di pagine su cui applicare (None = tutte)
-    page_range: Optional[str] = None
+    page_range: str | None = None
     # Differenziazione prima pagina e pagine pari/dispari
     different_first_page: bool = False
     different_odd_even: bool = False
@@ -56,9 +54,9 @@ def add_headers_footers(
     input_path: Path,
     output_path: Path,
     config: HeaderFooterConfig,
-    document_title: Optional[str] = None,
-    document_author: Optional[str] = None,
-    password: Optional[str] = None,
+    document_title: str | None = None,
+    document_author: str | None = None,
+    password: str | None = None,
 ) -> Path:
     """
     Aggiunge intestazioni e/o piè di pagina al PDF.
@@ -217,7 +215,7 @@ def _substitute(template: str, vars_: dict) -> str:
         return template
 
 
-def _resolve_indices(page_range: Optional[str], total: int) -> List[int]:
+def _resolve_indices(page_range: str | None, total: int) -> list[int]:
     if not page_range:
         return list(range(total))
     try:

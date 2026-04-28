@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Optional
 
 import pikepdf
 
@@ -8,9 +7,9 @@ from utils.temp_manager import atomic_write
 
 
 def merge(
-    input_paths: List[Path],
+    input_paths: list[Path],
     output_path: Path,
-    passwords: Optional[List[Optional[str]]] = None,
+    passwords: list[str | None] | None = None,
 ) -> Path:
     """
     Unisce più file PDF in uno solo, nell'ordine fornito.
@@ -41,7 +40,7 @@ def merge(
     try:
         # Manteniamo i PDF aperti finché il merge non è completato,
         # poi li chiudiamo tutti insieme nel blocco finally.
-        opened: List[pikepdf.Pdf] = []
+        opened: list[pikepdf.Pdf] = []
 
         for path, pwd in zip(input_paths, passwords):
             if not path.exists():
@@ -73,8 +72,8 @@ def insert_pdf_at(
     insert_path: Path,
     after_page: int,
     output_path: Path,
-    base_password: Optional[str] = None,
-    insert_password: Optional[str] = None,
+    base_password: str | None = None,
+    insert_password: str | None = None,
 ) -> Path:
     """
     Inserisce insert_path all'interno di base_path dopo la pagina indicata.

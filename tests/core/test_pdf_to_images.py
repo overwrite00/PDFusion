@@ -1,6 +1,4 @@
-import pytest
-from pathlib import Path
-from core.pdf_to_images import pdf_to_images, ImageFormat
+from core.pdf_to_images import ImageFormat, pdf_to_images
 
 
 class TestPdfToImages:

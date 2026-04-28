@@ -1,5 +1,6 @@
-import pytest
 import pikepdf
+import pytest
+
 from core.reorder import reorder_pages
 from utils.exceptions import PDFusionError
 

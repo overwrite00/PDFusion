@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -17,14 +16,14 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from core.license_page import LICENSE_LABELS, LicenseConfig
 from ui.panels.base_panel import BasePanelWidget
-from core.license_page import LicenseConfig, LicenseType, LICENSE_LABELS
 
 
 class LicensePanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Pagina licenza", parent)
-        self._cover_image_path: Optional[Path] = None
+        self._cover_image_path: Path | None = None
         self._setup_content()
 
     def _setup_content(self) -> None:

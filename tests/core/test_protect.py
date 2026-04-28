@@ -1,7 +1,8 @@
-import pytest
 import pikepdf
-from core.protect import protect, remove_protection, ProtectConfig, EncryptionLevel
-from utils.exceptions import PDFusionError, EncryptedPDFError
+import pytest
+
+from core.protect import EncryptionLevel, ProtectConfig, protect, remove_protection
+from utils.exceptions import PDFusionError
 
 
 class TestProtect:

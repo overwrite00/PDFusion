@@ -1,5 +1,6 @@
-import pytest
 import pikepdf
+import pytest
+
 from core.delete_page import delete_pages
 from utils.exceptions import InvalidPageRangeError
 

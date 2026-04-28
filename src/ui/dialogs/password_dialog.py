@@ -1,6 +1,4 @@
-from typing import Optional
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -56,12 +54,12 @@ class PasswordDialog(QDialog):
         if self._edit.text():
             self.accept()
 
-    def password(self) -> Optional[str]:
+    def password(self) -> str | None:
         """Ritorna la password inserita o None se dialog annullato."""
         return self._edit.text() if self.result() == QDialog.DialogCode.Accepted else None
 
 
-def ask_password(filename: str = "", parent: QWidget | None = None) -> Optional[str]:
+def ask_password(filename: str = "", parent: QWidget | None = None) -> str | None:
     """Convenience function: mostra il dialog e restituisce la password."""
     dlg = PasswordDialog(filename, parent)
     dlg.exec()

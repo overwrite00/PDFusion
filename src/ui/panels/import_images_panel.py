@@ -1,30 +1,26 @@
 from pathlib import Path
-from typing import List
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QFormLayout,
     QHBoxLayout,
-    QLabel,
     QListWidget,
     QListWidgetItem,
     QPushButton,
     QSpinBox,
-    QVBoxLayout,
     QWidget,
 )
 
+from core.images_to_pdf import FitMode
 from ui.panels.base_panel import BasePanelWidget
 from ui.widgets.drop_zone import DropZone
-from core.images_to_pdf import FitMode
 
 
 class ImportImagesPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Immagini → PDF", parent)
-        self._images: List[Path] = []
+        self._images: list[Path] = []
         self._supports_preview = False   # input immagini, non PDF: preview non applicabile
         self._setup_content()
 
@@ -70,7 +66,7 @@ class ImportImagesPanel(BasePanelWidget):
         self._content_layout.addLayout(form)
 
 
-    def _add_images(self, paths: List[Path]) -> None:
+    def _add_images(self, paths: list[Path]) -> None:
         for p in paths:
             if p not in self._images:
                 self._images.append(p)
@@ -105,7 +101,7 @@ class ImportImagesPanel(BasePanelWidget):
         }
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
-        from core.images_to_pdf import images_to_pdf, ImagesToPDFConfig
+        from core.images_to_pdf import ImagesToPDFConfig, images_to_pdf
         images_to_pdf(
             config["images"],
             output_path,

@@ -1,7 +1,8 @@
-import pytest
 import shutil
-from pathlib import Path
-from core.batch import run_batch, BatchOperation, BatchJob, BatchResult
+
+import pytest
+
+from core.batch import BatchJob, BatchOperation, run_batch
 from core.compress import CompressConfig, CompressPreset
 
 

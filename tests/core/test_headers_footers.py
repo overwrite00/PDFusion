@@ -1,9 +1,9 @@
-import pytest
 import pikepdf
+
 from core.headers_footers import (
-    add_headers_footers,
     HeaderFooterConfig,
     HeaderFooterSection,
+    add_headers_footers,
 )
 
 

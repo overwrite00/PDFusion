@@ -4,13 +4,10 @@ import io
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 from PIL import Image
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas as rl_canvas
-
-import pikepdf
 
 from utils.exceptions import PDFusionError
 from utils.temp_manager import atomic_write
@@ -27,15 +24,15 @@ class FitMode(Enum):
 @dataclass
 class ImagesToPDFConfig:
     fit_mode: FitMode = FitMode.FIT_PAGE
-    fixed_page_size: Tuple[float, float] = A4  # usato solo con FIXED_PAGE
+    fixed_page_size: tuple[float, float] = A4  # usato solo con FIXED_PAGE
     dpi: int = 150              # DPI assunto per le immagini (per ORIGINAL_SIZE)
     jpeg_quality: int = 85      # qualità JPEG per le immagini embedded
 
 
 def images_to_pdf(
-    image_paths: List[Path],
+    image_paths: list[Path],
     output_path: Path,
-    config: Optional[ImagesToPDFConfig] = None,
+    config: ImagesToPDFConfig | None = None,
 ) -> Path:
     """
     Crea un PDF da una lista di immagini (una per pagina).
@@ -73,7 +70,7 @@ def images_to_pdf(
         raise PDFusionError(f"File non trovato: {missing[0]}")
 
     buf = io.BytesIO()
-    c: Optional[rl_canvas.Canvas] = None
+    c: rl_canvas.Canvas | None = None
 
     for idx, img_path in enumerate(image_paths):
         try:
@@ -137,7 +134,7 @@ def images_to_pdf(
 def _compute_page_size(
     img: Image.Image,
     config: ImagesToPDFConfig,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     if config.fit_mode == FitMode.FIXED_PAGE:
         return config.fixed_page_size
     if config.fit_mode == FitMode.FIT_PAGE:
@@ -150,7 +147,7 @@ def _compute_page_size(
 def _fit_in_rect(
     img_w: int, img_h: int,
     rect_w: float, rect_h: float,
-) -> Tuple[float, float, float, float]:
+) -> tuple[float, float, float, float]:
     """Calcola posizione e dimensioni per centrare l'immagine nel rettangolo."""
     scale = min(rect_w / img_w, rect_h / img_h)
     draw_w = img_w * scale

@@ -1,10 +1,11 @@
 import pytest
+
+from utils.exceptions import InvalidPageRangeError
 from utils.page_range_parser import (
     format_page_ranges,
     parse_page_ranges,
     ranges_to_indices,
 )
-from utils.exceptions import InvalidPageRangeError
 
 
 class TestParsePageRanges:

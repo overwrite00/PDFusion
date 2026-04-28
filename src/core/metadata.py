@@ -1,6 +1,5 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import pikepdf
 
@@ -10,19 +9,19 @@ from utils.temp_manager import atomic_write
 
 @dataclass
 class PDFMetadata:
-    title: Optional[str] = None
-    author: Optional[str] = None
-    subject: Optional[str] = None
-    keywords: Optional[str] = None
-    creator: Optional[str] = None
-    producer: Optional[str] = None
-    creation_date: Optional[str] = None
-    mod_date: Optional[str] = None
+    title: str | None = None
+    author: str | None = None
+    subject: str | None = None
+    keywords: str | None = None
+    creator: str | None = None
+    producer: str | None = None
+    creation_date: str | None = None
+    mod_date: str | None = None
 
 
 def read_metadata(
     input_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> PDFMetadata:
     """
     Legge i metadati (docinfo) dal PDF.
@@ -60,7 +59,7 @@ def write_metadata(
     input_path: Path,
     metadata: PDFMetadata,
     output_path: Path,
-    password: Optional[str] = None,
+    password: str | None = None,
 ) -> Path:
     """
     Scrive i metadati nel PDF.
@@ -97,7 +96,7 @@ def write_metadata(
     return output_path
 
 
-def _get_str(info: pikepdf.Dictionary, key: str) -> Optional[str]:
+def _get_str(info: pikepdf.Dictionary, key: str) -> str | None:
     try:
         val = info.get(key)
         if val is None:
@@ -112,7 +111,7 @@ def _set_field(
     xmp,
     docinfo_key: str,
     xmp_key: str,
-    value: Optional[str],
+    value: str | None,
 ) -> None:
     if value is None:
         return

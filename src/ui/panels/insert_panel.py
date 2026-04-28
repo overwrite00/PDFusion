@@ -1,8 +1,6 @@
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QButtonGroup,
     QComboBox,
     QFileDialog,
     QFormLayout,
@@ -16,14 +14,14 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.panels.base_panel import BasePanelWidget
 from core.insert_page import PAGE_SIZES
+from ui.panels.base_panel import BasePanelWidget
 
 
 class InsertPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Inserisci pagina", parent)
-        self._source_path: Optional[Path] = None
+        self._source_path: Path | None = None
         self._total_pages: int = 1
         self._setup_content()
 

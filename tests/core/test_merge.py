@@ -1,5 +1,6 @@
-import pytest
 import pikepdf
+import pytest
+
 from core.merge import merge
 
 

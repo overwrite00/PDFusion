@@ -1,6 +1,7 @@
-import pytest
 import pikepdf
-from core.license_page import insert_license_page, LicenseType, LicenseConfig
+import pytest
+
+from core.license_page import LicenseConfig, LicenseType, insert_license_page
 
 
 class TestInsertLicensePage:

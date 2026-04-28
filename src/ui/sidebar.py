@@ -1,9 +1,13 @@
 from dataclasses import dataclass
-from typing import List
 
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
-    QLabel, QListWidget, QListWidgetItem, QPushButton, QVBoxLayout, QWidget,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
 
 
@@ -14,7 +18,7 @@ class SidebarItem:
     is_separator: bool = False
 
 
-SIDEBAR_ITEMS: List[SidebarItem] = [
+SIDEBAR_ITEMS: list[SidebarItem] = [
     SidebarItem("split", "✂  Dividi PDF"),
     SidebarItem("merge", "🔗  Unisci PDF"),
     SidebarItem("delete_page", "🗑  Elimina pagina"),

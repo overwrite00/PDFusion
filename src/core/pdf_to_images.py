@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
 
 import fitz  # PyMuPDF
 
@@ -21,16 +20,16 @@ class ImageFormat(Enum):
 class ExportImagesConfig:
     format: ImageFormat = ImageFormat.PNG
     dpi: int = 150
-    page_range: Optional[str] = None  # None = tutte le pagine
+    page_range: str | None = None  # None = tutte le pagine
     jpeg_quality: int = 85            # usato solo per JPEG
 
 
 def export_pages_as_images(
     input_path: Path,
     output_dir: Path,
-    config: Optional[ExportImagesConfig] = None,
-    password: Optional[str] = None,
-) -> List[Path]:
+    config: ExportImagesConfig | None = None,
+    password: str | None = None,
+) -> list[Path]:
     """
     Esporta le pagine del PDF come immagini.
 
@@ -66,7 +65,7 @@ def export_pages_as_images(
         zoom = config.dpi / 72.0
         matrix = fitz.Matrix(zoom, zoom)
 
-        output_paths: List[Path] = []
+        output_paths: list[Path] = []
         for page_idx in indices:
             page = doc[page_idx]
             pixmap = page.get_pixmap(matrix=matrix, alpha=False)
@@ -85,7 +84,7 @@ def export_pages_as_images(
     return output_paths
 
 
-def _resolve_indices(page_range: Optional[str], total: int) -> List[int]:
+def _resolve_indices(page_range: str | None, total: int) -> list[int]:
     if not page_range:
         return list(range(total))
     try:

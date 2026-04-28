@@ -1,10 +1,8 @@
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
-    QButtonGroup,
     QGroupBox,
     QHBoxLayout,
-    QLabel,
     QRadioButton,
     QVBoxLayout,
     QWidget,

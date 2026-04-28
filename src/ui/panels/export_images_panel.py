@@ -9,8 +9,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.panels.base_panel import BasePanelWidget
 from core.pdf_to_images import ExportImagesConfig, ImageFormat
+from ui.panels.base_panel import BasePanelWidget
 from ui.widgets.page_range_input import PageRangeInput
 
 
@@ -66,10 +66,11 @@ class ExportImagesPanel(BasePanelWidget):
         self.status_message.emit("Esportazione immagini in corso…")
 
         from PyQt6.QtCore import QThread
+
         from ui.panels.base_panel import _Worker
 
         def _do(input_path, out, pwd, cfg):
-            from core.pdf_to_images import export_pages_as_images, ExportImagesConfig
+            from core.pdf_to_images import export_pages_as_images
             result = export_pages_as_images(
                 input_path,
                 Path(output_dir),

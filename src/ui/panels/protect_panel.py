@@ -11,8 +11,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.panels.base_panel import BasePanelWidget
 from core.protect import EncryptionLevel, ProtectConfig
+from ui.panels.base_panel import BasePanelWidget
 
 
 class ProtectPanel(BasePanelWidget):

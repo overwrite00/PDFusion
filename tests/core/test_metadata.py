@@ -1,5 +1,3 @@
-import pytest
-import pikepdf
 from core.metadata import read_metadata, write_metadata
 
 

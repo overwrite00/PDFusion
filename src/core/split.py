@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 import pikepdf
 
@@ -12,8 +11,8 @@ def split_every_n(
     input_path: Path,
     n: int,
     output_dir: Path,
-    password: Optional[str] = None,
-) -> List[Path]:
+    password: str | None = None,
+) -> list[Path]:
     """
     Divide il PDF in più file di N pagine ciascuno.
 
@@ -45,7 +44,7 @@ def split_every_n(
         pdf.close()
         raise PDFusionError("Il PDF non contiene pagine.")
 
-    output_paths: List[Path] = []
+    output_paths: list[Path] = []
     chunk_index = 1
 
     try:
@@ -66,10 +65,10 @@ def split_every_n(
 
 def split_ranges(
     input_path: Path,
-    ranges: List[Tuple[int, int]],
+    ranges: list[tuple[int, int]],
     output_dir: Path,
-    password: Optional[str] = None,
-) -> List[Path]:
+    password: str | None = None,
+) -> list[Path]:
     """
     Divide il PDF secondo range di pagine specificati (1-based).
 
@@ -94,7 +93,7 @@ def split_ranges(
         raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
     total = len(pdf.pages)
-    output_paths: List[Path] = []
+    output_paths: list[Path] = []
 
     try:
         for i, (start, end) in enumerate(ranges, 1):
@@ -118,8 +117,8 @@ def split_by_range_string(
     input_path: Path,
     range_string: str,
     output_dir: Path,
-    password: Optional[str] = None,
-) -> List[Path]:
+    password: str | None = None,
+) -> list[Path]:
     """
     Convenience wrapper: accetta una stringa tipo "1-3, 5, 7-9".
     """
@@ -134,7 +133,7 @@ def split_by_range_string(
     return split_ranges(input_path, ranges, output_dir, password)
 
 
-def _open_pdf(path: Path, password: Optional[str]) -> pikepdf.Pdf:
+def _open_pdf(path: Path, password: str | None) -> pikepdf.Pdf:
     try:
         kwargs = {"password": password} if password else {}
         return pikepdf.open(path, **kwargs)

@@ -1,6 +1,5 @@
-from typing import List, Optional, Tuple
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QWidget
 
 from utils.exceptions import InvalidPageRangeError
@@ -22,7 +21,7 @@ class PageRangeInput(QWidget):
     def __init__(
         self,
         placeholder: str = "es. 1-3, 5, 7-9",
-        total_pages: Optional[int] = None,
+        total_pages: int | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -48,7 +47,7 @@ class PageRangeInput(QWidget):
     # Public API
     # ------------------------------------------------------------------
 
-    def set_total_pages(self, total: Optional[int]) -> None:
+    def set_total_pages(self, total: int | None) -> None:
         self._total_pages = total
         self._on_text_changed(self._edit.text())
 
@@ -61,7 +60,7 @@ class PageRangeInput(QWidget):
     def is_valid(self) -> bool:
         return self._valid
 
-    def get_ranges(self) -> Optional[List[Tuple[int, int]]]:
+    def get_ranges(self) -> list[tuple[int, int]] | None:
         """Ritorna il range parsato se valido, altrimenti None."""
         try:
             return parse_page_ranges(self._edit.text(), self._total_pages)

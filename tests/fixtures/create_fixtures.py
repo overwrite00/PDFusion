@@ -3,9 +3,10 @@ Genera i PDF fixture usati dalla test suite.
 Eseguire una volta: python tests/fixtures/create_fixtures.py
 """
 from pathlib import Path
+
 import pikepdf
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
 FIXTURES = Path(__file__).parent
 

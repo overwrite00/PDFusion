@@ -11,9 +11,9 @@ Strategia:
 import os
 import shutil
 import tempfile
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
 
 from utils.config import TEMP_DIR
 from utils.exceptions import FileLockedError

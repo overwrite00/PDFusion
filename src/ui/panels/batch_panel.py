@@ -1,9 +1,7 @@
 from pathlib import Path
-from typing import List
 
-from PyQt6.QtCore import QThread, pyqtSlot
+from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import (
-    QAbstractItemView,
     QComboBox,
     QFileDialog,
     QFormLayout,
@@ -13,20 +11,19 @@ from PyQt6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPushButton,
-    QVBoxLayout,
     QWidget,
 )
 
+from core.batch import BatchJob, BatchOperation, run_batch
+from ui.dialogs.progress_dialog import ProgressDialog
 from ui.panels.base_panel import BasePanelWidget
 from ui.widgets.drop_zone import DropZone
-from ui.dialogs.progress_dialog import ProgressDialog
-from core.batch import BatchJob, BatchOperation, run_batch
 
 
 class BatchPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Batch", parent)
-        self._files: List[Path] = []
+        self._files: list[Path] = []
         self._supports_preview = False   # operazione multipla
         self._progress_dlg: ProgressDialog | None = None
         self._thread: QThread | None = None
@@ -93,7 +90,7 @@ class BatchPanel(BasePanelWidget):
         super().set_current_file(path, password)
         self._apply_btn.setEnabled(True)
 
-    def _add_files(self, paths: List[Path]) -> None:
+    def _add_files(self, paths: list[Path]) -> None:
         for p in paths:
             if p not in self._files:
                 self._files.append(p)
@@ -141,7 +138,8 @@ class BatchPanel(BasePanelWidget):
         files = list(self._files)
         dlg = self._progress_dlg
 
-        from PyQt6.QtCore import QObject, pyqtSignal as _ps
+        from PyQt6.QtCore import QObject
+        from PyQt6.QtCore import pyqtSignal as _ps
 
         class _Worker(QObject):
             progress = _ps(int, int, str)
