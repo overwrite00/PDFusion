@@ -10,7 +10,8 @@
 !define OUTPUT_FILE  "${__FILEDIR__}\PDFusion-${VERSION}-windows-setup.exe"
 !define INSTALL_DIR  "$PROGRAMFILES64\PDFusion"
 !define REG_KEY      "Software\Microsoft\Windows\CurrentVersion\Uninstall\PDFusion"
-!define DIST_DIR     "${__FILEDIR__}\..\..\dist\PDFusion"
+; Fixed: Use simpler relative path without ${__FILEDIR__}
+!define DIST_DIR     "..\..\dist\PDFusion"
 
 ; Includi moderni UI
 !include "MUI2.nsh"
