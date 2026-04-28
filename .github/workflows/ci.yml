@@ -60,6 +60,8 @@ jobs:
             libgl1-mesa-glx libglib2.0-0 libxcb-icccm4 libxcb-image0 \
             libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
             libxcb-xinerama0 libxcb-xfixes0 libxkbcommon-x11-0 \
+            libx11-6 libxext6 libxcb-xkb1 \
+            libfreetype6 libfontconfig1 libharfbuzz0b \
             xvfb
 
       - name: Install dependencies
