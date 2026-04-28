@@ -4,13 +4,6 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"   # solo tag stabili: v0.1.0, v1.2.3, ecc.
-    paths-ignore:
-      - "README.md"
-      - "CHANGELOG.md"
-      - "LICENSE"
-      - "CLAUDE.md"
-      - ".gitignore"
-      - "**/*.md"
 
 jobs:
   # -----------------------------------------------------------------------

@@ -4,13 +4,6 @@ on:
   push:
     tags:
       - "v*-beta*"   # es. v0.1.0-beta1
-    paths-ignore:
-      - "README.md"
-      - "CHANGELOG.md"
-      - "LICENSE"
-      - "CLAUDE.md"
-      - ".gitignore"
-      - "**/*.md"
 
 jobs:
   # -----------------------------------------------------------------------
@@ -69,7 +62,7 @@ jobs:
             libgl1-mesa-glx libglib2.0-0 fuse libfuse2 \
             libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 \
-            libxcb-xfixes0 libxkbcommon-x11-0
+            libxcb-xfixes0 libxkbcommon-x11-0 xvfb
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt

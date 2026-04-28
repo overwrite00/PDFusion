@@ -19,7 +19,6 @@ a = Analysis(
     binaries=[],
     datas=[
         (str(ASSETS_DIR / "icons"), "assets/icons"),
-        (str(ASSETS_DIR / "fonts"), "assets/fonts"),
         (str(ASSETS_DIR / "licenses" / "templates"), "assets/licenses/templates"),
         (str(SRC_DIR / "styles" / "pdfusion.qss"), "styles"),
     ],
