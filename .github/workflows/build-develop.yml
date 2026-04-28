@@ -113,7 +113,7 @@ jobs:
         run: brew install create-dmg
 
       - name: Sign app (conditional)
-        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        if: ${{ env.APPLE_CERTIFICATE != '' }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
