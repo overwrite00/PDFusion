@@ -86,10 +86,9 @@ def apply_watermark(
     except Exception as exc:
         raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
-    if password:
-        if not doc.authenticate(password):
-            doc.close()
-            raise PDFusionError("Password errata o mancante per aprire il PDF.")
+    if password and not doc.authenticate(password):
+        doc.close()
+        raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
     try:
         total = doc.page_count

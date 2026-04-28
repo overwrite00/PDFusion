@@ -42,7 +42,7 @@ def merge(
         # poi li chiudiamo tutti insieme nel blocco finally.
         opened: list[pikepdf.Pdf] = []
 
-        for path, pwd in zip(input_paths, passwords):
+        for path, pwd in zip(input_paths, passwords, strict=False):
             if not path.exists():
                 raise PDFusionError(f"File non trovato: {path}")
             try:

@@ -157,16 +157,15 @@ def _register_fonts() -> None:
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    if "PDFusionFont" not in pdfmetrics.getRegisteredFontNames():
-        if BUNDLED_FONT_PATH.exists():
-            try:
-                pdfmetrics.registerFont(TTFont("PDFusionFont", str(BUNDLED_FONT_PATH)))
-            except Exception:
-                pass
+    if "PDFusionFont" not in pdfmetrics.getRegisteredFontNames() and BUNDLED_FONT_PATH.exists():
+        try:
+            pdfmetrics.registerFont(TTFont("PDFusionFont", str(BUNDLED_FONT_PATH)))
+        except Exception:
+            pass
 
 
 def _build_styles() -> dict:
-    base = getSampleStyleSheet()
+    getSampleStyleSheet()
     font = "PDFusionFont" if _font_registered() else "Helvetica"
 
     return {

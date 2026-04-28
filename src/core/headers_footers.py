@@ -233,12 +233,7 @@ def _has_content(config: HeaderFooterConfig) -> bool:
         or _section_has_content(config.first_page_footer)
     ):
         return True
-    if config.different_odd_even and (
-        _section_has_content(config.even_header)
-        or _section_has_content(config.even_footer)
-    ):
-        return True
-    return False
+    return bool(config.different_odd_even and (_section_has_content(config.even_header) or _section_has_content(config.even_footer)))
 
 
 def _section_has_content(section: HeaderFooterSection) -> bool:

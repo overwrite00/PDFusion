@@ -72,7 +72,7 @@ def images_to_pdf(
     buf = io.BytesIO()
     c: rl_canvas.Canvas | None = None
 
-    for idx, img_path in enumerate(image_paths):
+    for _idx, img_path in enumerate(image_paths):
         try:
             pil_img = Image.open(img_path)
         except Exception as exc:
