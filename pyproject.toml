@@ -12,7 +12,6 @@ requires-python = ">=3.11,<3.14"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-asyncio_mode = "auto"
 
 [tool.ruff]
 src = ["src"]
