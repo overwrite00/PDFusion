@@ -4,13 +4,6 @@ on:
   push:
     tags:
       - "v*-beta*"   # es. v0.1.0-beta1
-    paths-ignore:
-      - "README.md"
-      - "CHANGELOG.md"
-      - "LICENSE"
-      - "CLAUDE.md"
-      - ".gitignore"
-      - "**/*.md"
 
 jobs:
   # -----------------------------------------------------------------------
@@ -39,7 +32,7 @@ jobs:
       - name: Build NSIS installer
         run: |
           $version = "${{ github.ref_name }}" -replace "^v", ""
-          makensis /DVERSION=$version installer/windows/installer.nsi
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /DVERSION=$version installer/windows/installer.nsi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
