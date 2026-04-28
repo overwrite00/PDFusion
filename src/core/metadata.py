@@ -116,7 +116,10 @@ def _set_field(
     if value is None:
         return
     if value == "":
-        info.pop(docinfo_key, None)
+        try:
+            del info[docinfo_key]
+        except (KeyError, Exception):
+            pass
         try:
             del xmp[xmp_key]
         except (KeyError, Exception):

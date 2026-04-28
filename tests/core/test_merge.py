@@ -2,6 +2,7 @@ import pikepdf
 import pytest
 
 from core.merge import merge
+from utils.exceptions import PDFusionError
 
 
 class TestMerge:
@@ -22,7 +23,7 @@ class TestMerge:
             assert len(pdf.pages) == 10
 
     def test_merge_empty_list_raises(self, tmp_output):
-        with pytest.raises(ValueError):
+        with pytest.raises(PDFusionError):
             merge([], tmp_output)
 
     def test_merge_with_encrypted(self, sample_pdf, encrypted_pdf, tmp_output):

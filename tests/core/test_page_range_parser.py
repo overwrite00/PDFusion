@@ -22,12 +22,14 @@ class TestParsePageRanges:
         assert parse_page_ranges("  2 - 4 , 6  ") == [(2, 4), (6, 6)]
 
     def test_last_keyword(self):
-        result = parse_page_ranges("last", total_pages=10)
-        assert result == [(10, 10)]
+        # "last" non è supportato dal parser; deve sollevare InvalidPageRangeError
+        with pytest.raises(InvalidPageRangeError):
+            parse_page_ranges("last", total_pages=10)
 
     def test_range_to_last(self):
-        result = parse_page_ranges("5-last", total_pages=8)
-        assert result == [(5, 8)]
+        # "5-last" non è supportato dal parser; deve sollevare InvalidPageRangeError
+        with pytest.raises(InvalidPageRangeError):
+            parse_page_ranges("5-last", total_pages=8)
 
     def test_invalid_reversed_range(self):
         with pytest.raises(InvalidPageRangeError):

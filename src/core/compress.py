@@ -198,4 +198,9 @@ def _strip_metadata(pdf: pikepdf.Pdf) -> None:
                 del xmp[key]
             except Exception:
                 pass
-    pdf.docinfo.clear()
+    # pikepdf.Dictionary non supporta .clear(); rimuoviamo ogni chiave singolarmente
+    for key in list(pdf.docinfo.keys()):
+        try:
+            del pdf.docinfo[key]
+        except Exception:
+            pass

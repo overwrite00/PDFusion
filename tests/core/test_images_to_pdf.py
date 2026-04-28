@@ -4,6 +4,7 @@ import pytest
 from PIL import Image
 
 from core.images_to_pdf import images_to_pdf
+from utils.exceptions import PDFusionError
 
 
 @pytest.fixture
@@ -32,7 +33,7 @@ class TestImagesToPdf:
             assert len(pdf.pages) == 1
 
     def test_empty_list_raises(self, tmp_output):
-        with pytest.raises(ValueError):
+        with pytest.raises(PDFusionError):
             images_to_pdf([], tmp_output)
 
     def test_mixed_formats(self, tmp_path, tmp_output):

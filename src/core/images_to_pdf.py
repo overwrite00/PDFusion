@@ -7,6 +7,7 @@ from pathlib import Path
 
 from PIL import Image
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas as rl_canvas
 
 from utils.exceptions import PDFusionError
@@ -112,7 +113,7 @@ def images_to_pdf(
         img_buf.seek(0)
 
         c.drawImage(
-            img_buf,
+            ImageReader(img_buf),
             draw_x, draw_y,
             width=draw_w,
             height=draw_h,

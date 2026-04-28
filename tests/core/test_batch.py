@@ -8,9 +8,11 @@ from core.compress import CompressConfig, CompressPreset
 
 @pytest.fixture
 def three_pdfs(sample_pdf, tmp_path):
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
     paths = []
     for i in range(3):
-        dst = tmp_path / f"input_{i}.pdf"
+        dst = src_dir / f"input_{i}.pdf"
         shutil.copy(sample_pdf, dst)
         paths.append(dst)
     return paths
