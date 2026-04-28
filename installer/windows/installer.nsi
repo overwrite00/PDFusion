@@ -7,10 +7,10 @@
 
 !define APP_NAME     "PDFusion"
 !define APP_EXE      "PDFusion.exe"
-!define OUTPUT_FILE  "PDFusion-${VERSION}-windows-setup.exe"
+!define OUTPUT_FILE  "${__FILEDIR__}\PDFusion-${VERSION}-windows-setup.exe"
 !define INSTALL_DIR  "$PROGRAMFILES64\PDFusion"
 !define REG_KEY      "Software\Microsoft\Windows\CurrentVersion\Uninstall\PDFusion"
-!define DIST_DIR     "..\..\dist\PDFusion"
+!define DIST_DIR     "${__FILEDIR__}\..\..\dist\PDFusion"
 
 ; Includi moderni UI
 !include "MUI2.nsh"
