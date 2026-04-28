@@ -27,7 +27,7 @@ Type=Application
 Name=PDFusion
 Exec=PDFusion
 Icon=pdfusion
-Categories=Office;PDF;
+Categories=Office;Utility;
 Comment=Gestione PDF cross-platform
 EOF
 
