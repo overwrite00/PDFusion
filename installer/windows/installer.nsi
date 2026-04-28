@@ -29,8 +29,9 @@ SetCompressor   /SOLID lzma
 ; UI
 ; -----------------------------------------------------------------------
 !define MUI_ABORTWARNING
-!define MUI_ICON          "..\..\assets\icons\app.ico"
-!define MUI_UNICON        "..\..\assets\icons\app.ico"
+; TODO: Replace with valid Windows .ico file (currently PNG placeholder)
+; !define MUI_ICON          "..\..\assets\icons\app.ico"
+; !define MUI_UNICON        "..\..\assets\icons\app.ico"
 !define MUI_WELCOMEFINISHPAGE_BITMAP_NOSTRETCH
 
 !insertmacro MUI_PAGE_WELCOME
