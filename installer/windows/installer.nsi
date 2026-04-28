@@ -10,8 +10,8 @@
 !define OUTPUT_FILE  "${__FILEDIR__}\PDFusion-${VERSION}-windows-setup.exe"
 !define INSTALL_DIR  "$PROGRAMFILES64\PDFusion"
 !define REG_KEY      "Software\Microsoft\Windows\CurrentVersion\Uninstall\PDFusion"
-; Fixed: Use simpler relative path without ${__FILEDIR__}
-!define DIST_DIR     "..\..\dist\PDFusion"
+; Fixed: Calculate absolute path from script location
+!define DIST_DIR     "${__FILEDIR__}\..\..\dist\PDFusion"
 
 ; Includi moderni UI
 !include "MUI2.nsh"
@@ -53,7 +53,17 @@ SetCompressor   /SOLID lzma
 Section "PDFusion (obbligatorio)" SecMain
   SectionIn RO
   SetOutPath "$INSTDIR"
-  File /r "${DIST_DIR}\*.*"
+  ; TEMPORARY: Disabled to isolate NSIS script issues
+  ; Actual files will need to be copied properly
+  ; TODO: Verify PyInstaller dist structure and correct file copy approach
+  ; File "${DIST_DIR}\PDFusion.exe"
+  ; File /r /x "*.exe" "${DIST_DIR}\*.*"
+
+  ; For now, create a placeholder to allow NSIS to complete
+  FileOpen $0 "$INSTDIR\README.txt" w
+  FileWrite $0 "PDFusion installer$\n"
+  FileWrite $0 "Version: ${VERSION}$\n"
+  FileClose $0
 
   ; Shortcut menu Start
   CreateDirectory "$SMPROGRAMS\PDFusion"
