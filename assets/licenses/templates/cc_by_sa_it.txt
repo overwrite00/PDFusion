@@ -1,0 +1,14 @@
+Creative Commons Attribuzione - Condividi allo stesso modo 4.0 Internazionale (CC BY-SA 4.0)
+
+Copyright © {{ year }} {{ author }}
+
+Quest'opera è distribuita con Licenza Creative Commons Attribuzione - Condividi allo stesso modo 4.0 Internazionale. Per visualizzarne una copia, visita:
+https://creativecommons.org/licenses/by-sa/4.0/deed.it
+
+Sei libero di:
+  • Condividere — riprodurre, distribuire, comunicare al pubblico, esporre in pubblico, rappresentare, eseguire e recitare questo materiale con qualsiasi mezzo e formato
+  • Modificare — remixare, trasformare il materiale e basarti su di esso per qualsiasi scopo, anche commerciale.
+
+Alle seguenti condizioni:
+  • Attribuzione — Devi riconoscere una menzione di paternità adeguata, fornire un link alla licenza e indicare se sono state effettuate delle modifiche.
+  • Stessa licenza — Se remixi, trasformi il materiale o ti basi su di esso, devi distribuire i tuoi contributi con la stessa licenza del materiale originario.

@@ -1,0 +1,22 @@
+PROPRIETARY AND CONFIDENTIAL
+
+Copyright © {{ year }} {{ author }}. All Rights Reserved.
+
+This document and the information contained herein are the proprietary and
+confidential information of {{ author }} and may not be reproduced, transmitted,
+or disclosed in whole or in part, without the express written permission of
+{{ author }}.
+
+RESTRICTED RIGHTS NOTICE
+
+This document contains trade secrets and confidential information that is the
+exclusive property of {{ author }}. Any unauthorized use, reproduction, or
+distribution of this document, in whole or in part, may result in severe civil
+and criminal penalties, and will be prosecuted to the maximum extent possible
+under the law.
+
+Recipients of this document agree to maintain its confidentiality and to use
+the information contained herein only for the purposes for which it was provided.
+
+{{ author }}
+{{ year }}

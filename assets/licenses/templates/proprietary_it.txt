@@ -1,0 +1,11 @@
+Licenza Proprietaria
+
+Copyright © {{ year }} {{ author }}
+
+Tutti i diritti riservati. Questo documento è di proprietà esclusiva di {{ author }}.
+
+Il presente documento è riservato e può essere utilizzato esclusivamente dalle parti autorizzate. Non è consentita la riproduzione, distribuzione, divulgazione o utilizzo di questo documento, in tutto o in parte, senza il previo consenso scritto di {{ author }}.
+
+Qualsiasi utilizzo non autorizzato è espressamente vietato e potrà essere perseguito nelle sedi civili e penali competenti.
+
+Per richieste di autorizzazione, contattare: {{ author }}

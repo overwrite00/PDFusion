@@ -1,0 +1,17 @@
+Copyright © {{ year }} {{ author }}
+
+All rights reserved.
+
+This document and all content contained herein are the exclusive property of
+{{ author }}. No part of this document may be reproduced, distributed, transmitted,
+displayed, published, or broadcast in any form or by any means — including
+photocopying, recording, or other electronic or mechanical methods — without the
+prior written permission of {{ author }}, except in the case of brief quotations
+embodied in critical reviews and certain other non-commercial uses permitted by
+copyright law.
+
+For permission requests, contact: {{ author }}
+
+THE CONTENT OF THIS DOCUMENT IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED. {{ author | upper }} SHALL NOT BE LIABLE FOR ANY DAMAGES
+ARISING FROM THE USE OF THIS DOCUMENT.

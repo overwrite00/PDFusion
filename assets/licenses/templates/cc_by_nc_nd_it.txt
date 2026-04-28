@@ -1,0 +1,14 @@
+Creative Commons Attribuzione - Non commerciale - Non opere derivate 4.0 Internazionale (CC BY-NC-ND 4.0)
+
+Copyright © {{ year }} {{ author }}
+
+Quest'opera è distribuita con Licenza Creative Commons Attribuzione - Non commerciale - Non opere derivate 4.0 Internazionale. Per visualizzarne una copia, visita:
+https://creativecommons.org/licenses/by-nc-nd/4.0/deed.it
+
+Sei libero di:
+  • Condividere — riprodurre, distribuire, comunicare al pubblico, esporre in pubblico, rappresentare, eseguire e recitare questo materiale con qualsiasi mezzo e formato.
+
+Alle seguenti condizioni:
+  • Attribuzione — Devi riconoscere una menzione di paternità adeguata, fornire un link alla licenza e indicare se sono state effettuate delle modifiche.
+  • Non commerciale — Non puoi usare il materiale per scopi commerciali.
+  • Non opere derivate — Se remixi, trasformi il materiale o ti basi su di esso, non puoi distribuire il materiale così modificato.

@@ -1,0 +1,9 @@
+Solo Uso Educativo
+
+Copyright © {{ year }} {{ author }}
+
+Il presente documento è destinato esclusivamente a scopi educativi e didattici. Non è consentito il suo utilizzo per finalità commerciali.
+
+Il materiale contenuto in questo documento può essere utilizzato per attività didattiche, ricerca accademica e studio personale. È richiesta la citazione dell'autore originale per qualsiasi utilizzo o riproduzione, anche parziale.
+
+Qualsiasi uso al di fuori dell'ambito educativo richiede l'esplicita autorizzazione scritta di {{ author }}.

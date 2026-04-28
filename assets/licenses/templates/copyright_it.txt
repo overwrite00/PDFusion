@@ -1,0 +1,9 @@
+Copyright © {{ year }} {{ author }}
+
+Tutti i diritti riservati.
+
+Questo documento e tutti i contenuti in esso presenti sono di esclusiva proprietà di {{ author }}. Nessuna parte di questo documento può essere riprodotta, distribuita, trasmessa, visualizzata, pubblicata o diffusa in qualsiasi forma o con qualsiasi mezzo — inclusi la fotocopia, la registrazione o altri metodi elettronici o meccanici — senza il previo consenso scritto di {{ author }}, ad eccezione di brevi citazioni in recensioni critiche e altri usi non commerciali consentiti dalla legge sul diritto d'autore.
+
+Per richieste di autorizzazione, contattare: {{ author }}
+
+IL CONTENUTO DI QUESTO DOCUMENTO È FORNITO "COSÌ COM'È" SENZA ALCUNA GARANZIA, ESPRESSA O IMPLICITA. {{ author | upper }} NON SARÀ RESPONSABILE PER EVENTUALI DANNI DERIVANTI DALL'UTILIZZO DI QUESTO DOCUMENTO.

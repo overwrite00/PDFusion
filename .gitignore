@@ -1,0 +1,58 @@
+# === Claude memory files (private, not for GitHub) ===
+CLAUDE.md
+MEMORY.md
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+pip-wheel-metadata/
+*.pyo
+
+# === PyInstaller ===
+*.spec.bak
+dist/
+build/
+
+# === pytest / coverage ===
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.log
+
+# === Runtime data ===
+# (cartelle create da PDFusion a runtime nella home utente — non nel repo)
+# ~/.pdfusion/ viene creata a runtime, non è nel repo
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# === IDE ===
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# === Installer build artifacts ===
+installer/windows/*.exe
+installer/linux/*.AppImage
+installer/macos/*.dmg
+
+# === Ruff cache ===
+.ruff_cache/

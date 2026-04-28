@@ -1,0 +1,67 @@
+from pathlib import Path
+from typing import List, Optional
+
+import pikepdf
+
+from utils.exceptions import PDFusionError, UnsupportedFormatError
+from utils.temp_manager import atomic_write
+
+
+def reorder_pages(
+    input_path: Path,
+    new_order: List[int],
+    output_path: Path,
+    password: Optional[str] = None,
+) -> Path:
+    """
+    Riordina le pagine del PDF secondo la nuova sequenza indicata.
+
+    Args:
+        input_path: PDF sorgente.
+        new_order: lista di indici 0-based nel nuovo ordine desiderato.
+                   Deve contenere esattamente tutti gli indici validi
+                   (nessuna duplicazione, nessuna omissione).
+        output_path: percorso file risultante.
+        password: password se il PDF è protetto.
+
+    Returns:
+        output_path.
+
+    Raises:
+        PDFusionError: se new_order non è una permutazione valida degli indici.
+    """
+    try:
+        kwargs = {"password": password} if password else {}
+        pdf = pikepdf.open(input_path, **kwargs)
+    except pikepdf.PasswordError:
+        raise PDFusionError("Password errata o mancante per aprire il PDF.")
+    except pikepdf.PdfError as exc:
+        raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
+
+    try:
+        total = len(pdf.pages)
+        _validate_order(new_order, total)
+
+        reordered = pikepdf.Pdf.new()
+        for i in new_order:
+            reordered.pages.append(pdf.pages[i])
+
+        with atomic_write(output_path) as tmp:
+            reordered.save(tmp)
+    finally:
+        pdf.close()
+
+    return output_path
+
+
+def _validate_order(new_order: List[int], total: int) -> None:
+    if len(new_order) != total:
+        raise PDFusionError(
+            f"Il nuovo ordine deve contenere esattamente {total} elementi "
+            f"(ricevuti {len(new_order)})."
+        )
+    if sorted(new_order) != list(range(total)):
+        raise PDFusionError(
+            "Il nuovo ordine deve essere una permutazione degli indici originali "
+            f"(0 – {total - 1}), senza duplicati né omissioni."
+        )

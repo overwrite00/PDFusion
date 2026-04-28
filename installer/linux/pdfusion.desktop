@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=PDFusion
+GenericName=PDF Manager
+Comment=Gestione PDF cross-platform: dividi, unisci, comprimi, proteggi e molto altro
+Exec=PDFusion %f
+Icon=pdfusion
+Terminal=false
+Categories=Office;PDF;Utility;
+MimeType=application/pdf;
+Keywords=pdf;merge;split;compress;watermark;protect;
+StartupNotify=true
+StartupWMClass=PDFusion

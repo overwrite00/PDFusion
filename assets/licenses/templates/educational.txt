@@ -1,0 +1,28 @@
+Educational Use Only License
+
+Copyright © {{ year }} {{ author }}
+
+This document is made available for educational and non-commercial purposes only.
+
+PERMITTED USES:
+  • Personal study and self-education
+  • Use in academic courses and educational institutions
+  • Research and non-commercial scholarship
+  • Sharing with proper attribution in educational contexts
+
+PROHIBITED USES:
+  • Commercial reproduction or distribution
+  • Sale or licensing to third parties
+  • Use in commercial training programs or products
+  • Any use that generates revenue or commercial advantage
+
+ATTRIBUTION REQUIREMENT:
+Any permitted use of this document must include the following attribution:
+"© {{ year }} {{ author }} — Educational Use Only"
+
+DISCLAIMER:
+This document is provided for educational purposes "as is" without warranty
+of any kind. {{ author }} shall not be liable for any errors, omissions, or
+damages arising from the use of this material.
+
+For permissions beyond the scope of this license, contact: {{ author }}
