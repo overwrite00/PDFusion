@@ -4,7 +4,7 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 
 ![PDFusion Interface](assets/hero.png)
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)]()
+[[[![Version](https://img.shields.io/badge/version-0.1.11-blue)]()]()]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
@@ -15,26 +15,31 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 ## Table of Contents
 
 ### Getting Started
+
 - [Features](#features)
 - [System Requirements](#system-requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 
 ### Tools & Usage
+
 - [Tool Reference](#tool-reference) — Complete guide to all 16 tools
 
 ### For Developers
+
 - [Development](#development)
 - [Project Structure](#project-structure)
 - [Technology Stack](#technology-stack)
 - [Contributing](#contributing)
 
 ### Troubleshooting & Help
+
 - [Tips & Tricks](#tips--tricks)
 - [Known Limitations](#known-limitations)
 - [Troubleshooting](#troubleshooting)
 
 ### Resources
+
 - [Additional Resources](#additional-resources)
 - [License](#license)
 
@@ -51,6 +56,7 @@ PDFusion is a feature-rich, offline-first PDF manipulation suite. With **16 inte
 **PDFusion includes 16 professional tools:**
 
 ### Document Operations
+
 - 📄 **Merge** — Combine multiple PDFs into one
 - ✂️ **Split** — Divide PDFs by page ranges or individual files
 - 🔄 **Reorder** — Rearrange pages with intuitive controls
@@ -59,15 +65,18 @@ PDFusion is a feature-rich, offline-first PDF manipulation suite. With **16 inte
 - 📝 **Insert Page** — Add blank pages at any position
 
 ### Security & Protection
+
 - 🔒 **Protect** — Password encryption (AES-128/256) with permission restrictions
 - 🎨 **Watermark** — Add text or images (7 positions, custom opacity/rotation)
 
 ### Content Management
+
 - 📝 **Headers & Footers** — Add custom text with dynamic variables
 - 📃 **License Pages** — Insert branded license pages (11+ templates)
 - 📊 **Metadata** — Edit PDF title, author, subject, and other properties
 
 ### Conversion & Processing
+
 - 📸 **Convert** — PDF↔Images (PNG/JPG/TIFF), image collections→PDF
 - 🗜️ **Compress** — Reduce file size with quality presets (Screen/eBook/Print/Prepress)
 - 🔄 **Batch Processing** — Process multiple files in parallel
@@ -92,7 +101,7 @@ PDFusion is a feature-rich, offline-first PDF manipulation suite. With **16 inte
 
 ```bash
 # Clone repository
-git clone https://github.com/[your-username]/PDFusion.git
+git clone https://github.com/overwrite00/PDFusion.git
 cd PDFusion
 
 # Create virtual environment
@@ -117,9 +126,9 @@ Pre-built executables available in [Releases](https://github.com/[your-username]
 
 | Platform | Installer | Type |
 |---|---|---|
-| **Windows** | `PDFusion-0.1.0-windows-setup.exe` | NSIS installer |
-| **macOS** | `PDFusion-0.1.0-macos.dmg` | Disk image |
-| **Linux** | `PDFusion-0.1.0-linux.AppImage` | Portable executable |
+| **Windows** | `PDFusion-0.1.11-windows-setup.exe` | NSIS installer |
+| **macOS** | `PDFusion-0.1.11-macos.dmg` | Disk image |
+| **Linux** | `PDFusion-0.1.11-linux.AppImage` | Portable executable |
 
 [⬆ Back to Top](#table-of-contents)
 
@@ -136,12 +145,14 @@ Pre-built executables available in [Releases](https://github.com/[your-username]
 ### Example Workflows
 
 #### Workflow 1: Split PDF by ranges
+
 1. Open PDF → Select "Split" tool
 2. Enter ranges: `1-5, 10-15, 20`
 3. Click "Apply and Save As"
 4. Choose output directory
 
 #### Workflow 2: Add watermark
+
 1. Open PDF → Select "Watermark" tool
 2. Choose text or image mode
 3. Select position (e.g., CENTER_DIAGONAL)
@@ -149,6 +160,7 @@ Pre-built executables available in [Releases](https://github.com/[your-username]
 5. Click "Apply" to preview, then save
 
 #### Workflow 3: Protect with password
+
 1. Open PDF → Select "Protect" tool
 2. Enter user password (required to open)
 3. Optionally set owner password (restrict printing/copying)
@@ -325,7 +337,7 @@ Contributions are welcome! Please follow these steps:
 ## ⚠️ Known Limitations
 
 > **Known Limitations**
-> 
+>
 > - **SVG Watermarks**: Basic SVG support only (complex paths may not render)
 > - **Large Files**: Documents with 500+ pages may require more processing time
 > - **Password-Protected PDFs**: User must enter password to open
@@ -367,12 +379,14 @@ Contributions are welcome! Please follow these steps:
 ## 🔗 Additional Resources
 
 ### Links & Community
+
 - **GitHub**: [github.com/[your-username]/PDFusion](https://github.com/[your-username]/PDFusion)
 - **Issues**: [Report bugs or request features](https://github.com/[your-username]/PDFusion/issues)
 - **Releases**: [Download installers](https://github.com/[your-username]/PDFusion/releases)
 - **Changelog**: See [CHANGELOG.md](CHANGELOG.md) for detailed version history and upcoming features
 
 ### Quick Links
+
 - **[Back to Features](#features)** — Overview of all 16 tools
 - **[Back to Quick Start](#quick-start)** — Get started in 5 minutes
 - **[Back to Contributing](#contributing)** — How to contribute code
@@ -415,7 +429,7 @@ SOFTWARE.
 
 **Made with ❤️ by PDFusion Contributors**
 
-Version 0.1.0 | Last Updated: 2026-04-30
+Version 0.1.11 | Last Updated: 2026-04-30
 
 [![GitHub](https://img.shields.io/badge/-GitHub-000?logo=github)](https://github.com/[your-username]/PDFusion)
 [![License](https://img.shields.io/badge/-MIT_License-blue)](LICENSE)
