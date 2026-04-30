@@ -10,7 +10,7 @@
 !define OUTPUT_FILE  "${__FILEDIR__}\PDFusion-${VERSION}-windows-setup.exe"
 !define INSTALL_DIR  "$PROGRAMFILES64\PDFusion"
 !define REG_KEY      "Software\Microsoft\Windows\CurrentVersion\Uninstall\PDFusion"
-!define DIST_DIR     "${__FILEDIR__}\..\..\dist\PDFusion"
+!define DIST_DIR     "${__FILEDIR__}\dist_staging"
 
 ; Includi moderni UI
 !include "MUI2.nsh"
@@ -52,7 +52,10 @@ SetCompressor   /SOLID lzma
 Section "PDFusion (obbligatorio)" SecMain
   SectionIn RO
   SetOutPath "$INSTDIR"
-  File /r "${DIST_DIR}\*.*"
+  ; Copy main executable
+  File "${DIST_DIR}\PDFusion.exe"
+  ; Copy all support files and libraries (exclude duplicate .exe)
+  File /r /x "*.exe" "${DIST_DIR}\*.*"
 
   ; Shortcut menu Start
   CreateDirectory "$SMPROGRAMS\PDFusion"

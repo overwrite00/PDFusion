@@ -51,6 +51,7 @@ desktop.ini
 
 # === Installer build artifacts ===
 installer/windows/*.exe
+installer/windows/dist_staging/
 installer/linux/*.AppImage
 installer/macos/*.dmg
 
