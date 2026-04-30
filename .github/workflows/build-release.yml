@@ -29,6 +29,15 @@ jobs:
       - name: Install NSIS
         run: choco install nsis --no-progress -y
 
+      - name: Stage PyInstaller output for NSIS
+        shell: pwsh
+        run: |
+          $staging = "installer\windows\dist_staging"
+          if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
+          Copy-Item "dist\PDFusion" -Destination $staging -Recurse
+          Write-Host "✓ Staged files:"
+          Get-ChildItem $staging | Select-Object -ExpandProperty Name
+
       - name: Build NSIS installer
         run: |
           $version = "${{ github.ref_name }}" -replace "^v", ""
