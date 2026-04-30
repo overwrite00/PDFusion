@@ -9,6 +9,7 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
 [![Platform](https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
+[![Last Updated](https://img.shields.io/badge/last%20updated-2026--04--30-blue)]()
 
 ---
 
@@ -428,8 +429,6 @@ SOFTWARE.
 <div align="center">
 
 **Made with ❤️ by Graziano Mariella**
-
-Version 0.1.11 | Last Updated: 2026-04-30
 
 [![GitHub](https://img.shields.io/badge/-GitHub-000?logo=github)](https://github.com/overwrite00/PDFusion)
 [![License](https://img.shields.io/badge/-MIT_License-blue)](LICENSE)
