@@ -39,9 +39,13 @@ jobs:
           Get-ChildItem $staging | Select-Object -ExpandProperty Name
 
       - name: Build NSIS installer
+        shell: pwsh
         run: |
           $version = "${{ github.ref_name }}" -replace "^v", ""
-          & "C:\Program Files (x86)\NSIS\makensis.exe" /DVERSION=$version installer/windows/installer.nsi
+          $distAbsolute = (Resolve-Path "installer\windows\dist_staging").Path
+          Write-Host "DIST_DIR resolved to: $distAbsolute"
+          & "C:\Program Files (x86)\NSIS\makensis.exe" "/DDIST_DIR=$distAbsolute" "/DVERSION=$version" "installer/windows/installer.nsi"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
