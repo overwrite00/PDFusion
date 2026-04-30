@@ -43,8 +43,10 @@ jobs:
         run: |
           $version = "${{ github.ref_name }}" -replace "^v", ""
           $distAbsolute = (Resolve-Path "installer\windows\dist_staging").Path
+          $nsiAbsolute = (Resolve-Path "installer\windows\installer.nsi").Path
           Write-Host "DIST_DIR resolved to: $distAbsolute"
-          & "C:\Program Files (x86)\NSIS\makensis.exe" "/DDIST_DIR=$distAbsolute" "/DVERSION=$version" "installer/windows/installer.nsi"
+          Write-Host "NSI file resolved to: $nsiAbsolute"
+          & "C:\Program Files (x86)\NSIS\makensis.exe" "/DDIST_DIR=$distAbsolute" "/DVERSION=$version" "$nsiAbsolute"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload artifact
