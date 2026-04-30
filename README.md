@@ -4,11 +4,12 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 
 ![PDFusion Interface](assets/hero.png)
 
-[![Version](https://img.shields.io/badge/version-0.1.10-blue)]()
+[![Version](https://img.shields.io/badge/version-0.1.11-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
 [![Platform](https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
+[![Last Updated](https://img.shields.io/badge/last%20updated-2026--04--30-blue)]()
 
 ---
 
@@ -122,13 +123,13 @@ python src/main.py
 
 ### Pre-built Installers
 
-Pre-built executables available in [Releases](https://github.com/[your-username]/PDFusion/releases):
+Pre-built executables available in [Releases](https://github.com/overwrite00/PDFusion/releases):
 
 | Platform | Installer | Type |
 |---|---|---|
-| **Windows** | `PDFusion-0.1.10-windows-setup.exe` | NSIS installer |
-| **macOS** | `PDFusion-0.1.10-macos.dmg` | Disk image |
-| **Linux** | `PDFusion-0.1.10-linux.AppImage` | Portable executable |
+| **Windows** | `PDFusion-0.1.11-windows-setup.exe` | NSIS installer |
+| **macOS** | `PDFusion-0.1.11-macos.dmg` | Disk image |
+| **Linux** | `PDFusion-0.1.11-linux.AppImage` | Portable executable |
 
 [⬆ Back to Top](#table-of-contents)
 
@@ -380,9 +381,9 @@ Contributions are welcome! Please follow these steps:
 
 ### Links & Community
 
-- **GitHub**: [github.com/[your-username]/PDFusion](https://github.com/[your-username]/PDFusion)
-- **Issues**: [Report bugs or request features](https://github.com/[your-username]/PDFusion/issues)
-- **Releases**: [Download installers](https://github.com/[your-username]/PDFusion/releases)
+- **GitHub**: [github.com/overwrite00/PDFusion](https://github.com/overwrite00/PDFusion)
+- **Issues**: [Report bugs or request features](https://github.com/overwrite00/PDFusion/issues)
+- **Releases**: [Download installers](https://github.com/overwrite00/PDFusion/releases)
 - **Changelog**: See [CHANGELOG.md](CHANGELOG.md) for detailed version history and upcoming features
 
 ### Quick Links
@@ -429,9 +430,7 @@ SOFTWARE.
 
 **Made with ❤️ by Graziano Mariella**
 
-Version 0.1.10 | Last Updated: 2026-04-30
-
-[![GitHub](https://img.shields.io/badge/-GitHub-000?logo=github)](https://github.com/[your-username]/PDFusion)
+[![GitHub](https://img.shields.io/badge/-GitHub-000?logo=github)](https://github.com/overwrite00/PDFusion)
 [![License](https://img.shields.io/badge/-MIT_License-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/-Python_3.11%2B-blue?logo=python)](https://www.python.org/)
 
