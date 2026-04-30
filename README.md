@@ -402,7 +402,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ```
 MIT License
 
-Copyright (c) 2025 PDFusion Contributors
+Copyright (c) 2026 Graziano Mariella
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -427,7 +427,7 @@ SOFTWARE.
 
 <div align="center">
 
-**Made with ❤️ by PDFusion Contributors**
+**Made with ❤️ by Graziano Mariella**
 
 Version 0.1.10 | Last Updated: 2026-04-30
 
