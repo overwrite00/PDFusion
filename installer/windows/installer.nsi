@@ -10,7 +10,12 @@
 !define OUTPUT_FILE  "${__FILEDIR__}\PDFusion-${VERSION}-windows-setup.exe"
 !define INSTALL_DIR  "$PROGRAMFILES64\PDFusion"
 !define REG_KEY      "Software\Microsoft\Windows\CurrentVersion\Uninstall\PDFusion"
-!define DIST_DIR     "${__FILEDIR__}\dist_staging"
+
+; DIST_DIR is provided via /DDIST_DIR=<absolute_path> from GitHub Actions build script
+; For local builds without the parameter, fallback to relative path
+!ifndef DIST_DIR
+  !define DIST_DIR   "${__FILEDIR__}\dist_staging"
+!endif
 
 ; Includi moderni UI
 !include "MUI2.nsh"
