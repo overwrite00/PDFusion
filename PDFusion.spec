@@ -116,8 +116,8 @@ if sys.platform == "darwin":
         bundle_identifier="com.pdfusion.app",
         info_plist={
             "CFBundleDisplayName": "PDFusion",
-            "CFBundleVersion": "0.1.11",
-            "CFBundleShortVersionString": "0.1.11",
+            "CFBundleVersion": "0.1.10",
+            "CFBundleShortVersionString": "0.1.10",
             "NSHighResolutionCapable": True,
         },
     )

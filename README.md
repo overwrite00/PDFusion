@@ -4,7 +4,7 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 
 ![PDFusion Interface](assets/hero.png)
 
-[![Version](https://img.shields.io/badge/version-0.1.11-blue)]()
+[![Version](https://img.shields.io/badge/version-0.1.10-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
@@ -126,9 +126,9 @@ Pre-built executables available in [Releases](https://github.com/overwrite00/PDF
 
 | Platform | Installer | Type |
 |---|---|---|
-| **Windows** | `PDFusion-0.1.11-windows-setup.exe` | NSIS installer |
-| **macOS** | `PDFusion-0.1.11-macos.dmg` | Disk image |
-| **Linux** | `PDFusion-0.1.11-linux.AppImage` | Portable executable |
+| **Windows** | `PDFusion-0.1.10-windows-setup.exe` | NSIS installer |
+| **macOS** | `PDFusion-0.1.10-macos.dmg` | Disk image |
+| **Linux** | `PDFusion-0.1.10-linux.AppImage` | Portable executable |
 
 [⬆ Back to Top](#table-of-contents)
 
@@ -429,7 +429,7 @@ SOFTWARE.
 
 **Made with ❤️ by Graziano Mariella**
 
-Version 0.1.11 | Last Updated: 2026-04-30
+Version 0.1.10 | Last Updated: 2026-04-30
 
 [![GitHub](https://img.shields.io/badge/-GitHub-000?logo=github)](https://github.com/overwrite00/PDFusion)
 [![License](https://img.shields.io/badge/-MIT_License-blue)](LICENSE)
