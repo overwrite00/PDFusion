@@ -122,7 +122,7 @@ python src/main.py
 
 ### Pre-built Installers
 
-Pre-built executables available in [Releases](https://github.com/[your-username]/PDFusion/releases):
+Pre-built executables available in [Releases](https://github.com/overwrite00/PDFusion/releases):
 
 | Platform | Installer | Type |
 |---|---|---|
@@ -380,9 +380,9 @@ Contributions are welcome! Please follow these steps:
 
 ### Links & Community
 
-- **GitHub**: [github.com/[your-username]/PDFusion](https://github.com/[your-username]/PDFusion)
-- **Issues**: [Report bugs or request features](https://github.com/[your-username]/PDFusion/issues)
-- **Releases**: [Download installers](https://github.com/[your-username]/PDFusion/releases)
+- **GitHub**: [github.com/overwrite00/PDFusion](https://github.com/overwrite00/PDFusion)
+- **Issues**: [Report bugs or request features](https://github.com/overwrite00/PDFusion/issues)
+- **Releases**: [Download installers](https://github.com/overwrite00/PDFusion/releases)
 - **Changelog**: See [CHANGELOG.md](CHANGELOG.md) for detailed version history and upcoming features
 
 ### Quick Links
@@ -431,7 +431,7 @@ SOFTWARE.
 
 Version 0.1.11 | Last Updated: 2026-04-30
 
-[![GitHub](https://img.shields.io/badge/-GitHub-000?logo=github)](https://github.com/[your-username]/PDFusion)
+[![GitHub](https://img.shields.io/badge/-GitHub-000?logo=github)](https://github.com/overwrite00/PDFusion)
 [![License](https://img.shields.io/badge/-MIT_License-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/-Python_3.11%2B-blue?logo=python)](https://www.python.org/)
 
