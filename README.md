@@ -17,32 +17,32 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 
 ### Getting Started
 
-- [Features](#features)
-- [System Requirements](#system-requirements)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
+- [Features](#-features)
+- [System Requirements](#️-system-requirements)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
 
 ### Tools & Usage
 
-- [Tool Reference](#tool-reference) — Complete guide to all 16 tools
+- [Tool Reference](#️-tool-reference) — Complete guide to all 16 tools
 
 ### For Developers
 
-- [Development](#development)
+- [Development](#-development)
 - [Project Structure](#project-structure)
-- [Technology Stack](#technology-stack)
-- [Contributing](#contributing)
+- [Technology Stack](#-technology-stack)
+- [Contributing](#-contributing)
 
 ### Troubleshooting & Help
 
-- [Tips & Tricks](#tips--tricks)
-- [Known Limitations](#known-limitations)
-- [Troubleshooting](#troubleshooting)
+- [Tips & Tricks](#-tips--tricks)
+- [Known Limitations](#️-known-limitations)
+- [Troubleshooting](#-troubleshooting)
 
 ### Resources
 
-- [Additional Resources](#additional-resources)
-- [License](#license)
+- [Additional Resources](#-additional-resources)
+- [License](#-license)
 
 ---
 
