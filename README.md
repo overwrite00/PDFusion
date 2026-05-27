@@ -201,65 +201,73 @@ Complete reference to all 16 integrated tools:
 
 ## 🔧 Development
 
-### Setup Development Environment
+### Quick Start
 
 ```bash
+# Clone and setup
+git clone https://github.com/overwrite00/PDFusion.git
+cd PDFusion
+
 # Create virtual environment
 python -m venv .venv
-
-# Activate venv
-.\.venv\Scripts\Activate.ps1  # Windows (PowerShell)
-source .venv/bin/activate      # Linux/macOS
+.\.venv\Scripts\Activate.ps1   # Windows (PowerShell)
+source .venv/bin/activate       # Linux/macOS
 
 # Install dependencies
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-### Run Tests
+### Running Tests
 
 ```bash
-# Full test suite with coverage
+# Full test suite with coverage report
 pytest tests/ -v --cov=src --cov-report=html
 
 # Quick test run
 pytest tests/ -q
 
-# Using scripts
-./run_tests.sh       # Linux/macOS
-run_tests.bat        # Windows
+# Specific test file
+pytest tests/core/test_compress.py -v
 ```
 
-### Code Quality
+### Code Quality Checks
 
 ```bash
-# Type checking
+# Type checking (recommended)
 mypy src/
 
 # Linting and formatting
-python -m ruff check src/
-python -m ruff format src/
+python -m ruff check src/     # Check style
+python -m ruff format src/    # Auto-fix style
 
-# Coverage report
-python -m pytest tests/ --cov=src --cov-report=html
-# Open htmlcov/index.html in browser
+# View coverage report
+# After pytest: open htmlcov/index.html in browser
 ```
 
-### Build Standalone Executable
+### Building Executable
 
 ```bash
+# Create standalone Windows/macOS/Linux executable
 pyinstaller PDFusion.spec --noconfirm
-# Output: dist/PDFusion/ (executable + dependencies)
+# Output: dist/PDFusion/ (ready to distribute)
 ```
 
 ### Contributing
 
-For detailed contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md):
-- Development setup
-- PR workflow (branch naming, commit conventions)
-- Code style guidelines (PEP 8, type hints, docstrings)
-- Testing requirements (pytest, coverage >= 80%)
-- Release process
+For detailed guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**:
+- ✓ Development setup (Python 3.11–3.13)
+- ✓ Branch strategy (`feature/*` → `develop` → `main`)
+- ✓ Commit conventions (feat/fix/refactor/docs/test)
+- ✓ Code style (PEP 8, type hints, ruff, mypy)
+- ✓ Testing (pytest, ≥70% coverage, unit + integration)
+- ✓ PR workflow (review, CI/CD checks)
+
+**Quick PR Checklist:**
+- [ ] Tests pass: `pytest tests/ -q`
+- [ ] Type check: `mypy src/`
+- [ ] Formatting: `python -m ruff format src/`
+- [ ] Coverage: `pytest --cov=src --cov-report=term-missing`
 
 ### Project Structure
 

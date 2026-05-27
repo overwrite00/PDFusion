@@ -1,6 +1,6 @@
-# Guida al Contributo — PDFusion
+# Contributing to PDFusion
 
-Grazie per l'interesse nel contribuire a PDFusion! Questa guida ti aiuterà a configurare l'ambiente di sviluppo e seguire i workflow corretti.
+Thank you for your interest in contributing to PDFusion! This guide will help you set up your development environment and follow the correct workflow.
 
 ---
 

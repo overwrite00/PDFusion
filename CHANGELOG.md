@@ -11,28 +11,45 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 ## [Unreleased]
 
 ### Security
-- Fixed race condition in main_window._on_operation_done() after _cleanup_all_temps() — added file existence guard in _on_preview_requested()
-- Fixed thread timeout vulnerability in base_panel._discard_preview_tmp() — added fallback terminate() to prevent thread hang and resource leak
-- Improved exception handling in compress and watermark modules to prevent silent failures masking critical errors
+- Fixed race condition in main_window._on_operation_done() after _cleanup_all_temps() — added file existence guard
+- Fixed thread timeout vulnerability in base_panel worker cleanup — snapshot pattern + fallback terminate()
+- Fixed thread-unsafe document closure in viewer.py and thumbnail_panel.py using reference snapshot pattern
+- Fixed silent password failures in batch operations — explicit error raising instead of silent fallback
 
 ### Fixed
-- **Resource leak**: fitz.open() in main_window._on_open_path() — added try-finally to guarantee document closure
-- **Silent exception handling**: compress._resample_images() — replaced generic `except Exception:` with specific exceptions (PIL.UnidentifiedImageError, ValueError, IOError)
-- **Error masking**: watermark._draw_image_watermark() — added logging and specific exception handling instead of silent pass
+- **CRITICO #1**: Resource leak in compress.py, pdf_to_images.py, headers_footers.py — nested try-finally
+- **CRITICO #9**: Thread-unsafe worker cleanup (viewer, thumbnail_panel) — snapshot pattern for safe reference
+- **CRITICO #11**: Per-file passwords in batch — added password_map for per-file password resolution
+- **ALTO #10**: Large PDF memory spike — binary tree chunked merge (O(sqrt(n)) instead of O(n))
+- **ALTO #12**: PIL Image and reportlab Canvas resource leaks — context managers and explicit cleanup
+- **ALTO #13**: Font registry pollution in batch operations — singleton FontManager with idempotent registration
+- **ALTO #14**: ThreadPoolExecutor hanging — timeout handling (30s) with exponential backoff retry
+- **ALTO #15**: Silent page range failures — validation before operations + detailed logging
 
 ### Added
-- **Testing**: 13 new UI tests for main_window (file opening, panel switching, memory management) with pytest-qt
-- **Testing**: pytest-cov integration with coverage reporting (65%+ total, 85%+ core modules)
-- **Testing**: mypy type checking configuration in pyproject.toml
-- **Code Quality**: Helper function `_open_pdf_with_password()` in core/__init__.py for DRY principle
-- **Documentation**: CONTRIBUTING.md with dev setup, PR workflow, code style guidelines
-- **Development**: requirements-dev.txt now includes pytest-cov, mypy for automated code quality checks
+- **New Utility**: `src/core/pdf_opener.py` — centralized PDF opening with password+format error handling
+- **New Utility**: `src/utils/font_manager.py` — singleton FontManager preventing duplicate registrations
+- **New Utility**: `src/utils/page_validator.py` — page range validation with helpful error messages
+- **New UI Components**: FileMonitorManager, PreviewRenderer for SOLID refactoring
+- **Testing**: 180+ new test cases across 12 test suites (Week 1-3 coverage)
+  - Resource cleanup tests (29 cases)
+  - Thread safety tests (35+ cases)
+  - Batch password tests (20+ cases)
+  - PDF opener tests (19 cases)
+  - Font manager tests (21 cases)
+  - Merge chunked tests (19 cases)
+  - Resource manager tests (18 cases)
+  - Executor timeout tests (21 cases)
+  - Page validation tests (56 cases)
+  - Base panel refactor tests (58 cases)
+- **Documentation**: CONTRIBUTING.md with dev setup, PR workflow, testing guidelines
 
 ### Changed
-- **Code Style**: Applied ruff format and ruff check to all Python files (40 files formatted for PEP 8 compliance)
-- **Imports**: Moved non-top-level imports to module level in main_window.py (PEP 8)
-- **Error Handling**: Replaced generic `except Exception:` patterns with specific exception types in compress.py and watermark.py
-- **Logging**: Added logging module imports to compress.py and watermark.py for error tracking
+- **Refactor**: BasePanelWidget SOLID refactoring — extracted FileMonitorManager, PreviewRenderer (REFACTOR #17)
+- **DRY**: Consolidated 18 duplicate pikepdf.open() calls into pdf_opener.py helper (REFACTOR #16)
+- **Code Quality**: Enhanced exception handling across all core modules (specific > generic)
+- **Logging**: Comprehensive logging for batch operations, timeouts, retries
+- **API**: No breaking changes — all modifications are backward compatible
 
 ---
 
