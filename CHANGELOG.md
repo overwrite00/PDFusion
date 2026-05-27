@@ -10,12 +10,6 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
-_No unreleased changes at this time._
-
----
-
-## [0.2.0] — 2026-05-27
-
 ### Security
 - Fixed race condition in main_window._on_operation_done() after _cleanup_all_temps() — added file existence guard in _on_preview_requested()
 - Fixed thread timeout vulnerability in base_panel._discard_preview_tmp() — added fallback terminate() to prevent thread hang and resource leak
@@ -42,7 +36,7 @@ _No unreleased changes at this time._
 
 ---
 
-## [0.1.0] — 2025-01-01
+## [0.1.0] — 2026-04-27
 
 ### Added
 - **Split PDF**: divisione ogni N pagine o per intervalli personalizzati (`1-3, 5, 7-9`)
