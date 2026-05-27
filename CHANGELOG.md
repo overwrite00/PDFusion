@@ -4,19 +4,30 @@ All notable changes to PDFusion are documented in this file.
 
 Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 
+For planned features, see [ROADMAP.md](ROADMAP.md).
+
 ---
 
 ## [Unreleased]
 
+_No unreleased changes at this time._
+
+---
+
+## [0.2.0] — 2026-05-27
+
+### Security
+- Fixed race condition in main_window._on_operation_done() after _cleanup_all_temps() — added file existence guard in _on_preview_requested()
+- Fixed thread timeout vulnerability in base_panel._discard_preview_tmp() — added fallback terminate() to prevent thread hang and resource leak
+- Improved exception handling in compress and watermark modules to prevent silent failures masking critical errors
+
 ### Fixed
-- **Critical**: fitz.open() resource leak in main_window._on_open_path() — added try-finally
-- **Critical**: Silent exception handling in compress._resample_images() — replaced generic `except Exception:` with specific exceptions (PIL.UnidentifiedImageError, ValueError, IOError)
-- **Critical**: Silent error in watermark._draw_image_watermark() — added logging and specific exception handling
-- **Critical**: Thread timeout hardcoded in base_panel._discard_preview_tmp() — added fallback terminate() on timeout
-- **Critical**: Race condition in main_window._on_operation_done() after _cleanup_all_temps() — added file existence guard in _on_preview_requested()
+- **Resource leak**: fitz.open() in main_window._on_open_path() — added try-finally to guarantee document closure
+- **Silent exception handling**: compress._resample_images() — replaced generic `except Exception:` with specific exceptions (PIL.UnidentifiedImageError, ValueError, IOError)
+- **Error masking**: watermark._draw_image_watermark() — added logging and specific exception handling instead of silent pass
 
 ### Added
-- **Testing**: 13 new UI tests for main_window (file opening, panel switching, memory management)
+- **Testing**: 13 new UI tests for main_window (file opening, panel switching, memory management) with pytest-qt
 - **Testing**: pytest-cov integration with coverage reporting (65%+ total, 85%+ core modules)
 - **Testing**: mypy type checking configuration in pyproject.toml
 - **Code Quality**: Helper function `_open_pdf_with_password()` in core/__init__.py for DRY principle
@@ -28,16 +39,6 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 - **Imports**: Moved non-top-level imports to module level in main_window.py (PEP 8)
 - **Error Handling**: Replaced generic `except Exception:` patterns with specific exception types in compress.py and watermark.py
 - **Logging**: Added logging module imports to compress.py and watermark.py for error tracking
-
-### Planned Features
-- Drag-and-drop dal file manager verso la sidebar strumenti
-- Anteprima watermark in tempo reale nel viewer
-- Esportazione report operazioni in CSV
-- Integrazione firma digitale (PKCS#7 / PAdES)
-- Supporto PDF/A (validazione e conversione)
-- Temi UI aggiuntivi (dark mode)
-- Localizzazione italiano/inglese (i18n)
-- Plugin architecture per estensioni di terze parti
 
 ---
 
@@ -75,5 +76,6 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 - **PyInstaller spec**: bundle ottimizzato, esclude Qt3D / QtWebEngine / QtMultimedia → target < 80 MB
 - **Test suite**: ~70 test su tutti i moduli core con fixture PDF autogenerati
 
-[Unreleased]: https://github.com/0verwrite/PDFusion/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/0verwrite/PDFusion/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/0verwrite/PDFusion/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/0verwrite/PDFusion/releases/tag/v0.1.0
