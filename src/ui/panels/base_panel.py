@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import tempfile
 from pathlib import Path
 
@@ -18,6 +19,8 @@ from PyQt6.QtWidgets import (
 )
 
 from utils.exceptions import PDFusionError
+
+logger = logging.getLogger(__name__)
 
 
 def _clear_layout(layout) -> None:
@@ -373,30 +376,39 @@ class BasePanelWidget(QWidget):
         da mkstemp mentre il worker scrive ancora su un inner-temp; poi os.replace()
         lo ricrea → file orfano permanente.
         """
-        # 1. Ferma il thread worker (se in esecuzione).
-        #    thread.wait() ritorna solo dopo che run() ha completato, quindi
-        #    os.replace() è già avvenuto (o non avverrà mai).
-        if self._preview_thread and self._preview_thread.isRunning():
-            self._preview_thread.quit()
-            # Attendi fino a 3 secondi il completamento graceful
-            if not self._preview_thread.wait(3000):
-                # Timeout: il worker è bloccato, forzane la terminazione
-                import logging
+        try:
+            # 1. Ferma il thread worker (se in esecuzione).
+            #    thread.wait() ritorna solo dopo che run() ha completato, quindi
+            #    os.replace() è già avvenuto (o non avverrà mai).
+            if self._preview_thread and self._preview_thread.isRunning():
+                logger.debug(f"Arresto thread preview del pannello {self.__class__.__name__}...")
+                self._preview_thread.quit()
+                # Attendi fino a 3 secondi il completamento graceful
+                if not self._preview_thread.wait(3000):
+                    # Timeout: il worker è bloccato, forzane la terminazione
+                    logger.warning(
+                        f"Preview thread {self.__class__.__name__} non risponde al quit(), "
+                        "forzamento terminazione"
+                    )
+                    self._preview_thread.terminate()
+                    self._preview_thread.wait(1000)  # Attendi la terminazione forzata
+                logger.debug(f"Thread preview {self.__class__.__name__} fermato")
 
-                logger = logging.getLogger(__name__)
-                logger.warning("Preview thread non risponde al quit(), forzamento terminazione")
-                self._preview_thread.terminate()
-                self._preview_thread.wait()  # Attendi la terminazione forzata
-        self._preview_thread = None
-        self._preview_worker = None
-        # 2. Il file è ora in uno stato definitivo: unlink() funziona su Windows.
-        if self._preview_tmp:
-            if self._preview_tmp.exists():
-                try:
-                    self._preview_tmp.unlink()
-                except OSError:
-                    pass
-            self._preview_tmp = None
+            # 2. Il file è ora in uno stato definitivo: unlink() funziona su Windows.
+            if self._preview_tmp:
+                if self._preview_tmp.exists():
+                    try:
+                        logger.debug(f"Cancellazione file temporaneo preview: {self._preview_tmp}")
+                        self._preview_tmp.unlink()
+                    except OSError as e:
+                        logger.warning(f"Errore cancellazione temp preview: {e}")
+                self._preview_tmp = None
+
+            self._preview_thread = None
+            self._preview_worker = None
+            logger.debug(f"Discard preview completato per {self.__class__.__name__}")
+        except Exception as e:
+            logger.error(f"Errore in _discard_preview_tmp ({self.__class__.__name__}): {e}", exc_info=True)
 
     def _set_busy(self, busy: bool, label: str = "Elaborazione in corso…") -> None:
         self._apply_btn.setEnabled(not busy)

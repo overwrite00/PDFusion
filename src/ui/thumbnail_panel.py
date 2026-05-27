@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import fitz
@@ -82,6 +83,9 @@ class _ThumbWorker(QObject):
 # ---------------------------------------------------------------------------
 # ThumbnailPanel
 # ---------------------------------------------------------------------------
+
+
+logger = logging.getLogger(__name__)
 
 
 class ThumbnailPanel(QWidget):
@@ -213,14 +217,34 @@ class ThumbnailPanel(QWidget):
         self.order_changed.emit(new_order)
 
     def _close_worker(self) -> None:
-        if self._worker:
-            self._worker.close()  # imposta _closed = True (non tocca _doc)
-        if self._thread.isRunning():
-            self._thread.quit()
-            self._thread.wait(2000)  # aspetta che il thread finisca
-        # Solo ora chiudiamo il documento fitz: il thread è fermo,
-        # nessuna esecuzione di render() è più attiva → handle rilasciato.
-        if self._worker and self._worker._doc:
-            self._worker._doc.close()
-            self._worker._doc = None
-        self._worker = None
+        try:
+            # 1. Segnala al worker di fermarsi
+            if self._worker:
+                logger.debug("Chiusura worker thumbnail (impostazione flag _closed)")
+                self._worker.close()  # imposta _closed = True (non tocca _doc)
+
+            # 2. Ferma il thread
+            if self._thread.isRunning():
+                logger.debug("Arresto thread thumbnail...")
+                self._thread.quit()
+                if not self._thread.wait(2000):
+                    logger.warning("Thread thumbnail non ha risposto al quit(), forzamento terminazione")
+                    self._thread.terminate()
+                    self._thread.wait(1000)
+                logger.debug("Thread thumbnail fermato")
+
+            # 3. Chiudi documento fitz: il thread è fermo,
+            # nessuna esecuzione di render() è più attiva
+            if self._worker and self._worker._doc:
+                logger.debug("Chiusura documento fitz in thumbnail...")
+                try:
+                    self._worker._doc.close()
+                except Exception as e:
+                    logger.warning(f"Errore chiusura documento fitz thumbnail: {e}")
+                finally:
+                    self._worker._doc = None
+
+            self._worker = None
+            logger.debug("Worker thumbnail chiuso correttamente")
+        except Exception as e:
+            logger.error(f"Errore durante chiusura worker thumbnail: {e}", exc_info=True)

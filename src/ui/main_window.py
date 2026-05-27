@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gc
+import logging
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
@@ -23,6 +25,8 @@ from ui.viewer import PDFViewer
 from ui.widgets.recent_files_widget import RecentFilesWidget
 from utils.config import APP_NAME, VERSION
 from utils.recent_files import add_recent_file
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
@@ -570,14 +574,52 @@ class MainWindow(QMainWindow):
         self._temp_files.clear()
         self._pending_preview = None
 
+    def shutdown(self) -> None:
+        """
+        Esegue un cleanup completo di tutte le risorse.
+
+        Ordine critico:
+        1. Disconnetti segnali per prevenire callback durante cleanup
+        2. Chiudi i documenti PDF (viewer, thumbnails)
+        3. Ferma i worker thread dei pannelli
+        4. Cancella i file temporanei
+        5. Forza garbage collection
+        """
+        try:
+            logger.info("Avvio shutdown applicazione...")
+
+            # 1. Disconnetti tutti i segnali
+            logger.debug("Disconnessione segnali...")
+            try:
+                self.destroyed.disconnect()
+            except RuntimeError:
+                pass  # Non era connesso
+
+            # 2. Chiudi documenti
+            logger.debug("Chiusura documenti...")
+            self._viewer.close_document()
+            self._thumbnails.close_document()
+
+            # 3. Ferma worker thread nei pannelli
+            logger.debug("Arresto worker thread pannelli...")
+            for panel_id, panel in self._panels.items():
+                try:
+                    panel._discard_preview_tmp()
+                except Exception as e:
+                    logger.warning(f"Errore discard preview nel pannello {panel_id}: {e}")
+
+            # 4. Cancella temp file
+            logger.debug("Cancellazione file temporanei...")
+            self._cleanup_all_temps()
+
+            # 5. Forza garbage collection
+            logger.debug("Forzamento garbage collection...")
+            gc.collect()
+
+            logger.info("Shutdown completato con successo")
+        except Exception as e:
+            logger.error(f"Errore durante shutdown: {e}", exc_info=True)
+
     def closeEvent(self, event: QCloseEvent) -> None:
-        # Ordine critico su Windows:
-        # 1. rilascia gli handle fitz del viewer e delle thumbnail
-        # 2. elimina i temp in volo nei pannelli (worker di anteprima attivi)
-        # 3. elimina tutti i temp tracciati in _temp_files
-        self._viewer.close_document()
-        self._thumbnails.close_document()
-        for panel in self._panels.values():
-            panel._discard_preview_tmp()
-        self._cleanup_all_temps()
+        self.shutdown()
         event.accept()

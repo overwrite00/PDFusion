@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import fitz
@@ -15,6 +16,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Worker: renderizza una pagina su un thread separato
@@ -327,17 +330,37 @@ class PDFViewer(QWidget):
         self._thread.start()
 
     def _close_worker(self) -> None:
-        if self._worker:
-            self._worker.close()  # imposta _closed = True (non tocca _doc)
-        if self._thread.isRunning():
-            self._thread.quit()
-            self._thread.wait(2000)  # aspetta che il thread finisca
-        # Solo ora chiudiamo il documento fitz: il thread è fermo,
-        # nessuna esecuzione di render() è più attiva e tutti i riferimenti
-        # interni a page/pixmap sono stati abbandonati → handle rilasciato.
-        if self._worker and self._worker._doc:
-            self._worker._doc.close()
-            self._worker._doc = None
+        try:
+            # 1. Segnala al worker di fermarsi
+            if self._worker:
+                logger.debug("Chiusura worker (impostazione flag _closed)")
+                self._worker.close()  # imposta _closed = True (non tocca _doc)
+
+            # 2. Ferma il thread
+            if self._thread.isRunning():
+                logger.debug("Arresto thread di rendering...")
+                self._thread.quit()
+                if not self._thread.wait(2000):
+                    logger.warning("Thread non ha risposto al quit(), forzamento terminazione")
+                    self._thread.terminate()
+                    self._thread.wait(1000)
+                logger.debug("Thread fermato")
+
+            # 3. Chiudi documento fitz: il thread è fermo,
+            # nessuna esecuzione di render() è più attiva
+            if self._worker and self._worker._doc:
+                logger.debug("Chiusura documento fitz nel viewer...")
+                try:
+                    self._worker._doc.close()
+                except Exception as e:
+                    logger.warning(f"Errore chiusura documento fitz: {e}")
+                finally:
+                    self._worker._doc = None
+
+            self._worker = None
+            logger.debug("Worker viewer chiuso correttamente")
+        except Exception as e:
+            logger.error(f"Errore durante chiusura worker viewer: {e}", exc_info=True)
 
     def _render_current(self) -> None:
         if self._worker is None:
