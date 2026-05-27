@@ -76,6 +76,7 @@ class DeletePanel(BasePanelWidget):
     def _on_file_changed(self, path) -> None:
         if path:
             import fitz
+
             try:
                 doc = fitz.open(str(path))
                 self._total_pages = doc.page_count
@@ -98,15 +99,17 @@ class DeletePanel(BasePanelWidget):
         else:
             if not self._range_input.is_valid():
                 from PyQt6.QtWidgets import QMessageBox
+
                 QMessageBox.warning(
-                    self, "Range non valido",
-                    "Il range di pagine inserito non è valido.\n"
-                    "Esempio corretto: 1-3, 5, 7-9",
+                    self,
+                    "Range non valido",
+                    "Il range di pagine inserito non è valido.\nEsempio corretto: 1-3, 5, 7-9",
                 )
                 return None
             ranges = self._range_input.get_ranges()
             if not ranges:
                 from PyQt6.QtWidgets import QMessageBox
+
                 QMessageBox.warning(self, "Range vuoto", "Nessuna pagina specificata nel range.")
                 return None
             return {"mode": "ranges", "ranges": ranges}

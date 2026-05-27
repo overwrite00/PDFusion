@@ -25,6 +25,7 @@ _TEXT_SEC_COLOR = HexColor("#6B7280")
 @dataclass
 class HeaderFooterSection:
     """Contenuto di una singola sezione (sinistra, centro, destra)."""
+
     left: str = ""
     center: str = ""
     right: str = ""
@@ -37,8 +38,8 @@ class HeaderFooterConfig:
     font_size: int = 9
     font_color: str = "#6B7280"
     # Margine dai bordi della pagina (in punti PDF)
-    margin_horizontal: float = 36.0   # ~1.27 cm
-    margin_vertical: float = 28.0     # ~1.00 cm  (Word default: ~1.27 cm)
+    margin_horizontal: float = 36.0  # ~1.27 cm
+    margin_vertical: float = 28.0  # ~1.00 cm  (Word default: ~1.27 cm)
     # Range di pagine su cui applicare (None = tutte)
     page_range: str | None = None
     # Differenziazione prima pagina e pagine pari/dispari
@@ -233,7 +234,10 @@ def _has_content(config: HeaderFooterConfig) -> bool:
         or _section_has_content(config.first_page_footer)
     ):
         return True
-    return bool(config.different_odd_even and (_section_has_content(config.even_header) or _section_has_content(config.even_footer)))
+    return bool(
+        config.different_odd_even
+        and (_section_has_content(config.even_header) or _section_has_content(config.even_footer))
+    )
 
 
 def _section_has_content(section: HeaderFooterSection) -> bool:

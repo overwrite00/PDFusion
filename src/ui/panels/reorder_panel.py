@@ -30,6 +30,7 @@ class ReorderPanel(BasePanelWidget):
     def _collect_config(self):
         if not self._new_order:
             from PyQt6.QtWidgets import QMessageBox
+
             QMessageBox.information(
                 self,
                 "Nessun riordino",
@@ -40,5 +41,6 @@ class ReorderPanel(BasePanelWidget):
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
         from core.reorder import reorder_pages
+
         reorder_pages(input_path, config["order"], output_path, password or None)
         return output_path

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -12,13 +13,15 @@ from PIL import Image
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 from utils.temp_manager import atomic_write
 
+logger = logging.getLogger(__name__)
+
 
 class CompressPreset(Enum):
-    SCREEN = "screen"       # 72 dpi — solo schermo, dimensione minima
-    EBOOK = "ebook"         # 150 dpi — default consigliato
-    PRINTER = "printer"     # 300 dpi — stampa normale
-    PREPRESS = "prepress"   # 300 dpi — stampa professionale, qualità massima
-    CUSTOM = "custom"       # parametri manuali
+    SCREEN = "screen"  # 72 dpi — solo schermo, dimensione minima
+    EBOOK = "ebook"  # 150 dpi — default consigliato
+    PRINTER = "printer"  # 300 dpi — stampa normale
+    PREPRESS = "prepress"  # 300 dpi — stampa professionale, qualità massima
+    CUSTOM = "custom"  # parametri manuali
 
 
 _PRESET_DPI = {
@@ -137,7 +140,8 @@ def _resample_images(doc: fitz.Document, config: CompressConfig) -> None:
             xref = img_info[0]
             try:
                 base_image = doc.extract_image(xref)
-            except Exception:
+            except (ValueError, KeyError, RuntimeError):
+                # Immagine corrotta o formato inaspettato nel PDF
                 continue
 
             img_bytes = base_image["image"]
@@ -149,7 +153,8 @@ def _resample_images(doc: fitz.Document, config: CompressConfig) -> None:
 
             try:
                 pil_img = Image.open(io.BytesIO(img_bytes))
-            except Exception:
+            except (OSError, Image.UnidentifiedImageError):
+                # Formato immagine non supportato o dati corrotti
                 continue
 
             orig_w, orig_h = pil_img.size
@@ -177,7 +182,9 @@ def _resample_images(doc: fitz.Document, config: CompressConfig) -> None:
                 out_buf.seek(0)
 
                 doc.replace_image(xref, stream=out_buf.read())
-            except Exception:
+            except (OSError, ValueError):
+                # Errore durante ridimensionamento, conversione o salvataggio
+                # Salta l'immagine e continua con il resto del documento
                 continue
 
 

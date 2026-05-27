@@ -26,9 +26,7 @@ class ProgressDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setWindowFlags(
-            Qt.WindowType.Dialog
-            | Qt.WindowType.WindowTitleHint
-            | Qt.WindowType.CustomizeWindowHint
+            Qt.WindowType.Dialog | Qt.WindowType.WindowTitleHint | Qt.WindowType.CustomizeWindowHint
         )
         self.setModal(True)
         self.setMinimumWidth(380)

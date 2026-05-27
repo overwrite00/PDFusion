@@ -60,12 +60,11 @@ class CompressPanel(BasePanelWidget):
         self._quality_slider.setRange(10, 100)
         self._quality_slider.setValue(75)
         self._quality_label = QLabel("75%", self._custom_group)
-        self._quality_slider.valueChanged.connect(
-            lambda v: self._quality_label.setText(f"{v}%")
-        )
+        self._quality_slider.valueChanged.connect(lambda v: self._quality_label.setText(f"{v}%"))
 
         q_row_widget = QWidget(self._custom_group)
         from PyQt6.QtWidgets import QHBoxLayout
+
         q_row = QHBoxLayout(q_row_widget)
         q_row.setContentsMargins(0, 0, 0, 0)
         q_row.addWidget(self._quality_slider)
@@ -101,5 +100,6 @@ class CompressPanel(BasePanelWidget):
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
         from core.compress import compress
+
         compress(input_path, output_path, config, password or None)
         return output_path

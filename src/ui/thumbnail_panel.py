@@ -29,6 +29,7 @@ THUMB_DPI = 36  # bassa risoluzione per velocità
 # Worker per il rendering lazy dei thumbnail
 # ---------------------------------------------------------------------------
 
+
 class _ThumbWorker(QObject):
     thumbnail_ready = pyqtSignal(int, QPixmap)  # (page_index, pixmap)
 
@@ -37,14 +38,14 @@ class _ThumbWorker(QObject):
         self._path = doc_path
         self._password = password
         self._doc: fitz.Document | None = None
-        self._closed = False   # impedisce riapertura dopo close()
+        self._closed = False  # impedisce riapertura dopo close()
 
     @pyqtSlot(int)
     def render(self, page_idx: int) -> None:
         try:
             if self._doc is None:
                 if self._closed:
-                    return   # close() già chiamato: non riaprire
+                    return  # close() già chiamato: non riaprire
                 self._doc = fitz.open(self._path)
                 if self._password:
                     self._doc.authenticate(self._password)
@@ -81,6 +82,7 @@ class _ThumbWorker(QObject):
 # ---------------------------------------------------------------------------
 # ThumbnailPanel
 # ---------------------------------------------------------------------------
+
 
 class ThumbnailPanel(QWidget):
     """
@@ -196,6 +198,7 @@ class ThumbnailPanel(QWidget):
         item = self._list.item(page_idx)
         if item:
             from PyQt6.QtGui import QIcon
+
             item.setIcon(QIcon(pixmap))
 
     def _on_row_changed(self, row: int) -> None:
@@ -205,17 +208,16 @@ class ThumbnailPanel(QWidget):
 
     def _on_rows_moved(self, *_) -> None:
         new_order = [
-            self._list.item(i).data(Qt.ItemDataRole.UserRole)
-            for i in range(self._list.count())
+            self._list.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self._list.count())
         ]
         self.order_changed.emit(new_order)
 
     def _close_worker(self) -> None:
         if self._worker:
-            self._worker.close()          # imposta _closed = True (non tocca _doc)
+            self._worker.close()  # imposta _closed = True (non tocca _doc)
         if self._thread.isRunning():
             self._thread.quit()
-            self._thread.wait(2000)       # aspetta che il thread finisca
+            self._thread.wait(2000)  # aspetta che il thread finisca
         # Solo ora chiudiamo il documento fitz: il thread è fermo,
         # nessuna esecuzione di render() è più attiva → handle rilasciato.
         if self._worker and self._worker._doc:

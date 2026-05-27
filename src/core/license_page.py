@@ -56,8 +56,8 @@ class LicenseConfig:
     author: str = ""
     year: int | None = None
     document_title: str | None = None
-    language: str = "it"                        # "it" oppure "en"
-    cover_image_path: Path | None = None     # immagine di copertina opzionale
+    language: str = "it"  # "it" oppure "en"
+    cover_image_path: Path | None = None  # immagine di copertina opzionale
 
 
 def insert_license_page(
@@ -79,12 +79,14 @@ def insert_license_page(
 
     # Inserisce in posizione 1 (prima di tutto)
     from core.insert_page import _insert_pdf_bytes
+
     return _insert_pdf_bytes(input_path, license_bytes, 1, output_path, password)
 
 
 def _generate_license_page(config: LicenseConfig) -> bytes:
     """Genera un PDF di una pagina con il testo della licenza."""
     import datetime
+
     year = config.year or datetime.date.today().year
     text = _load_license_text(
         config.license_type, config.author, year, config.document_title, config.language
@@ -124,7 +126,7 @@ def _load_license_text(
     # Candidate templates in ordine di preferenza
     candidates = [
         f"{license_type.value}_{language}.txt",  # es. copyright_it.txt
-        f"{license_type.value}.txt",              # es. copyright.txt (inglese)
+        f"{license_type.value}.txt",  # es. copyright.txt (inglese)
     ]
 
     if LICENSE_TEMPLATES_DIR.exists():
@@ -203,16 +205,16 @@ def _build_story(text: str, config: LicenseConfig, styles: dict, year: int) -> l
             from PIL import Image as PILImage
 
             # Area contenuto: A4 meno i margini 3 cm per lato (in punti ReportLab)
-            max_w = A4[0] - 6 * cm   # ≈ 425 pt  (≈ 15 cm)
-            max_h = A4[1] - 6 * cm   # ≈ 672 pt  (≈ 23.7 cm)
+            max_w = A4[0] - 6 * cm  # ≈ 425 pt  (≈ 15 cm)
+            max_h = A4[1] - 6 * cm  # ≈ 672 pt  (≈ 23.7 cm)
 
             with PILImage.open(str(config.cover_image_path)) as pil_img:
-                img_w, img_h = pil_img.size   # pixel originali
+                img_w, img_h = pil_img.size  # pixel originali
 
                 # Scala proporzionale: adatta l'immagine all'area contenuto senza distorsioni
                 scale = min(max_w / img_w, max_h / img_h)
-                draw_w = img_w * scale   # larghezza di disegno in punti
-                draw_h = img_h * scale   # altezza  di disegno in punti
+                draw_w = img_w * scale  # larghezza di disegno in punti
+                draw_h = img_h * scale  # altezza  di disegno in punti
 
                 # Pre-converti in PNG via buffer:
                 # evita incompatibilità di ReportLab con BMP, TIFF multi-frame, WebP, ecc.
@@ -228,9 +230,9 @@ def _build_story(text: str, config: LicenseConfig, styles: dict, year: int) -> l
             img = RLImage(png_buf, width=draw_w, height=draw_h)
             img.hAlign = "CENTER"
             story.append(img)
-            story.append(PageBreak())   # il testo della licenza parte sempre dalla pag. 2
+            story.append(PageBreak())  # il testo della licenza parte sempre dalla pag. 2
         except Exception:
-            pass   # immagine non valida: si ignora silenziosamente
+            pass  # immagine non valida: si ignora silenziosamente
 
     # Testo della licenza (pag. 1 se senza copertina, pag. 2 se con copertina)
     story.append(Paragraph(label, styles["title"]))
@@ -246,4 +248,5 @@ def _build_story(text: str, config: LicenseConfig, styles: dict, year: int) -> l
 
 def _font_registered() -> bool:
     from reportlab.pdfbase import pdfmetrics
+
     return "PDFusionFont" in pdfmetrics.getRegisteredFontNames()

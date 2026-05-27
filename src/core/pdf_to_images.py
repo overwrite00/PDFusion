@@ -21,7 +21,7 @@ class ExportImagesConfig:
     format: ImageFormat = ImageFormat.PNG
     dpi: int = 150
     page_range: str | None = None  # None = tutte le pagine
-    jpeg_quality: int = 85            # usato solo per JPEG
+    jpeg_quality: int = 85  # usato solo per JPEG
 
 
 def export_pages_as_images(

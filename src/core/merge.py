@@ -107,7 +107,9 @@ def insert_pdf_at(
         except pikepdf.PasswordError:
             raise PDFusionError(f"Password errata o mancante per '{insert_path.name}'.")
         except pikepdf.PdfError as exc:
-            raise UnsupportedFormatError(f"File da inserire non valido: {insert_path.name}") from exc
+            raise UnsupportedFormatError(
+                f"File da inserire non valido: {insert_path.name}"
+            ) from exc
 
         total = len(base.pages)
         # Blocca after_page nell'intervallo [0, total]

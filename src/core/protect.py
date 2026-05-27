@@ -11,21 +11,21 @@ from utils.temp_manager import atomic_write
 
 
 class EncryptionLevel(Enum):
-    AES_128 = "aes128"   # default consigliato, compatibilità massima
-    AES_256 = "aes256"   # più sicuro, richiede Acrobat 9+
+    AES_128 = "aes128"  # default consigliato, compatibilità massima
+    AES_256 = "aes256"  # più sicuro, richiede Acrobat 9+
 
 
 @dataclass
 class ProtectConfig:
-    user_password: str = ""         # password per aprire il documento
-    owner_password: str = ""        # password per modificare i permessi
+    user_password: str = ""  # password per aprire il documento
+    owner_password: str = ""  # password per modificare i permessi
     encryption: EncryptionLevel = EncryptionLevel.AES_128
-    allow_print: bool = True        # permetti stampa
+    allow_print: bool = True  # permetti stampa
     allow_print_highres: bool = True  # permetti stampa ad alta risoluzione
-    allow_copy: bool = False         # permetti copia del testo
-    allow_edit: bool = False         # permetti modifiche al contenuto
+    allow_copy: bool = False  # permetti copia del testo
+    allow_edit: bool = False  # permetti modifiche al contenuto
     allow_annotations: bool = False  # permetti aggiunta annotazioni
-    allow_forms: bool = False        # permetti compilazione moduli
+    allow_forms: bool = False  # permetti compilazione moduli
 
 
 def protect(
@@ -47,11 +47,8 @@ def protect(
         PDFusionError: se entrambe le password sono vuote e non ci sono
                        restrizioni da applicare (operazione inutile).
     """
-    if (not config.user_password and not config.owner_password
-            and _all_permissions_granted(config)):
-        raise PDFusionError(
-            "Specifica almeno una password o una restrizione da applicare."
-        )
+    if not config.user_password and not config.owner_password and _all_permissions_granted(config):
+        raise PDFusionError("Specifica almeno una password o una restrizione da applicare.")
 
     try:
         kwargs = {"password": password} if password else {}
@@ -108,7 +105,7 @@ def _build_permissions(config: ProtectConfig) -> pikepdf.Permissions:
         modify_other=config.allow_edit,
         modify_annotation=config.allow_annotations,
         modify_form=config.allow_forms,
-        accessibility=True,          # sempre abilitato per accessibilità
+        accessibility=True,  # sempre abilitato per accessibilità
         modify_assembly=config.allow_edit,
     )
 
@@ -138,15 +135,18 @@ def _build_encryption(
 
 def _generate_owner_password() -> str:
     import secrets
+
     return secrets.token_urlsafe(24)
 
 
 def _all_permissions_granted(config: ProtectConfig) -> bool:
-    return all([
-        config.allow_print,
-        config.allow_print_highres,
-        config.allow_copy,
-        config.allow_edit,
-        config.allow_annotations,
-        config.allow_forms,
-    ])
+    return all(
+        [
+            config.allow_print,
+            config.allow_print_highres,
+            config.allow_copy,
+            config.allow_edit,
+            config.allow_annotations,
+            config.allow_forms,
+        ]
+    )

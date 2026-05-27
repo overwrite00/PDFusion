@@ -79,7 +79,7 @@ def atomic_write(output_path: Path) -> Generator[Path, None, None]:
             ) from exc
         except OSError as exc:
             # Fallback cross-device (TEMP_DIR su drive diverso): copia + elimina
-            if exc.errno in (17, 18):   # EXDEV / ERROR_NOT_SAME_DEVICE
+            if exc.errno in (17, 18):  # EXDEV / ERROR_NOT_SAME_DEVICE
                 try:
                     shutil.copy2(str(tmp_path), str(output_path))
                     tmp_path.unlink(missing_ok=True)

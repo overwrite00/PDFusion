@@ -26,3 +26,36 @@ ignore = [
     "F841",               # Unused variables (can be cleaned up later)
     "SIM102", "SIM103", "SIM105", "SIM108", "SIM113",  # Simplification suggestions are too aggressive
 ]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "^\\s*pass\\s*$",
+]
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
+files = ["src"]

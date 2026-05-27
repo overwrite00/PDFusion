@@ -115,31 +115,38 @@ def _dispatch(input_path: Path, output_path: Path, job: BatchJob) -> None:
 
     if job.operation == BatchOperation.COMPRESS:
         from core.compress import compress
+
         compress(input_path, output_path, cfg, pwd)
 
     elif job.operation == BatchOperation.PROTECT:
         from core.protect import protect
+
         protect(input_path, output_path, cfg, pwd)
 
     elif job.operation == BatchOperation.WATERMARK:
         from core.watermark import apply_watermark
+
         apply_watermark(input_path, output_path, cfg, pwd)
 
     elif job.operation == BatchOperation.ROTATE:
         from core.rotate import rotate_all
+
         angle = cfg if isinstance(cfg, int) else 90
         rotate_all(input_path, angle, output_path, pwd)
 
     elif job.operation == BatchOperation.ADD_HEADERS_FOOTERS:
         from core.headers_footers import add_headers_footers
+
         add_headers_footers(input_path, output_path, cfg, password=pwd)
 
     elif job.operation == BatchOperation.ADD_LICENSE_PAGE:
         from core.license_page import insert_license_page
+
         insert_license_page(input_path, output_path, cfg, pwd)
 
     elif job.operation == BatchOperation.SPLIT:
         from core.split import split_every_n
+
         n = cfg if isinstance(cfg, int) else 1
         split_every_n(input_path, n, output_path.parent, pwd)
 
@@ -149,5 +156,6 @@ def _dispatch(input_path: Path, output_path: Path, job: BatchJob) -> None:
 
 def _run_merge(input_paths: list[Path], output_path: Path, job: BatchJob) -> None:
     from core.merge import merge
+
     passwords = [job.password] * len(input_paths) if job.password else None
     merge(input_paths, output_path, passwords)

@@ -24,7 +24,6 @@ def extract_pages(
     """
     # Usa split_ranges con una directory temporanea, poi rinomina il file
     import tempfile
-    from pathlib import Path as _Path
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         # Unifica tutti i range in un singolo range completo
@@ -32,17 +31,19 @@ def extract_pages(
         results = split_ranges(
             input_path,
             ranges,
-            _Path(tmp_dir),
+            Path(tmp_dir),
             password,
         )
 
         if len(results) == 1:
             import shutil
+
             output_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(results[0], output_path)
         else:
             # Più range → unisci in un unico file
             from core.merge import merge
+
             merge(results, output_path)
 
     return output_path

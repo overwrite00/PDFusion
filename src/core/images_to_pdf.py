@@ -17,17 +17,17 @@ SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".webp
 
 
 class FitMode(Enum):
-    FIT_PAGE = "fit_page"       # ridimensiona l'immagine per riempire la pagina
+    FIT_PAGE = "fit_page"  # ridimensiona l'immagine per riempire la pagina
     ORIGINAL_SIZE = "original"  # usa dimensioni originali dell'immagine come pagina
-    FIXED_PAGE = "fixed"        # pagina di dimensione fissa (A4 default)
+    FIXED_PAGE = "fixed"  # pagina di dimensione fissa (A4 default)
 
 
 @dataclass
 class ImagesToPDFConfig:
     fit_mode: FitMode = FitMode.FIT_PAGE
     fixed_page_size: tuple[float, float] = A4  # usato solo con FIXED_PAGE
-    dpi: int = 150              # DPI assunto per le immagini (per ORIGINAL_SIZE)
-    jpeg_quality: int = 85      # qualità JPEG per le immagini embedded
+    dpi: int = 150  # DPI assunto per le immagini (per ORIGINAL_SIZE)
+    jpeg_quality: int = 85  # qualità JPEG per le immagini embedded
 
 
 def images_to_pdf(
@@ -55,15 +55,11 @@ def images_to_pdf(
     if config is None:
         config = ImagesToPDFConfig()
 
-    unsupported = [
-        p for p in image_paths
-        if p.suffix.lower() not in SUPPORTED_EXTENSIONS
-    ]
+    unsupported = [p for p in image_paths if p.suffix.lower() not in SUPPORTED_EXTENSIONS]
     if unsupported:
         names = ", ".join(p.name for p in unsupported[:5])
         raise PDFusionError(
-            f"Formato non supportato: {names}. "
-            f"Formati accettati: {', '.join(SUPPORTED_EXTENSIONS)}"
+            f"Formato non supportato: {names}. Formati accettati: {', '.join(SUPPORTED_EXTENSIONS)}"
         )
 
     missing = [p for p in image_paths if not p.exists()]
@@ -93,9 +89,7 @@ def images_to_pdf(
             c.setPageSize((page_w, page_h))
 
         if config.fit_mode == FitMode.FIT_PAGE:
-            draw_x, draw_y, draw_w, draw_h = _fit_in_rect(
-                img_w_px, img_h_px, page_w, page_h
-            )
+            draw_x, draw_y, draw_w, draw_h = _fit_in_rect(img_w_px, img_h_px, page_w, page_h)
         elif config.fit_mode == FitMode.ORIGINAL_SIZE:
             pts_per_px = 72.0 / config.dpi
             draw_w = img_w_px * pts_per_px
@@ -103,9 +97,7 @@ def images_to_pdf(
             draw_x = (page_w - draw_w) / 2
             draw_y = (page_h - draw_h) / 2
         else:  # FIXED_PAGE
-            draw_x, draw_y, draw_w, draw_h = _fit_in_rect(
-                img_w_px, img_h_px, page_w, page_h
-            )
+            draw_x, draw_y, draw_w, draw_h = _fit_in_rect(img_w_px, img_h_px, page_w, page_h)
 
         # Salva temporaneamente come JPEG in memoria per reportlab
         img_buf = io.BytesIO()
@@ -114,7 +106,8 @@ def images_to_pdf(
 
         c.drawImage(
             ImageReader(img_buf),
-            draw_x, draw_y,
+            draw_x,
+            draw_y,
             width=draw_w,
             height=draw_h,
         )
@@ -146,8 +139,10 @@ def _compute_page_size(
 
 
 def _fit_in_rect(
-    img_w: int, img_h: int,
-    rect_w: float, rect_h: float,
+    img_w: int,
+    img_h: int,
+    rect_w: float,
+    rect_h: float,
 ) -> tuple[float, float, float, float]:
     """Calcola posizione e dimensioni per centrare l'immagine nel rettangolo."""
     scale = min(rect_w / img_w, rect_h / img_h)

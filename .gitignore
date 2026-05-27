@@ -57,4 +57,5 @@ installer/linux/*.AppImage
 installer/macos/*.dmg
 
 # === Ruff cache ===
-.ruff_cache/
+.ruff_cache/.mypy_cache/
+htmlcov/

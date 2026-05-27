@@ -86,9 +86,7 @@ class WatermarkPanel(BasePanelWidget):
         self._scale_slider.setRange(10, 200)
         self._scale_slider.setValue(50)
         self._scale_label = QLabel("50%", img_tab)
-        self._scale_slider.valueChanged.connect(
-            lambda v: self._scale_label.setText(f"{v}%")
-        )
+        self._scale_slider.valueChanged.connect(lambda v: self._scale_label.setText(f"{v}%"))
         scale_row = QWidget(img_tab)
         sr_layout = QHBoxLayout(scale_row)
         sr_layout.setContentsMargins(0, 0, 0, 0)
@@ -138,9 +136,7 @@ class WatermarkPanel(BasePanelWidget):
         self._opacity_slider.setRange(10, 90)
         self._opacity_slider.setValue(30)
         self._opacity_label = QLabel("30%", opacity_group)
-        self._opacity_slider.valueChanged.connect(
-            lambda v: self._opacity_label.setText(f"{v}%")
-        )
+        self._opacity_slider.valueChanged.connect(lambda v: self._opacity_label.setText(f"{v}%"))
         op_layout.addWidget(self._opacity_slider)
         op_layout.addWidget(self._opacity_label)
         self._content_layout.addWidget(opacity_group)
@@ -183,6 +179,7 @@ class WatermarkPanel(BasePanelWidget):
             text = ""
             if not self._image_path:
                 from PyQt6.QtWidgets import QMessageBox
+
                 QMessageBox.information(self, "Immagine mancante", "Seleziona un'immagine.")
                 return None  # type: ignore[return-value]
 
@@ -209,5 +206,6 @@ class WatermarkPanel(BasePanelWidget):
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
         from core.watermark import apply_watermark
+
         apply_watermark(input_path, output_path, config, password or None)
         return output_path

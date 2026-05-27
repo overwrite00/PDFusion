@@ -17,7 +17,7 @@ from ui.widgets.page_range_input import PageRangeInput
 class ExportImagesPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("PDF → Immagini", parent)
-        self._supports_preview = False   # output immagini, non PDF
+        self._supports_preview = False  # output immagini, non PDF
         self._setup_content()
 
     def _setup_content(self) -> None:
@@ -42,7 +42,6 @@ class ExportImagesPanel(BasePanelWidget):
         form.addRow(self._range_input)
 
         self._content_layout.addLayout(form)
-
 
     def _collect_config(self) -> dict:
         return {
@@ -71,6 +70,7 @@ class ExportImagesPanel(BasePanelWidget):
 
         def _do(input_path, out, pwd, cfg):
             from core.pdf_to_images import export_pages_as_images
+
             result = export_pages_as_images(
                 input_path,
                 Path(output_dir),
@@ -84,7 +84,9 @@ class ExportImagesPanel(BasePanelWidget):
             return result[0] if result else input_path
 
         self._thread = QThread(self)
-        self._worker = _Worker(_do, self._current_path, self._current_path, self._current_password, config)
+        self._worker = _Worker(
+            _do, self._current_path, self._current_path, self._current_password, config
+        )
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
         self._worker.finished.connect(self._on_done)

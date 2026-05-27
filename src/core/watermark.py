@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -12,6 +13,8 @@ from reportlab.pdfgen import canvas as rl_canvas
 from utils.config import BUNDLED_FONT_PATH
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 from utils.temp_manager import atomic_write
+
+logger = logging.getLogger(__name__)
 
 
 class WatermarkMode(Enum):
@@ -46,11 +49,11 @@ class WatermarkConfig:
     font_color: tuple[float, float, float] = (0.6, 0.6, 0.6)  # RGB 0-1
     # Immagine
     image_path: Path | None = None
-    image_scale: float = 0.5           # 0.1 – 2.0
+    image_scale: float = 0.5  # 0.1 – 2.0
     # Posizionamento
     position: WatermarkPosition = WatermarkPosition.CENTER_DIAGONAL
-    rotation: float = -45.0            # gradi, applicato solo a CENTER_DIAGONAL
-    opacity: float = 0.3               # 0.0 – 1.0
+    rotation: float = -45.0  # gradi, applicato solo a CENTER_DIAGONAL
+    opacity: float = 0.3  # 0.0 – 1.0
     # Applicazione
     page_selection: PageSelection = PageSelection.ALL
     custom_page_indices: list[int] = field(default_factory=list)  # 0-based, per CUSTOM
@@ -77,9 +80,7 @@ def apply_watermark(
     if config.mode == WatermarkMode.IMAGE and (
         config.image_path is None or not config.image_path.exists()
     ):
-        raise PDFusionError(
-            f"Immagine watermark non trovata: {config.image_path}"
-        )
+        raise PDFusionError(f"Immagine watermark non trovata: {config.image_path}")
 
     try:
         doc = fitz.open(str(input_path))
@@ -221,7 +222,10 @@ def _draw_image_watermark(
         draw_w = img_w * scale
         draw_h = img_h * scale
 
-        if config.position == WatermarkPosition.CENTER_DIAGONAL or config.position == WatermarkPosition.CENTER:
+        if (
+            config.position == WatermarkPosition.CENTER_DIAGONAL
+            or config.position == WatermarkPosition.CENTER
+        ):
             x = (width - draw_w) / 2
             y = (height - draw_h) / 2
         elif config.position == WatermarkPosition.TOP_LEFT:
@@ -238,13 +242,16 @@ def _draw_image_watermark(
 
         c.drawImage(
             str(config.image_path),
-            x, y,
+            x,
+            y,
             width=draw_w,
             height=draw_h,
             mask="auto",
         )
-    except Exception:
-        pass
+    except Image.UnidentifiedImageError:
+        logger.warning(f"Immagine watermark non supportata: {config.image_path}")
+    except OSError:
+        logger.warning(f"Errore lettura immagine watermark: {config.image_path}")
 
 
 def _register_font() -> str:

@@ -54,9 +54,7 @@ def parse_page_ranges(
             ranges.append((page, page))
             continue
 
-        raise InvalidPageRangeError(
-            f"Formato non riconosciuto: '{part}'. Usa es. '1-3, 5, 7-9'."
-        )
+        raise InvalidPageRangeError(f"Formato non riconosciuto: '{part}'. Usa es. '1-3, 5, 7-9'.")
 
     if not ranges:
         raise InvalidPageRangeError("Nessun range valido trovato.")
@@ -66,9 +64,7 @@ def parse_page_ranges(
 
 def _validate_range(start: int, end: int, total_pages: int | None) -> None:
     if start < 1:
-        raise InvalidPageRangeError(
-            f"Numero pagina non valido: {start}. Le pagine partono da 1."
-        )
+        raise InvalidPageRangeError(f"Numero pagina non valido: {start}. Le pagine partono da 1.")
     if end < start:
         raise InvalidPageRangeError(
             f"Range non valido: {start}-{end}. Il numero finale deve essere ≥ quello iniziale."

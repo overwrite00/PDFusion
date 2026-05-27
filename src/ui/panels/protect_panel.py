@@ -99,5 +99,6 @@ class ProtectPanel(BasePanelWidget):
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
         from core.protect import protect
+
         protect(input_path, output_path, config, password or None)
         return output_path

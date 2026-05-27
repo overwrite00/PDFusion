@@ -35,6 +35,7 @@ def _clear_layout(layout) -> None:
 
 class _Worker(QObject):
     """Worker generico per eseguire un'operazione core su un QThread."""
+
     finished = pyqtSignal(Path)
     error = pyqtSignal(str)
 
@@ -79,7 +80,7 @@ class BasePanelWidget(QWidget):
 
     operation_done = pyqtSignal(Path)
     status_message = pyqtSignal(str)
-    preview_requested = pyqtSignal(Path)   # ← nuovo: anteprima nel viewer
+    preview_requested = pyqtSignal(Path)  # ← nuovo: anteprima nel viewer
 
     def __init__(self, title: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -87,12 +88,14 @@ class BasePanelWidget(QWidget):
         self._current_path: Path | None = None
         self._current_password: str = ""
         self._thread: QThread | None = None
-        self._worker: _Worker | None = None   # ← mantiene il riferimento vivo
+        self._worker: _Worker | None = None  # ← mantiene il riferimento vivo
         self._preview_thread: QThread | None = None
         self._preview_worker: _Worker | None = None
-        self._preview_tmp: Path | None = None  # temp corrente: tracciato dal momento della creazione
-        self._original_stem: str = ""             # stem del file originale per il dialogo di salvataggio
-        self._supports_preview: bool = True       # le sottoclassi possono disabilitarlo
+        self._preview_tmp: Path | None = (
+            None  # temp corrente: tracciato dal momento della creazione
+        )
+        self._original_stem: str = ""  # stem del file originale per il dialogo di salvataggio
+        self._supports_preview: bool = True  # le sottoclassi possono disabilitarlo
         self._setup_ui(title)
 
     # ------------------------------------------------------------------
@@ -141,7 +144,7 @@ class BasePanelWidget(QWidget):
 
         # Barra di progresso (nascosta di default)
         self._progress_bar = QProgressBar(content_widget)
-        self._progress_bar.setRange(0, 0)   # indeterminata
+        self._progress_bar.setRange(0, 0)  # indeterminata
         self._progress_bar.setFixedHeight(4)
         self._progress_bar.setTextVisible(False)
         self._progress_bar.setVisible(False)
@@ -159,9 +162,7 @@ class BasePanelWidget(QWidget):
 
         self._preview_btn = QPushButton("Anteprima", content_widget)
         self._preview_btn.setObjectName("previewButton")
-        self._preview_btn.setToolTip(
-            "Mostra il risultato nel viewer senza salvare il file"
-        )
+        self._preview_btn.setToolTip("Mostra il risultato nel viewer senza salvare il file")
         self._preview_btn.clicked.connect(self._on_preview)
         self._preview_btn.setMinimumHeight(36)
         self._preview_btn.setEnabled(False)
@@ -204,10 +205,10 @@ class BasePanelWidget(QWidget):
         Ripristina il pannello ai valori di default.
         Chiamato da MainWindow quando si apre o si chiude un documento.
         """
-        self._discard_preview_tmp()          # elimina subito eventuali temp in volo
-        self._reset_state()                  # hook: resetta variabili interne
+        self._discard_preview_tmp()  # elimina subito eventuali temp in volo
+        self._reset_state()  # hook: resetta variabili interne
         _clear_layout(self._content_layout)  # rimuove tutti i widget del form
-        self._setup_content()                # ricrea il form con i valori di default
+        self._setup_content()  # ricrea il form con i valori di default
 
     def _reset_state(self) -> None:
         """
@@ -246,10 +247,9 @@ class BasePanelWidget(QWidget):
         # Lo registriamo subito in _preview_tmp: in caso di errore del worker
         # (o file vuoto) siamo noi a eliminarlo, non aspettiamo MainWindow.
         tmp_dir = self._current_path.parent
-        tmp_fd, tmp_str = tempfile.mkstemp(
-            suffix=".pdf", prefix=".pdfusion_preview_", dir=tmp_dir
-        )
+        tmp_fd, tmp_str = tempfile.mkstemp(suffix=".pdf", prefix=".pdfusion_preview_", dir=tmp_dir)
         import os
+
         os.close(tmp_fd)
         self._preview_tmp = Path(tmp_str)
         tmp_path = self._preview_tmp
@@ -292,7 +292,9 @@ class BasePanelWidget(QWidget):
             # Successo: la proprietà del file passa a MainWindow tramite il segnale.
             self._preview_tmp = None
             self.preview_requested.emit(tmp_path)
-            self.status_message.emit("Anteprima generata — il file originale non è stato modificato.")
+            self.status_message.emit(
+                "Anteprima generata — il file originale non è stato modificato."
+            )
         else:
             # File vuoto o assente: il pannello lo elimina subito (non arriverà mai a MainWindow).
             self._discard_preview_tmp()
@@ -376,7 +378,15 @@ class BasePanelWidget(QWidget):
         #    os.replace() è già avvenuto (o non avverrà mai).
         if self._preview_thread and self._preview_thread.isRunning():
             self._preview_thread.quit()
-            self._preview_thread.wait(3000)
+            # Attendi fino a 3 secondi il completamento graceful
+            if not self._preview_thread.wait(3000):
+                # Timeout: il worker è bloccato, forzane la terminazione
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning("Preview thread non risponde al quit(), forzamento terminazione")
+                self._preview_thread.terminate()
+                self._preview_thread.wait()  # Attendi la terminazione forzata
         self._preview_thread = None
         self._preview_worker = None
         # 2. Il file è ora in uno stato definitivo: unlink() funziona su Windows.

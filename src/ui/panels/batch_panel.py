@@ -24,10 +24,10 @@ class BatchPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Batch", parent)
         self._files: list[Path] = []
-        self._supports_preview = False   # operazione multipla
+        self._supports_preview = False  # operazione multipla
         self._progress_dlg: ProgressDialog | None = None
         self._thread: QThread | None = None
-        self._batch_worker = None        # mantiene il riferimento vivo durante il thread
+        self._batch_worker = None  # mantiene il riferimento vivo durante il thread
         self._setup_content()
 
     def _setup_content(self) -> None:
@@ -82,7 +82,6 @@ class BatchPanel(BasePanelWidget):
         self._content_layout.addLayout(form)
         self._content_layout.addWidget(self._suffix_label)
 
-
     def _reset_state(self) -> None:
         self._files = []
 
@@ -117,9 +116,7 @@ class BatchPanel(BasePanelWidget):
         if not config:
             return
 
-        output_dir = QFileDialog.getExistingDirectory(
-            self, "Seleziona cartella di output", ""
-        )
+        output_dir = QFileDialog.getExistingDirectory(self, "Seleziona cartella di output", "")
         if not output_dir:
             return
 
@@ -148,6 +145,7 @@ class BatchPanel(BasePanelWidget):
             def run(self_w):
                 def cb(done, total, name):
                     self_w.progress.emit(done, total, name)
+
                 results = run_batch(files, job, progress_callback=cb)
                 self_w.finished.emit(results)
 

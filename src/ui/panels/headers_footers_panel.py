@@ -96,10 +96,12 @@ class HeadersFootersPanel(BasePanelWidget):
         main_vbox.setSpacing(6)
         main_vbox.setContentsMargins(8, 8, 8, 8)
 
-        h_grp, self._h_left, self._h_center, self._h_right = \
-            _make_hf_group("Intestazione", self._main_group)
-        f_grp, self._f_left, self._f_center, self._f_right = \
-            _make_hf_group("Piè di pagina", self._main_group)
+        h_grp, self._h_left, self._h_center, self._h_right = _make_hf_group(
+            "Intestazione", self._main_group
+        )
+        f_grp, self._f_left, self._f_center, self._f_right = _make_hf_group(
+            "Piè di pagina", self._main_group
+        )
         main_vbox.addWidget(h_grp)
         main_vbox.addWidget(f_grp)
         self._content_layout.addWidget(self._main_group)
@@ -110,10 +112,12 @@ class HeadersFootersPanel(BasePanelWidget):
         fp_vbox.setContentsMargins(0, 0, 0, 0)
         fp_vbox.setSpacing(6)
 
-        fp_h_grp, self._fp_h_left, self._fp_h_center, self._fp_h_right = \
-            _make_hf_group("Intestazione — prima pagina", self._first_page_widget)
-        fp_f_grp, self._fp_f_left, self._fp_f_center, self._fp_f_right = \
-            _make_hf_group("Piè di pagina — prima pagina", self._first_page_widget)
+        fp_h_grp, self._fp_h_left, self._fp_h_center, self._fp_h_right = _make_hf_group(
+            "Intestazione — prima pagina", self._first_page_widget
+        )
+        fp_f_grp, self._fp_f_left, self._fp_f_center, self._fp_f_right = _make_hf_group(
+            "Piè di pagina — prima pagina", self._first_page_widget
+        )
         fp_vbox.addWidget(fp_h_grp)
         fp_vbox.addWidget(fp_f_grp)
         self._first_page_widget.setVisible(False)
@@ -125,10 +129,12 @@ class HeadersFootersPanel(BasePanelWidget):
         ev_vbox.setContentsMargins(0, 0, 0, 0)
         ev_vbox.setSpacing(6)
 
-        ev_h_grp, self._ev_h_left, self._ev_h_center, self._ev_h_right = \
-            _make_hf_group("Intestazione — pagine pari", self._even_widget)
-        ev_f_grp, self._ev_f_left, self._ev_f_center, self._ev_f_right = \
-            _make_hf_group("Piè di pagina — pagine pari", self._even_widget)
+        ev_h_grp, self._ev_h_left, self._ev_h_center, self._ev_h_right = _make_hf_group(
+            "Intestazione — pagine pari", self._even_widget
+        )
+        ev_f_grp, self._ev_f_left, self._ev_f_center, self._ev_f_right = _make_hf_group(
+            "Piè di pagina — pagine pari", self._even_widget
+        )
         ev_vbox.addWidget(ev_h_grp)
         ev_vbox.addWidget(ev_f_grp)
         self._even_widget.setVisible(False)
@@ -188,17 +194,29 @@ class HeadersFootersPanel(BasePanelWidget):
         mostrando il documento originale senza nessuna intestazione/piè.
         """
         self._clear_all_fields()
-        self._on_preview()   # eredita da BasePanelWidget
+        self._on_preview()  # eredita da BasePanelWidget
 
     def _clear_all_fields(self) -> None:
         """Svuota tutti i campi di testo e deseleziona i checkbox."""
         for field in (
-            self._h_left, self._h_center, self._h_right,
-            self._f_left, self._f_center, self._f_right,
-            self._fp_h_left, self._fp_h_center, self._fp_h_right,
-            self._fp_f_left, self._fp_f_center, self._fp_f_right,
-            self._ev_h_left, self._ev_h_center, self._ev_h_right,
-            self._ev_f_left, self._ev_f_center, self._ev_f_right,
+            self._h_left,
+            self._h_center,
+            self._h_right,
+            self._f_left,
+            self._f_center,
+            self._f_right,
+            self._fp_h_left,
+            self._fp_h_center,
+            self._fp_h_right,
+            self._fp_f_left,
+            self._fp_f_center,
+            self._fp_f_right,
+            self._ev_h_left,
+            self._ev_h_center,
+            self._ev_h_right,
+            self._ev_f_left,
+            self._ev_f_center,
+            self._ev_f_right,
         ):
             field.clear()
         self._diff_first_page_cb.setChecked(False)
@@ -237,26 +255,35 @@ class HeadersFootersPanel(BasePanelWidget):
                 left=self._fp_h_left.text(),
                 center=self._fp_h_center.text(),
                 right=self._fp_h_right.text(),
-            ) if diff_first else HeaderFooterSection(),
+            )
+            if diff_first
+            else HeaderFooterSection(),
             first_page_footer=HeaderFooterSection(
                 left=self._fp_f_left.text(),
                 center=self._fp_f_center.text(),
                 right=self._fp_f_right.text(),
-            ) if diff_first else HeaderFooterSection(),
+            )
+            if diff_first
+            else HeaderFooterSection(),
             even_header=HeaderFooterSection(
                 left=self._ev_h_left.text(),
                 center=self._ev_h_center.text(),
                 right=self._ev_h_right.text(),
-            ) if diff_odd_even else HeaderFooterSection(),
+            )
+            if diff_odd_even
+            else HeaderFooterSection(),
             even_footer=HeaderFooterSection(
                 left=self._ev_f_left.text(),
                 center=self._ev_f_center.text(),
                 right=self._ev_f_right.text(),
-            ) if diff_odd_even else HeaderFooterSection(),
+            )
+            if diff_odd_even
+            else HeaderFooterSection(),
         )
 
     def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.headers_footers import add_headers_footers
+
         # Usa sempre il base-path (documento pulito prima di qualsiasi H/F).
         # Fallback su input_path se base-path non è disponibile (caso anomalo).
         actual_input = self._hf_base_path if self._hf_base_path is not None else input_path
@@ -281,6 +308,7 @@ class HeadersFootersPanel(BasePanelWidget):
 # ---------------------------------------------------------------------------
 # Helper di modulo
 # ---------------------------------------------------------------------------
+
 
 def _make_hf_group(
     title: str, parent: QWidget

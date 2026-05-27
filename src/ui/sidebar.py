@@ -65,9 +65,7 @@ class Sidebar(QWidget):
         # Logo / titolo
         header = QWidget(self)
         header.setFixedHeight(48)
-        header.setStyleSheet(
-            "background:#4A6FA5; border-bottom:1px solid #3A5A8C;"
-        )
+        header.setStyleSheet("background:#4A6FA5; border-bottom:1px solid #3A5A8C;")
         h_layout = QVBoxLayout(header)
         h_layout.setContentsMargins(12, 0, 0, 0)
         logo = QLabel("PDFusion", header)
@@ -87,6 +85,7 @@ class Sidebar(QWidget):
         for item_def in SIDEBAR_ITEMS:
             if item_def.is_separator:
                 from PyQt6.QtCore import QSize
+
                 sep = QListWidgetItem("")
                 sep.setFlags(Qt.ItemFlag.NoItemFlags)
                 sep.setSizeHint(QSize(0, 8))
