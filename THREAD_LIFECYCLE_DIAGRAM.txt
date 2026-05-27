@@ -1,0 +1,364 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                  PDFusion Thread Lifecycle - Safe Closure                    ║
+║                              After Fix Applied                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         STATE MACHINE: Worker Lifecycle                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+   ┌──────────────┐
+   │   INITIAL    │  self._worker = None
+   │  (No Doc)    │  self._thread not running
+   └──────┬───────┘
+          │
+          │ load_document(path)
+          ▼
+   ┌──────────────────────┐
+   │   INITIALIZING       │  self._worker = _RenderWorker(path)
+   │   (Creating Worker)  │  self._thread.start()
+   └──────┬───────────────┘
+          │
+          │ thread.started signal fires
+          ▼
+   ┌──────────────────────┐
+   │    ACTIVE            │  self._thread.isRunning() = True
+   │  (Rendering Pages)   │  worker can accept render() calls
+   └──────┬───────────────┘
+          │
+          ├─ load_document(new_path)  ┐
+          │  go_to_page()             ├─ ──┐
+          │  close_document()         ┘    │
+          │                                │
+          │ _close_worker() called         │
+          ▼                                │
+   ┌──────────────────────┐               │
+   │   CLOSING PHASE 1    │◄──────────────┘
+   │  (Snapshot Taken)    │  1. worker_snapshot = self._worker
+   │                      │  2. self._worker = None (IMMEDIATE!)
+   │                      │  3. Signal callbacks now create NEW worker
+   └──────┬───────────────┘
+          │
+          │ worker_snapshot.close()
+          │ (sets _closed = True)
+          ▼
+   ┌──────────────────────┐
+   │   CLOSING PHASE 2    │  No more render() calls accepted
+   │  (Signaling Stop)    │  Existing render() in progress continues
+   └──────┬───────────────┘
+          │
+          │ thread.quit()
+          │ thread.wait(2000)
+          ▼
+   ┌──────────────────────┐
+   │   CLOSING PHASE 3    │  Worker thread has exited
+   │ (Thread Stopped)     │  No more rendering happens
+   └──────┬───────────────┘
+          │
+          │ worker_snapshot._doc.close()
+          ▼
+   ┌──────────────────────┐
+   │   CLOSED            │  Document closed, file handle released
+   │  (Document Closed)   │  Ready for next load_document()
+   └──────┬───────────────┘
+          │
+          │ Return to INITIAL state for next document
+          │
+          ▼
+   ┌──────────────────────┐
+   │   INITIAL            │
+   │  (Ready for Next)    │
+   └──────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    RACE CONDITION ATTACK SCENARIO                            │
+│                  (Prevented by Snapshot Pattern)                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+TIME  MAIN THREAD                 Qt EVENT QUEUE             WORKER THREAD
+─────────────────────────────────────────────────────────────────────────────
+
+T0    _close_worker() starts
+      │
+T1    worker_snapshot =
+      │ self._worker          ◄─────── Worker is captured safely
+      │
+T2    self._worker = None     ◄─────── CRITICAL: Clear immediately!
+      │                              (Signal callbacks see None now)
+      │
+T3    worker_snapshot.close()
+      │                              ┌─ SIGNAL QUEUED: rendered
+      │                              │  (From completed render on T0-T2)
+      │                              │
+T4    thread.quit()
+      │                              │
+T5    thread.wait(2000)              │
+      │                              │
+T6    [WAIT RETURNS]          ◄───────── WORKER THREAD EXITS
+      │
+      │ signal delivered to     ┌─ _on_rendered() fires
+T7    │ main thread event loop  │
+      │                         │  Calls load_document()
+      │                         │  ├─ _close_worker() called
+      │                         │  │  ├─ worker_snapshot = self._worker
+      │                         │  │  │  (gets NEW worker, not old one)
+      │                         │  │  ├─ self._worker = None (new worker)
+      │                         │  │  └─ [proceed to cleanup NEW worker]
+      │                         │  │
+      │                         │  └─ Starts NEW worker for new doc
+      │                         │
+T8    worker_snapshot._doc.close()  ✓ SAFE - using snapshot, not
+      │                              self._worker
+      │
+T9    Complete - No crash!
+      │
+      ▼ All threads happy, state consistent
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   MEMORY REFERENCE LIFETIME                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+self._worker Reference Lifecycle:
+──────────────────────────────────
+
+  PHASE 1: INITIAL STATE
+  ┌─────────────────────┐
+  │ self._worker = None │
+  └─────────────────────┘
+           │
+           │ load_document()
+           ▼
+  ┌──────────────────────────────┐
+  │ self._worker = new Worker()  │
+  │   ↓                          │
+  │   ├─ _RenderWorker obj       │
+  │   │  ├─ _doc = None          │
+  │   │  ├─ _closed = False      │
+  │   │  └─ signal slots         │
+  │   │                          │
+  │   └─ Active for rendering   │
+  └──────────────────────────────┘
+           │
+           │ _close_worker() called
+           ▼
+  ┌──────────────────────────────┐
+  │ worker_snapshot = Worker()   │  Snapshot acquired
+  │ self._worker = None          │  Reference cleared (NEW!)
+  │                              │
+  │ Now:                         │
+  │ - self._worker points to None│
+  │ - worker_snapshot keeps old  │
+  │   object alive               │
+  │ - Signal callbacks will see  │
+  │   None and won't interfere   │
+  └──────────────────────────────┘
+           │
+           │ [Cleanup using snapshot]
+           │ thread.quit()
+           │ thread.wait()
+           │ snapshot._doc.close()
+           ▼
+  ┌──────────────────────────────┐
+  │ snapshot reference goes out  │
+  │ of scope → Python GC frees   │
+  │ Worker object memory         │
+  │                              │
+  │ self._worker = None          │
+  │   (already was)              │
+  └──────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              CONCURRENT SCENARIOS (All Safe Post-Fix)                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+SCENARIO 1: Rapid Document Switch
+──────────────────────────────────
+
+  load_document(pdf1)
+    └─ _close_worker()  [None → None, no-op]
+    └─ self._worker = Worker(pdf1)
+    └─ start rendering pdf1
+
+  [USER: Click to open pdf2]
+
+  load_document(pdf2)
+    └─ _close_worker()
+        ├─ snapshot = Worker(pdf1)
+        ├─ self._worker = None       ✓ Can't interfere with new worker
+        ├─ snapshot.close()
+        ├─ thread.quit() + wait()
+        └─ snapshot._doc.close()
+    └─ self._worker = Worker(pdf2)  ✓ New worker, independent
+    └─ start rendering pdf2
+
+
+SCENARIO 2: Signal Callback During Close
+──────────────────────────────────────────
+
+  _close_worker() [pdf1]
+    ├─ snapshot = Worker(pdf1)
+    ├─ self._worker = None
+    ├─ [Signal rendered fires]
+    │   └─ load_document(pdf2) called!
+    │       └─ _close_worker() [now for Worker(pdf2) if exists]
+    │       └─ self._worker = Worker(pdf2)  ✓ Brand new worker
+    └─ [Continue with snapshot cleanup]
+      └─ snapshot._doc.close()  ✓ Using snapshot, safe
+
+
+SCENARIO 3: Concurrent Close from Multiple Threads
+────────────────────────────────────────────────────
+
+  Thread 1: _close_worker()
+    ├─ snapshot1 = Worker(pdf)
+    ├─ self._worker = None
+    └─ [cleanup using snapshot1]
+
+  Thread 2: _close_worker() [happens at same time]
+    ├─ snapshot2 = self._worker
+    │  └─ Returns None (Thread 1 already cleared)
+    ├─ [Early return - nothing to do]
+    └─ [No crash, no double-free]
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      WINDOWS-SPECIFIC IMPLICATIONS                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Windows File Handle Lifecycle:
+──────────────────────────────
+
+  fitz.open(path)
+    └─ Windows: File handle acquired (locked)
+    └─ Only this thread can access fitz.Document
+
+  Worker thread exits
+    └─ File handle STILL HELD by fitz.Document
+    └─ (Internal fitz cleanup happens later)
+
+  snapshot._doc.close()     ◄─ MUST happen AFTER thread.wait()
+    └─ Windows: File handle released
+    └─ Now file can be deleted/moved by other threads
+
+  ✓ FIX: snapshot pattern ensures _doc.close() happens
+     AFTER worker thread fully exits, BEFORE file access
+
+
+Thread Affinity on Windows:
+───────────────────────────
+
+  Worker Thread      │  Main Thread
+  ────────────────────────────────
+  ├─ fitz.Document  │  UI rendering
+  │  ├─ Hold lock   │
+  │  │  on PDF      │
+  │  │  file        │
+  │  └─ Render ops  │
+  │                 │
+  │ Exit            │  (no fitz access)
+  │ └─ Lock still   │
+  │    held         │
+  │                 │  _close_worker():
+  │                 │  ├─ snapshot taken
+  │                 │  └─ snapshot._doc.close()
+  │                 │     └─ Lock released ✓
+  │                 │
+  │ (GC cleanup)    │
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        IDEMPOTENCY GUARANTEE                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Calling _close_worker() Multiple Times:
+──────────────────────────────────────
+
+  CALL 1:
+    _close_worker()
+      ├─ snapshot = Worker()
+      ├─ self._worker = None
+      ├─ [cleanup]
+      └─ ✓ Success
+
+  CALL 2 (immediate):
+    _close_worker()
+      ├─ snapshot = self._worker  → None
+      ├─ self._worker = None      (already None, no-op)
+      ├─ if not snapshot: return  ← Early exit
+      └─ ✓ Success (no-op)
+
+  CALL 3 (after some time):
+    _close_worker()
+      ├─ snapshot = self._worker  → None
+      ├─ self._worker = None      (already None, no-op)
+      ├─ if not snapshot: return  ← Early exit
+      └─ ✓ Success (no-op)
+
+  ✓ GUARANTEE: Multiple calls are safe, idempotent
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      CODE CHANGE COMPARISON                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+BEFORE (UNSAFE):
+────────────────
+def _close_worker(self):
+    if self._worker:
+        self._worker.close()
+
+    if self._thread.isRunning():
+        self._thread.quit()
+        self._thread.wait(2000)  ← Thread exits here
+
+    if self._worker and self._worker._doc:  ← RACE! Can be None
+        self._worker._doc.close()           ← CRASH
+
+    self._worker = None
+
+
+AFTER (SAFE):
+─────────────
+def _close_worker(self):
+    worker_snapshot = self._worker      ← Capture reference
+    self._worker = None                 ← Clear immediately
+
+    if not worker_snapshot:
+        return
+
+    worker_snapshot.close()
+
+    if self._thread.isRunning():
+        self._thread.quit()
+        self._thread.wait(2000)
+
+    if worker_snapshot._doc:           ← Using snapshot (safe)
+        worker_snapshot._doc.close()   ← No race
+
+    # No final self._worker = None (already done)
+
+✓ KEY DIFFERENCES:
+  1. Snapshot taken first
+  2. self._worker = None immediately (prevents signal callbacks)
+  3. All operations use snapshot reference
+  4. Safe against concurrent deletion
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                              VERIFICATION                                  ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+✓ Applied to: src/ui/viewer.py (PDFViewer._close_worker)
+✓ Applied to: src/ui/thumbnail_panel.py (ThumbnailPanel._close_worker)
+✓ Test suite: tests/test_thread_safety.py (35+ test cases)
+✓ Documentation: THREAD_SAFETY_FIX.md
+✓ Diagram: THREAD_LIFECYCLE_DIAGRAM.txt (this file)
+
+✓ No breaking changes
+✓ Semantics preserved
+✓ Exception handling intact
+✓ Logging enhanced

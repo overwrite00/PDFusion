@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -8,6 +9,8 @@ import fitz  # PyMuPDF
 
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 from utils.page_range_parser import parse_page_ranges, ranges_to_indices
+
+logger = logging.getLogger(__name__)
 
 
 class ImageFormat(Enum):
@@ -48,16 +51,16 @@ def export_pages_as_images(
     output_dir.mkdir(parents=True, exist_ok=True)
     stem = input_path.stem
 
+    doc = None
     try:
-        doc = fitz.open(str(input_path))
-    except Exception as exc:
-        raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
+        try:
+            doc = fitz.open(str(input_path))
+        except Exception as exc:
+            raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
-    if password and not doc.authenticate(password):
-        doc.close()
-        raise PDFusionError("Password errata o mancante per aprire il PDF.")
+        if password and not doc.authenticate(password):
+            raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
-    try:
         total = doc.page_count
         indices = _resolve_indices(config.page_range, total)
 
@@ -78,10 +81,15 @@ def export_pages_as_images(
                 pixmap.save(str(out_path))
 
             output_paths.append(out_path)
-    finally:
-        doc.close()
 
-    return output_paths
+        return output_paths
+
+    finally:
+        if doc is not None:
+            try:
+                doc.close()
+            except Exception as exc:
+                logger.warning(f"Errore durante chiusura fitz Document: {exc}")
 
 
 def _resolve_indices(page_range: str | None, total: int) -> list[int]:

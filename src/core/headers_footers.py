@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import io
+import logging
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -10,10 +11,11 @@ import fitz  # PyMuPDF
 from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas as rl_canvas
 
-from utils.config import BUNDLED_FONT_PATH
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 from utils.page_range_parser import parse_page_ranges, ranges_to_indices
 from utils.temp_manager import atomic_write
+
+logger = logging.getLogger(__name__)
 
 # Variabili supportate nel testo: {page}, {total}, {date}, {title}, {author}
 _DEFAULT_DATE = datetime.date.today().strftime("%d/%m/%Y")
@@ -80,16 +82,16 @@ def add_headers_footers(
             shutil.copy2(str(input_path), str(tmp))
         return output_path
 
+    doc = None
     try:
-        doc = fitz.open(str(input_path))
-    except Exception as exc:
-        raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
+        try:
+            doc = fitz.open(str(input_path))
+        except Exception as exc:
+            raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
-    if password and not doc.authenticate(password):
-        doc.close()
-        raise PDFusionError("Password errata o mancante per aprire il PDF.")
+        if password and not doc.authenticate(password):
+            raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
-    try:
         total = doc.page_count
 
         # Leggi metadati per le variabili {title} e {author}
@@ -132,14 +134,26 @@ def add_headers_footers(
             overlay_bytes = _generate_overlay(
                 config, use_header, use_footer, vars_, page_rect.width, page_rect.height
             )
-            overlay_doc = fitz.open("pdf", overlay_bytes)
-            page.show_pdf_page(page_rect, overlay_doc, 0, overlay=True)
-            overlay_doc.close()
+            overlay_doc = None
+            try:
+                overlay_doc = fitz.open("pdf", overlay_bytes)
+                page.show_pdf_page(page_rect, overlay_doc, 0, overlay=True)
+            finally:
+                if overlay_doc is not None:
+                    try:
+                        overlay_doc.close()
+                    except Exception as exc:
+                        logger.warning(f"Errore durante chiusura overlay PDF: {exc}")
 
         with atomic_write(output_path) as tmp:
             doc.save(str(tmp), garbage=1, deflate=True)
+
     finally:
-        doc.close()
+        if doc is not None:
+            try:
+                doc.close()
+            except Exception as exc:
+                logger.warning(f"Errore durante chiusura fitz Document: {exc}")
 
     return output_path
 
@@ -152,35 +166,41 @@ def _generate_overlay(
     width: float,
     height: float,
 ) -> bytes:
+    from utils.font_manager import get_font_manager
+
     buf = io.BytesIO()
-    c = rl_canvas.Canvas(buf, pagesize=(width, height))
-
-    font_name = _get_font()
-    c.setFont(font_name, config.font_size)
-
     try:
-        col = HexColor(config.font_color)
-        c.setFillColor(col)
-    except Exception:
-        c.setFillColorRGB(0.42, 0.45, 0.50)
+        c = rl_canvas.Canvas(buf, pagesize=(width, height))
 
-    mx = config.margin_horizontal
-    my = config.margin_vertical
+        font_manager = get_font_manager()
+        font_name = font_manager.register_bundled_font()
+        c.setFont(font_name, config.font_size)
 
-    # Header
-    if _section_has_content(header):
-        y_header = height - my
-        _draw_section(c, header, vars_, mx, y_header, width, config.font_size)
+        try:
+            col = HexColor(config.font_color)
+            c.setFillColor(col)
+        except Exception:
+            c.setFillColorRGB(0.42, 0.45, 0.50)
 
-    # Footer
-    if _section_has_content(footer):
-        y_footer = my
-        _draw_section(c, footer, vars_, mx, y_footer, width, config.font_size)
+        mx = config.margin_horizontal
+        my = config.margin_vertical
 
-    c.showPage()
-    c.save()
-    buf.seek(0)
-    return buf.read()
+        # Header
+        if _section_has_content(header):
+            y_header = height - my
+            _draw_section(c, header, vars_, mx, y_header, width, config.font_size)
+
+        # Footer
+        if _section_has_content(footer):
+            y_footer = my
+            _draw_section(c, footer, vars_, mx, y_footer, width, config.font_size)
+
+        c.showPage()
+        c.save()
+        buf.seek(0)
+        return buf.getvalue()
+    finally:
+        buf.close()
 
 
 def _draw_section(
@@ -192,7 +212,10 @@ def _draw_section(
     page_width: float,
     font_size: int,
 ) -> None:
-    font_name = _get_font()
+    from utils.font_manager import get_font_manager
+
+    font_manager = get_font_manager()
+    font_name = font_manager.get_font()
 
     if section.left:
         text = _substitute(section.left, vars_)
@@ -244,17 +267,3 @@ def _section_has_content(section: HeaderFooterSection) -> bool:
     return bool(section.left or section.center or section.right)
 
 
-def _get_font() -> str:
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-
-    name = "PDFusionFont"
-    if name in pdfmetrics.getRegisteredFontNames():
-        return name
-    if BUNDLED_FONT_PATH.exists():
-        try:
-            pdfmetrics.registerFont(TTFont(name, str(BUNDLED_FONT_PATH)))
-            return name
-        except Exception:
-            pass
-    return "Helvetica"

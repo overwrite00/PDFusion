@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pikepdf
 
-from utils.exceptions import PDFusionError, UnsupportedFormatError
+from core.pdf_opener import open_pdf_safe
+from utils.exceptions import PDFusionError
 from utils.temp_manager import atomic_write
 
 
@@ -29,13 +30,7 @@ def reorder_pages(
     Raises:
         PDFusionError: se new_order non è una permutazione valida degli indici.
     """
-    try:
-        kwargs = {"password": password} if password else {}
-        pdf = pikepdf.open(input_path, **kwargs)
-    except pikepdf.PasswordError:
-        raise PDFusionError("Password errata o mancante per aprire il PDF.")
-    except pikepdf.PdfError as exc:
-        raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
+    pdf = open_pdf_safe(input_path, password)
 
     try:
         total = len(pdf.pages)

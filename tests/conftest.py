@@ -4,7 +4,9 @@ I PDF vengono generati on-demand se non esistono già.
 """
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -23,9 +25,35 @@ def _ensure_fixtures() -> None:
         )
 
 
+def _create_minimal_ttf_file() -> Path:
+    """
+    Crea un file TTF minimalissimo.
+    """
+    tmp = tempfile.NamedTemporaryFile(
+        suffix=".ttf",
+        delete=False,
+        dir=tempfile.gettempdir()
+    )
+    tmp.write(b"PLACEHOLDER_TTF_FILE")
+    tmp.close()
+    return Path(tmp.name)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def generate_fixtures():
     _ensure_fixtures()
+
+
+@pytest.fixture(scope="session")
+def temp_bundled_font() -> Path:
+    """
+    Crea un temporary file che farà da placeholder per il font TTF.
+    Ritorna un Path al file.
+    """
+    tmp_path = _create_minimal_ttf_file()
+    yield tmp_path
+    # Cleanup after session
+    tmp_path.unlink(missing_ok=True)
 
 
 @pytest.fixture(scope="session")
@@ -56,3 +84,101 @@ def tmp_output(tmp_path) -> Path:
 @pytest.fixture
 def tmp_dir(tmp_path) -> Path:
     return tmp_path
+
+
+@pytest.fixture(autouse=True)
+def mock_bundled_font_for_tests(temp_bundled_font, monkeypatch, request):
+    """
+    Auto-setup per mocking la registrazione dei font.
+    Solo per test_font_manager.py, non per altri test.
+
+    Strategy:
+    1. Mocka BUNDLED_FONT_PATH per puntare al file temporaneo
+    2. Mocka TTFont solo quando viene usato con il bundled font path
+    3. Mocka getRegisteredFontNames() per includere solo font del test corrente
+    """
+    # Skip font mocking per test che non lo richiedono
+    if "test_font_manager" not in str(request.fspath):
+        # Non-font-manager tests: just reset FontManager singleton, don't mock
+        from utils.font_manager import get_font_manager
+        fm = get_font_manager()
+        fm.clear_bundled_fonts()
+        yield
+        return
+
+    # Font manager tests: apply full mocking
+    from utils import config
+    from reportlab.pdfbase import pdfmetrics, ttfonts
+    from utils.font_manager import get_font_manager, FontManager
+
+    # Mock BUNDLED_FONT_PATH
+    monkeypatch.setattr(config, "BUNDLED_FONT_PATH", temp_bundled_font)
+
+    # Tracking fonts per il test corrente
+    test_mocked_fonts = {}
+
+    # Reset FontManager singleton at start of test
+    fm = get_font_manager()
+    fm.clear_bundled_fonts()
+
+    # Salva il TTFont originale
+    original_ttfont = ttfonts.TTFont
+
+    # Crea un wrapper TTFont intelligente
+    def smart_ttfont_wrapper(name, filepath, *args, **kwargs):
+        """
+        Wrapper che mocka solo i file bundled validi.
+        """
+        # Se è il bundled font path, usa il mock
+        if filepath == str(temp_bundled_font):
+            mock_font = MagicMock()
+            mock_font.fontName = name
+            mock_font.filepath = filepath
+            return mock_font
+        else:
+            # Per altri path, usa il TTFont originale
+            return original_ttfont(name, filepath, *args, **kwargs)
+
+    # Patch TTFont dove viene usato nel font_manager
+    monkeypatch.setattr(
+        "utils.font_manager.TTFont",
+        smart_ttfont_wrapper
+    )
+
+    # Patch registerFont per tracciare i font registrati
+    original_register = pdfmetrics.registerFont
+
+    def mock_register(font_obj):
+        """Mock che registra il font nel nostro tracker."""
+        if hasattr(font_obj, "fontName"):
+            test_mocked_fonts[font_obj.fontName] = font_obj
+        # Chiama l'originale
+        try:
+            original_register(font_obj)
+        except Exception:
+            pass
+
+    monkeypatch.setattr(pdfmetrics, "registerFont", mock_register)
+
+    # Patch getRegisteredFontNames per mostrare SOLO font di questo test
+    # Questo evita contaminazione tra test
+    original_get_registered = pdfmetrics.getRegisteredFontNames
+
+    def mock_get_registered_font_names():
+        """
+        Ritorna SOLO i font registrati in questo test (test_mocked_fonts).
+        Ignora i font da test precedenti per evitare contaminazione.
+        """
+        # Ritorna solo i font che abbiamo registrato in questo test
+        return list(test_mocked_fonts.keys())
+
+    monkeypatch.setattr(
+        pdfmetrics,
+        "getRegisteredFontNames",
+        mock_get_registered_font_names
+    )
+
+    yield
+
+    # Cleanup dopo il test
+    test_mocked_fonts.clear()

@@ -81,14 +81,16 @@ def compress(
     if config is None:
         config = CompressConfig()
 
+    doc = None
+    pdf = None
     try:
-        doc = fitz.open(str(input_path))
-    except fitz.FileNotFoundError:
-        raise PDFusionError(f"File non trovato: {input_path}")
-    except Exception as exc:
-        raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
+        try:
+            doc = fitz.open(str(input_path))
+        except fitz.FileNotFoundError:
+            raise PDFusionError(f"File non trovato: {input_path}")
+        except Exception as exc:
+            raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
-    try:
         _resample_images(doc, config)
 
         if config.flatten_annotations:
@@ -105,12 +107,11 @@ def compress(
             clean=True,
         )
         buf.seek(0)
-    finally:
         doc.close()
+        doc = None
 
-    # Secondo passaggio con pikepdf: garbage collect + strip metadati
-    pdf = pikepdf.Pdf.open(buf)
-    try:
+        # Secondo passaggio con pikepdf: garbage collect + strip metadati
+        pdf = pikepdf.Pdf.open(buf)
         if config.remove_metadata:
             _strip_metadata(pdf)
 
@@ -121,8 +122,23 @@ def compress(
                 object_stream_mode=pikepdf.ObjectStreamMode.generate,
                 recompress_flate=True,
             )
-    finally:
         pdf.close()
+        pdf = None
+
+    finally:
+        # Cleanup fitz document
+        if doc is not None:
+            try:
+                doc.close()
+            except Exception as exc:
+                logger.warning(f"Errore durante chiusura fitz Document: {exc}")
+
+        # Cleanup pikepdf document
+        if pdf is not None:
+            try:
+                pdf.close()
+            except Exception as exc:
+                logger.warning(f"Errore durante chiusura pikepdf Pdf: {exc}")
 
     return output_path
 

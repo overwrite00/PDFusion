@@ -12,7 +12,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
-from utils.config import BUNDLED_FONT_PATH, LICENSE_TEMPLATES_DIR
+from utils.config import LICENSE_TEMPLATES_DIR
 from utils.exceptions import PDFusionError
 
 # Palette dell'app usata nelle pagine di licenza
@@ -156,19 +156,18 @@ def _fallback_text(license_type: LicenseType, author: str, year: int) -> str:
 
 
 def _register_fonts() -> None:
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
+    from utils.font_manager import get_font_manager
 
-    if "PDFusionFont" not in pdfmetrics.getRegisteredFontNames() and BUNDLED_FONT_PATH.exists():
-        try:
-            pdfmetrics.registerFont(TTFont("PDFusionFont", str(BUNDLED_FONT_PATH)))
-        except Exception:
-            pass
+    font_manager = get_font_manager()
+    font_manager.register_bundled_font()
 
 
 def _build_styles() -> dict:
+    from utils.font_manager import get_font_manager
+
     getSampleStyleSheet()
-    font = "PDFusionFont" if _font_registered() else "Helvetica"
+    font_manager = get_font_manager()
+    font = font_manager.get_font()
 
     return {
         "title": ParagraphStyle(
@@ -246,7 +245,3 @@ def _build_story(text: str, config: LicenseConfig, styles: dict, year: int) -> l
     return story
 
 
-def _font_registered() -> bool:
-    from reportlab.pdfbase import pdfmetrics
-
-    return "PDFusionFont" in pdfmetrics.getRegisteredFontNames()
