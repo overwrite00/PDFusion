@@ -19,6 +19,7 @@ if [[ "$_LANG" == it* ]]; then
   MSG_PYTHON_FOUND="Python trovato:"
   MSG_PYTHON_NOT_FOUND="Python 3.11–3.13 non trovato. Installa Python 3.13 e riprova."
   MSG_VENV_CREATE="Creazione ambiente virtuale..."
+  MSG_PIP_UPGRADE="Aggiornamento pip..."
   MSG_DEPS_INSTALL="Installazione dipendenze..."
   MSG_ALREADY_UP="Dipendenze già installate."
   MSG_STARTING="Avvio PDFusion..."
@@ -28,6 +29,7 @@ else
   MSG_PYTHON_FOUND="Python found:"
   MSG_PYTHON_NOT_FOUND="Python 3.11–3.13 not found. Install Python 3.13 and retry."
   MSG_VENV_CREATE="Creating virtual environment..."
+  MSG_PIP_UPGRADE="Upgrading pip..."
   MSG_DEPS_INSTALL="Installing dependencies..."
   MSG_ALREADY_UP="Dependencies already installed."
   MSG_STARTING="Starting PDFusion..."
@@ -95,9 +97,13 @@ REQ_HASH_FILE="$VENV_DIR/.req_hash"
 REQ_HASH="$(sha256sum "$REQ_FILE" 2>/dev/null | cut -d' ' -f1 || echo "")"
 SAVED_HASH="$(cat "$REQ_HASH_FILE" 2>/dev/null || echo "")"
 
+# --- Upgrade pip (sempre) ---
+echo "$MSG_PIP_UPGRADE"
+"$PIP_VENV" install --quiet --upgrade pip
+
+# --- Installa dipendenze (se necessario) ---
 if [ "$REQ_HASH" != "$SAVED_HASH" ]; then
   echo "$MSG_DEPS_INSTALL"
-  "$PIP_VENV" install --quiet --upgrade pip
   "$PIP_VENV" install --quiet -r "$REQ_FILE"
   echo "$REQ_HASH" > "$REQ_HASH_FILE"
 else
