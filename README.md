@@ -204,18 +204,45 @@ Complete reference to all 16 integrated tools:
 ### Setup Development Environment
 
 ```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate venv
+.\.venv\Scripts\Activate.ps1  # Windows (PowerShell)
+source .venv/bin/activate      # Linux/macOS
+
+# Install dependencies
+pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
 ### Run Tests
 
 ```bash
-# Using pytest directly
-pytest tests/ -v
+# Full test suite with coverage
+pytest tests/ -v --cov=src --cov-report=html
 
-# Or using scripts
+# Quick test run
+pytest tests/ -q
+
+# Using scripts
 ./run_tests.sh       # Linux/macOS
 run_tests.bat        # Windows
+```
+
+### Code Quality
+
+```bash
+# Type checking
+mypy src/
+
+# Linting and formatting
+python -m ruff check src/
+python -m ruff format src/
+
+# Coverage report
+python -m pytest tests/ --cov=src --cov-report=html
+# Open htmlcov/index.html in browser
 ```
 
 ### Build Standalone Executable
@@ -224,6 +251,15 @@ run_tests.bat        # Windows
 pyinstaller PDFusion.spec --noconfirm
 # Output: dist/PDFusion/ (executable + dependencies)
 ```
+
+### Contributing
+
+For detailed contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md):
+- Development setup
+- PR workflow (branch naming, commit conventions)
+- Code style guidelines (PEP 8, type hints, docstrings)
+- Testing requirements (pytest, coverage >= 80%)
+- Release process
 
 ### Project Structure
 

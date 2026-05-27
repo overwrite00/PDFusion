@@ -8,8 +8,28 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 
 ## [Unreleased]
 
-_Prossime funzionalità pianificate:_
+### Fixed
+- **Critical**: fitz.open() resource leak in main_window._on_open_path() — added try-finally
+- **Critical**: Silent exception handling in compress._resample_images() — replaced generic `except Exception:` with specific exceptions (PIL.UnidentifiedImageError, ValueError, IOError)
+- **Critical**: Silent error in watermark._draw_image_watermark() — added logging and specific exception handling
+- **Critical**: Thread timeout hardcoded in base_panel._discard_preview_tmp() — added fallback terminate() on timeout
+- **Critical**: Race condition in main_window._on_operation_done() after _cleanup_all_temps() — added file existence guard in _on_preview_requested()
 
+### Added
+- **Testing**: 13 new UI tests for main_window (file opening, panel switching, memory management)
+- **Testing**: pytest-cov integration with coverage reporting (65%+ total, 85%+ core modules)
+- **Testing**: mypy type checking configuration in pyproject.toml
+- **Code Quality**: Helper function `_open_pdf_with_password()` in core/__init__.py for DRY principle
+- **Documentation**: CONTRIBUTING.md with dev setup, PR workflow, code style guidelines
+- **Development**: requirements-dev.txt now includes pytest-cov, mypy for automated code quality checks
+
+### Changed
+- **Code Style**: Applied ruff format and ruff check to all Python files (40 files formatted for PEP 8 compliance)
+- **Imports**: Moved non-top-level imports to module level in main_window.py (PEP 8)
+- **Error Handling**: Replaced generic `except Exception:` patterns with specific exception types in compress.py and watermark.py
+- **Logging**: Added logging module imports to compress.py and watermark.py for error tracking
+
+### Planned Features
 - Drag-and-drop dal file manager verso la sidebar strumenti
 - Anteprima watermark in tempo reale nel viewer
 - Esportazione report operazioni in CSV
