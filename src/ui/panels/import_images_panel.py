@@ -88,7 +88,7 @@ class ImportImagesPanel(BasePanelWidget):
         super().set_current_file(path, password)
         self._apply_btn.setEnabled(True)
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if not self._images:
             from PyQt6.QtWidgets import QMessageBox
 

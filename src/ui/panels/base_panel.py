@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-import tempfile
+import threading
 from pathlib import Path
 
-from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -19,6 +19,9 @@ from PyQt6.QtWidgets import (
 )
 
 from utils.exceptions import PDFusionError
+from ui.panels.config_collector import ConfigCollector
+from ui.panels.file_monitor import FileMonitorManager
+from ui.panels.preview_renderer import PreviewRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -36,42 +39,21 @@ def _clear_layout(layout) -> None:
                 _clear_layout(child)
 
 
-class _Worker(QObject):
-    """Worker generico per eseguire un'operazione core su un QThread."""
-
-    finished = pyqtSignal(Path)
-    error = pyqtSignal(str)
-
-    def __init__(self, fn, *args, **kwargs) -> None:
-        super().__init__()
-        self._fn = fn
-        self._args = args
-        self._kwargs = kwargs
-
-    @pyqtSlot()
-    def run(self) -> None:
-        try:
-            result = self._fn(*self._args, **self._kwargs)
-            if isinstance(result, Path):
-                self.finished.emit(result)
-            elif isinstance(result, list) and result and isinstance(result[0], Path):
-                self.finished.emit(result[0])
-            else:
-                self.finished.emit(Path())
-        except PDFusionError as exc:
-            self.error.emit(str(exc))
-        except Exception as exc:
-            self.error.emit(f"Errore inatteso: {exc}")
 
 
-class BasePanelWidget(QWidget):
+class BasePanelWidget(QWidget, ConfigCollector):
     """
     Classe base per tutti i pannelli strumento di PDFusion.
+
+    Orchestrates:
+    - FileMonitorManager: detects file changes
+    - PreviewRenderer: handles preview rendering and thread lifecycle
+    - ConfigCollector: gathers and validates user configuration
 
     Le sottoclassi devono:
     1. Chiamare super().__init__() con il titolo
     2. Aggiungere widget a self._content_layout
-    3. Implementare _collect_config() → config o None
+    3. Implementare _collect_config_impl() → config o None
     4. Implementare _run_core(input_path, output_path, password, config) → Path
 
     Segnali:
@@ -83,22 +65,24 @@ class BasePanelWidget(QWidget):
 
     operation_done = pyqtSignal(Path)
     status_message = pyqtSignal(str)
-    preview_requested = pyqtSignal(Path)  # ← nuovo: anteprima nel viewer
+    preview_requested = pyqtSignal(Path)
 
     def __init__(self, title: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("toolPanel")
         self._current_path: Path | None = None
         self._current_password: str = ""
-        self._thread: QThread | None = None
-        self._worker: _Worker | None = None  # ← mantiene il riferimento vivo
-        self._preview_thread: QThread | None = None
-        self._preview_worker: _Worker | None = None
-        self._preview_tmp: Path | None = (
-            None  # temp corrente: tracciato dal momento della creazione
-        )
-        self._original_stem: str = ""  # stem del file originale per il dialogo di salvataggio
-        self._supports_preview: bool = True  # le sottoclassi possono disabilitarlo
+        self._original_stem: str = ""
+        self._supports_preview: bool = True
+
+        # Initialize components
+        self._file_monitor = FileMonitorManager(self)
+        self._file_monitor.file_changed.connect(self._on_file_monitored_changed)
+
+        self._preview_renderer = PreviewRenderer(self)
+        self._preview_renderer.preview_ready.connect(self._on_preview_ready)
+        self._preview_renderer.preview_failed.connect(self._on_preview_failed)
+
         self._setup_ui(title)
 
     # ------------------------------------------------------------------
@@ -208,7 +192,7 @@ class BasePanelWidget(QWidget):
         Ripristina il pannello ai valori di default.
         Chiamato da MainWindow quando si apre o si chiude un documento.
         """
-        self._discard_preview_tmp()  # elimina subito eventuali temp in volo
+        self._preview_renderer.cancel_render()  # cancella eventuali preview in volo
         self._reset_state()  # hook: resetta variabili interne
         _clear_layout(self._content_layout)  # rimuove tutti i widget del form
         self._setup_content()  # ricrea il form con i valori di default
@@ -225,13 +209,16 @@ class BasePanelWidget(QWidget):
     # Da implementare nelle sottoclassi
     # ------------------------------------------------------------------
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
+        """ConfigCollector interface: subclasses implement this to collect config."""
         return None
 
     def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+        """Subclasses implement the actual PDF operation here."""
         raise NotImplementedError
 
     def _on_file_changed(self, path: Path | None) -> None:
+        """Hook: called when a monitored file changes."""
         pass
 
     # ------------------------------------------------------------------
@@ -242,66 +229,34 @@ class BasePanelWidget(QWidget):
         """Genera il risultato su un file temporaneo e lo mostra nel viewer."""
         if not self._current_path:
             return
-        config = self._collect_config()
+
+        config = self.collect_config()
         if config is None:
             return
 
-        # Crea un file temp nella stessa cartella per compatibilità su Windows.
-        # Lo registriamo subito in _preview_tmp: in caso di errore del worker
-        # (o file vuoto) siamo noi a eliminarlo, non aspettiamo MainWindow.
-        tmp_dir = self._current_path.parent
-        tmp_fd, tmp_str = tempfile.mkstemp(suffix=".pdf", prefix=".pdfusion_preview_", dir=tmp_dir)
-        import os
-
-        os.close(tmp_fd)
-        self._preview_tmp = Path(tmp_str)
-        tmp_path = self._preview_tmp
-
         self._set_busy(True, label="Generazione anteprima…")
 
-        self._preview_thread = QThread(self)
-        self._preview_worker = _Worker(
+        tmp_path = self._preview_renderer.render_preview(
             self._run_core,
             self._current_path,
-            tmp_path,
-            self._current_password,
             config,
+            self._current_password,
         )
-        self._preview_worker.moveToThread(self._preview_thread)
-        self._preview_thread.started.connect(self._preview_worker.run)
-        self._preview_worker.finished.connect(self._on_preview_done)
-        self._preview_worker.error.connect(self._on_error)
-        self._preview_worker.finished.connect(self._preview_thread.quit)
-        self._preview_worker.error.connect(self._preview_thread.quit)
-        self._preview_thread.start()
 
     @pyqtSlot(Path)
-    def _on_preview_done(self, tmp_path: Path) -> None:
+    def _on_preview_ready(self, preview_path: Path) -> None:
+        """Called when preview is ready."""
         self._set_busy(False)
-        if tmp_path.exists() and tmp_path.stat().st_size > 0:
-            # Guardia contro segnali residui in coda Qt dopo la cancellazione:
-            # _discard_preview_tmp() imposta _preview_tmp = None e ferma il thread,
-            # ma il segnale "finished" già accodato nella coda del main thread viene
-            # comunque consegnato da Qt in un ciclo successivo dell'event loop.
-            # Se _preview_tmp è già None qui, os.replace() ha ricreato il file
-            # DOPO che l'avevamo cancellato (timeout thread.wait): eliminiamolo e
-            # usciamo senza emettere preview_requested.
-            if self._preview_tmp is None:
-                try:
-                    tmp_path.unlink()
-                except OSError:
-                    pass
-                return
-            # Successo: la proprietà del file passa a MainWindow tramite il segnale.
-            self._preview_tmp = None
-            self.preview_requested.emit(tmp_path)
-            self.status_message.emit(
-                "Anteprima generata — il file originale non è stato modificato."
-            )
-        else:
-            # File vuoto o assente: il pannello lo elimina subito (non arriverà mai a MainWindow).
-            self._discard_preview_tmp()
-            self.status_message.emit("Anteprima non disponibile per questa operazione.")
+        self.preview_requested.emit(preview_path)
+        self.status_message.emit(
+            "Anteprima generata — il file originale non è stato modificato."
+        )
+
+    @pyqtSlot(str)
+    def _on_preview_failed(self, error_msg: str) -> None:
+        """Called when preview generation fails."""
+        self._set_busy(False)
+        self.status_message.emit(error_msg)
 
     # ------------------------------------------------------------------
     # Operazione definitiva
@@ -311,7 +266,7 @@ class BasePanelWidget(QWidget):
         if not self._current_path:
             return
 
-        config = self._collect_config()
+        config = self.collect_config()
         if config is None:
             return
 
@@ -319,8 +274,7 @@ class BasePanelWidget(QWidget):
         # Il dialogo esegue un event loop interno: segnali Qt (es. render worker,
         # preview completato su un altro pannello) potrebbero aggiornare
         # _current_path nel frattempo. La cattura preventiva garantisce che
-        # l'operazione usi sempre il file sorgente corretto (incluso il preview
-        # temp se è attivo, assicurando il chaining corretto tra operazioni).
+        # l'operazione usi sempre il file sorgente corretto.
         source_path = self._current_path
         source_password = self._current_password
 
@@ -329,22 +283,26 @@ class BasePanelWidget(QWidget):
             return
 
         self._set_busy(True)
+        self._run_operation(source_path, output_path, source_password, config)
 
-        self._thread = QThread(self)
-        self._worker = _Worker(
-            self._run_core,
-            source_path,
-            output_path,
-            source_password,
-            config,
-        )
-        self._worker.moveToThread(self._thread)
-        self._thread.started.connect(self._worker.run)
-        self._worker.finished.connect(self._on_done)
-        self._worker.error.connect(self._on_error)
-        self._worker.finished.connect(self._thread.quit)
-        self._worker.error.connect(self._thread.quit)
-        self._thread.start()
+    def _run_operation(self, source_path: Path, output_path: Path, password: str, config) -> None:
+        """Run the main PDF operation in a background thread."""
+        def _worker_run():
+            try:
+                result = self._run_core(source_path, output_path, password, config)
+                if isinstance(result, Path):
+                    self._on_done(result)
+                elif isinstance(result, list) and result and isinstance(result[0], Path):
+                    self._on_done(result[0])
+                else:
+                    self._on_done(output_path)
+            except PDFusionError as exc:
+                self._on_error(str(exc))
+            except Exception as exc:
+                self._on_error(f"Errore inatteso: {exc}")
+
+        thread = threading.Thread(target=_worker_run, daemon=True)
+        thread.start()
 
     @pyqtSlot(Path)
     def _on_done(self, output_path: Path) -> None:
@@ -354,61 +312,14 @@ class BasePanelWidget(QWidget):
     @pyqtSlot(str)
     def _on_error(self, msg: str) -> None:
         self._set_busy(False)
-        # Se l'errore viene dal worker di anteprima, elimina il file temp orfano.
-        # Se viene dal worker di apply, _preview_tmp è None e il metodo è no-op.
-        self._discard_preview_tmp()
+        self._preview_renderer.cancel_render()
         QMessageBox.critical(self, "Errore", msg)
         self.status_message.emit(f"Errore: {msg}")
 
-    def _discard_preview_tmp(self) -> None:
-        """
-        Ferma il worker di anteprima (se in esecuzione) e cancella il file temporaneo.
-
-        L'ordine è critico su Windows:
-          1. ferma il thread e aspetta che _run_core() completi
-             → os.replace(inner_tmp, preview_tmp) ha già trasferito il contenuto
-               oppure il thread è uscito prima di arrivarci
-          2. solo ora tenta unlink(): il file è in uno stato stabile
-             (non può essere ricreato da un os.replace() futuro perché il thread
-              è fermo)
-
-        Senza questo attesa, _discard_preview_tmp() elimina il file vuoto creato
-        da mkstemp mentre il worker scrive ancora su un inner-temp; poi os.replace()
-        lo ricrea → file orfano permanente.
-        """
-        try:
-            # 1. Ferma il thread worker (se in esecuzione).
-            #    thread.wait() ritorna solo dopo che run() ha completato, quindi
-            #    os.replace() è già avvenuto (o non avverrà mai).
-            if self._preview_thread and self._preview_thread.isRunning():
-                logger.debug(f"Arresto thread preview del pannello {self.__class__.__name__}...")
-                self._preview_thread.quit()
-                # Attendi fino a 3 secondi il completamento graceful
-                if not self._preview_thread.wait(3000):
-                    # Timeout: il worker è bloccato, forzane la terminazione
-                    logger.warning(
-                        f"Preview thread {self.__class__.__name__} non risponde al quit(), "
-                        "forzamento terminazione"
-                    )
-                    self._preview_thread.terminate()
-                    self._preview_thread.wait(1000)  # Attendi la terminazione forzata
-                logger.debug(f"Thread preview {self.__class__.__name__} fermato")
-
-            # 2. Il file è ora in uno stato definitivo: unlink() funziona su Windows.
-            if self._preview_tmp:
-                if self._preview_tmp.exists():
-                    try:
-                        logger.debug(f"Cancellazione file temporaneo preview: {self._preview_tmp}")
-                        self._preview_tmp.unlink()
-                    except OSError as e:
-                        logger.warning(f"Errore cancellazione temp preview: {e}")
-                self._preview_tmp = None
-
-            self._preview_thread = None
-            self._preview_worker = None
-            logger.debug(f"Discard preview completato per {self.__class__.__name__}")
-        except Exception as e:
-            logger.error(f"Errore in _discard_preview_tmp ({self.__class__.__name__}): {e}", exc_info=True)
+    def _on_file_monitored_changed(self, path: Path) -> None:
+        """Called by FileMonitorManager when a monitored file changes."""
+        # Hook for subclasses to react to file changes
+        self._on_file_changed(path)
 
     def _set_busy(self, busy: bool, label: str = "Elaborazione in corso…") -> None:
         self._apply_btn.setEnabled(not busy)

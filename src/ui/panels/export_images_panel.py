@@ -43,7 +43,7 @@ class ExportImagesPanel(BasePanelWidget):
 
         self._content_layout.addLayout(form)
 
-    def _collect_config(self) -> dict:
+    def _collect_config_impl(self) -> dict:
         return {
             "format": self._format_combo.currentData(),
             "dpi": self._dpi_spin.value(),

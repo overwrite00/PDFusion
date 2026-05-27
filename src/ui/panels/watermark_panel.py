@@ -168,7 +168,7 @@ class WatermarkPanel(BasePanelWidget):
             self._image_path = Path(path)
             self._img_label.setText(Path(path).name)
 
-    def _collect_config(self) -> WatermarkConfig:
+    def _collect_config_impl(self) -> WatermarkConfig:
         is_text = self._tabs.currentIndex() == 0
 
         if is_text:

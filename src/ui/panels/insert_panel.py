@@ -99,7 +99,7 @@ class InsertPanel(BasePanelWidget):
             self._source_path = Path(path)
             self._src_label.setText(Path(path).name)
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         mode = "blank" if self._radio_blank.isChecked() else "from_pdf"
         if mode == "from_pdf" and not self._source_path:
             from PyQt6.QtWidgets import QMessageBox

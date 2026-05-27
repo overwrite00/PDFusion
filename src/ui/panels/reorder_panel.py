@@ -27,7 +27,7 @@ class ReorderPanel(BasePanelWidget):
         self._current_path = path
         self._current_password = password
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if not self._new_order:
             from PyQt6.QtWidgets import QMessageBox
 

@@ -84,7 +84,7 @@ class ProtectPanel(BasePanelWidget):
         enc_form.addRow("Crittografia:", self._enc_combo)
         self._content_layout.addWidget(enc_group)
 
-    def _collect_config(self) -> ProtectConfig:
+    def _collect_config_impl(self) -> ProtectConfig:
         return ProtectConfig(
             user_password=self._user_pwd.text(),
             owner_password=self._owner_pwd.text(),

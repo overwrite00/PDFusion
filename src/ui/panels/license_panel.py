@@ -131,7 +131,7 @@ class LicensePanel(BasePanelWidget):
     def _reset_state(self) -> None:
         self._cover_image_path = None
 
-    def _collect_config(self) -> LicenseConfig:
+    def _collect_config_impl(self) -> LicenseConfig:
         author = self._author_edit.text().strip()
         if not author:
             from PyQt6.QtWidgets import QMessageBox

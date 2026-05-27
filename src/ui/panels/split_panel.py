@@ -66,7 +66,7 @@ class SplitPanel(BasePanelWidget):
         self._radio_range.toggled.connect(lambda on: self._range_input.setEnabled(on))
         self._range_input.setEnabled(False)
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if self._radio_n.isChecked():
             return {"mode": "n", "n": self._n_spin.value()}
         else:

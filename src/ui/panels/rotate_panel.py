@@ -45,7 +45,7 @@ class RotatePanel(BasePanelWidget):
         self._radio_range.toggled.connect(self._range_input.setEnabled)
         self._content_layout.addWidget(pages_group)
 
-    def _collect_config(self) -> dict:
+    def _collect_config_impl(self) -> dict:
         angle = 90 if self._radio_90.isChecked() else (180 if self._radio_180.isChecked() else 270)
         if self._radio_all.isChecked():
             return {"angle": angle, "indices": []}

@@ -167,7 +167,7 @@ class MergePanel(BasePanelWidget):
     # Logica core
     # ------------------------------------------------------------------
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if not self._insert_path:
             from PyQt6.QtWidgets import QMessageBox
 

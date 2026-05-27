@@ -91,7 +91,7 @@ class DeletePanel(BasePanelWidget):
             self._current_label.setText("(nessun documento aperto)")
             self._current_page_idx = 0
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if self._radio_current.isChecked():
             return {"mode": "current", "index": self._current_page_idx}
         elif self._radio_number.isChecked():

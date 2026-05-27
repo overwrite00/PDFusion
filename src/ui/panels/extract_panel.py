@@ -30,7 +30,7 @@ class ExtractPanel(BasePanelWidget):
             except Exception:
                 pass
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if not self._range_input.is_valid():
             return None
         ranges = self._range_input.get_ranges()

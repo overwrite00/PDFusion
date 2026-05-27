@@ -49,7 +49,7 @@ class MetadataPanel(BasePanelWidget):
         except Exception:
             pass
 
-    def _collect_config(self) -> PDFMetadata:
+    def _collect_config_impl(self) -> PDFMetadata:
         def _val(edit: QLineEdit) -> str | None:
             t = edit.text()
             if not t:

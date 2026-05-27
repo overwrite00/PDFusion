@@ -81,7 +81,7 @@ class CompressPanel(BasePanelWidget):
 
         self._radio_custom.toggled.connect(self._custom_group.setEnabled)
 
-    def _collect_config(self) -> CompressConfig:
+    def _collect_config_impl(self) -> CompressConfig:
         if self._radio_screen.isChecked():
             return CompressConfig(preset=CompressPreset.SCREEN)
         if self._radio_ebook.isChecked():

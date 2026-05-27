@@ -233,7 +233,7 @@ class HeadersFootersPanel(BasePanelWidget):
     # Core
     # ------------------------------------------------------------------
 
-    def _collect_config(self) -> HeaderFooterConfig:
+    def _collect_config_impl(self) -> HeaderFooterConfig:
         diff_first = self._diff_first_page_cb.isChecked()
         diff_odd_even = self._diff_odd_even_cb.isChecked()
 
