@@ -1,7 +1,12 @@
+import logging
 from pathlib import Path
 
+from core.pdf_opener import open_pdf_safe
 from core.split import split_ranges
 from utils.page_range_parser import parse_page_ranges
+from utils.page_validator import validate_page_ranges, log_page_operations
+
+logger = logging.getLogger(__name__)
 
 
 def extract_pages(
@@ -21,7 +26,18 @@ def extract_pages(
 
     Returns:
         output_path.
+
+    Raises:
+        PDFusionError: Se i range sono invalidi o fuori range.
     """
+    # Validate ranges before any PDF operations
+    pdf = open_pdf_safe(input_path, password)
+    try:
+        total = len(pdf.pages)
+        validate_page_ranges(ranges, total)
+    finally:
+        pdf.close()
+
     # Usa split_ranges con una directory temporanea, poi rinomina il file
     import tempfile
 
@@ -35,6 +51,9 @@ def extract_pages(
             password,
         )
 
+        # Calculate total extracted pages for logging
+        total_extracted = sum(end - start + 1 for start, end in ranges)
+
         if len(results) == 1:
             import shutil
 
@@ -45,6 +64,13 @@ def extract_pages(
             from core.merge import merge
 
             merge(results, output_path)
+
+        # Log the operation
+        log_page_operations(
+            "extract",
+            total,
+            operation_details=f"{total_extracted} pagine estratte in {len(ranges)} range",
+        )
 
     return output_path
 
@@ -58,17 +84,11 @@ def extract_pages_by_range_string(
     """
     Convenience wrapper: accetta una stringa tipo "1-3, 5, 7-9".
     """
-    import pikepdf
-
-    from utils.exceptions import PDFusionError
-
+    tmp = open_pdf_safe(input_path, password)
     try:
-        kwargs = {"password": password} if password else {}
-        tmp = pikepdf.open(input_path, **kwargs)
         total = len(tmp.pages)
+    finally:
         tmp.close()
-    except pikepdf.PasswordError:
-        raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
     ranges = parse_page_ranges(range_string, total_pages=total)
     return extract_pages(input_path, ranges, output_path, password)

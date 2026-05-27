@@ -1,3 +1,5 @@
+import logging
+
 import pikepdf
 import pytest
 
@@ -39,3 +41,21 @@ class TestRotatePages:
         result = rotate_pages(multipage_pdf, [], 90, tmp_output)
         with pikepdf.open(result) as pdf:
             assert int(pdf.pages[0].get("/Rotate", 0)) == 90
+
+    def test_out_of_bounds_index_raises(self, sample_pdf, tmp_output):
+        """Rotating out-of-bounds page should raise PDFusionError."""
+        with pytest.raises(PDFusionError, match="non esiste"):
+            rotate_pages(sample_pdf, [999], 90, tmp_output)
+
+    def test_negative_out_of_bounds_raises(self, sample_pdf, tmp_output):
+        """Rotating with invalid negative index should raise."""
+        with pytest.raises(PDFusionError):
+            rotate_pages(sample_pdf, [-999], 90, tmp_output)
+
+    def test_rotation_logs_operation(self, multipage_pdf, tmp_output, caplog):
+        """Rotation should log the operation."""
+        with caplog.at_level(logging.INFO):
+            rotate_pages(multipage_pdf, [0, 1, 2], 90, tmp_output)
+
+        assert "rotate" in caplog.text.lower()
+        assert "90" in caplog.text
