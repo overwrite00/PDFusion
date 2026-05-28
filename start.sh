@@ -99,7 +99,7 @@ SAVED_HASH="$(cat "$REQ_HASH_FILE" 2>/dev/null || echo "")"
 
 # --- Upgrade pip (sempre) ---
 echo "$MSG_PIP_UPGRADE"
-"$PIP_VENV" install --quiet --upgrade pip
+"$PYTHON_VENV" -m pip install --quiet --upgrade pip
 
 # --- Installa dipendenze (se necessario) ---
 if [ "$REQ_HASH" != "$SAVED_HASH" ]; then
