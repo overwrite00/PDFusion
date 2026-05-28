@@ -92,8 +92,9 @@ git checkout -b feature/nome-feature
 python -m pytest tests/ -v
 
 # Verifica code style
-python -m ruff check src/
-python -m ruff format src/
+python -m isort src/                # Organizza imports
+python -m ruff check src/           # Lint check
+python -m ruff format src/          # Auto-format
 ```
 
 ### 3. Commit i Cambiamenti
@@ -159,6 +160,7 @@ Descrivi come hai testato i cambiamenti:
 
 ```bash
 # Verifica lo style
+python -m isort src/ tests/
 python -m ruff check src/ tests/
 
 # Auto-fix problemi comuni
