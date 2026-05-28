@@ -309,6 +309,11 @@ class BasePanelWidget(QWidget, ConfigCollector):
         self._set_busy(False)
         self.operation_done.emit(output_path)
 
+    def cleanup_preview(self) -> None:
+        """Public method to cleanup preview rendering and resources."""
+        self._file_monitor.clear_watches()
+        self._preview_renderer.cancel_render()
+
     @pyqtSlot(str)
     def _on_error(self, msg: str) -> None:
         self._set_busy(False)

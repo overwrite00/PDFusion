@@ -604,9 +604,9 @@ class MainWindow(QMainWindow):
             logger.debug("Arresto worker thread pannelli...")
             for panel_id, panel in self._panels.items():
                 try:
-                    panel._discard_preview_tmp()
+                    panel.cleanup_preview()
                 except Exception as e:
-                    logger.warning(f"Errore discard preview nel pannello {panel_id}: {e}")
+                    logger.warning(f"Errore cleanup preview nel pannello {panel_id}: {e}")
 
             # 4. Cancella temp file
             logger.debug("Cancellazione file temporanei...")
