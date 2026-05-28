@@ -82,7 +82,7 @@ class FontManager:
 
             # Se mancante, fallback a Helvetica
             if not font_path.exists():
-                logger.warning(f"Font bundled non trovato: {font_path}, fallback a Helvetica")
+                logger.debug(f"Bundled font not found: {font_path}, falling back to Helvetica")
                 return "Helvetica"
 
             # Prova registrazione
