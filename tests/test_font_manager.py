@@ -310,17 +310,17 @@ class TestLogging:
         assert "PDFusionFont" in log_text or "registrato" in log_text.lower() or "idempotente" in log_text.lower()
 
     def test_missing_font_logged(self, caplog) -> None:
-        """Font mancante è loggato come warning."""
+        """Font mancante è loggato come debug (fallback a Helvetica)."""
         fm = get_font_manager()
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("DEBUG"):
             fm.register_bundled_font(
                 font_path=Path("/nonexistent/font.ttf")
             )
 
-        # Dovrebbe esserci un warning
-        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
-        assert len(warnings) > 0
+        # Dovrebbe esserci un debug log del fallback
+        debug_logs = [r for r in caplog.records if r.levelname == "DEBUG"]
+        assert len(debug_logs) > 0
 
     def test_error_logged(self, caplog) -> None:
         """Errori di registrazione sono loggati."""

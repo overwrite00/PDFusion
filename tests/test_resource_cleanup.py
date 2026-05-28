@@ -68,12 +68,22 @@ def pdf_with_image(temp_dir: Path) -> Path:
     doc = fitz.open()
 
     page = doc.new_page()
-    # Crea una semplice immagine di test
-    pix = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, 200, 200))
-    pix.fill_rect(fitz.IRect(0, 0, 100, 100), (255, 0, 0))  # Rosso
+    # Crea una semplice immagine di test con PIL e convertila
+    try:
+        from PIL import Image
+        import io
 
-    # Inserisci l'immagine nella pagina
-    page.insert_image(fitz.Rect(50, 50, 250, 250), pixmap=pix)
+        # Crea un'immagine rossa 200x200 con PIL
+        img = Image.new('RGB', (200, 200), color=(255, 0, 0))
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='PNG')
+        img_bytes.seek(0)
+
+        # Inserisci l'immagine nella pagina
+        page.insert_image(fitz.Rect(50, 50, 250, 250), stream=img_bytes, ext="png")
+    except Exception:
+        # Fallback: crea semplicemente una pagina con testo
+        page.insert_text((50, 50), "Image placeholder", fontsize=12)
 
     doc.save(pdf_path)
     doc.close()

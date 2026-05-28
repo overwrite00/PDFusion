@@ -62,8 +62,13 @@ class WatermarkPanel(BasePanelWidget):
         self._font_size_spin.setObjectName("formSpin")
         self._font_size_spin.setRange(8, 200)
         self._font_size_spin.setValue(48)
+        self._font_size_spin.valueChanged.connect(self._on_preview)
         font_row.addRow("Dimensione font:", self._font_size_spin)
         text_layout.addLayout(font_row)
+
+        # Connect text changes to preview refresh
+        self._text_edit.textChanged.connect(self._on_preview)
+
         tabs.addTab(text_tab, "Testo")
 
         # --- Tab Immagine ---
@@ -87,6 +92,7 @@ class WatermarkPanel(BasePanelWidget):
         self._scale_slider.setValue(50)
         self._scale_label = QLabel("50%", img_tab)
         self._scale_slider.valueChanged.connect(lambda v: self._scale_label.setText(f"{v}%"))
+        self._scale_slider.valueChanged.connect(self._on_preview)
         scale_row = QWidget(img_tab)
         sr_layout = QHBoxLayout(scale_row)
         sr_layout.setContentsMargins(0, 0, 0, 0)
@@ -116,6 +122,7 @@ class WatermarkPanel(BasePanelWidget):
         ]
         for label, value in positions:
             self._pos_combo.addItem(label, value)
+        self._pos_combo.currentIndexChanged.connect(self._on_preview)
         pos_layout.addWidget(self._pos_combo)
 
         rot_form = QFormLayout()
@@ -124,6 +131,7 @@ class WatermarkPanel(BasePanelWidget):
         self._rotation_spin.setRange(-180, 180)
         self._rotation_spin.setValue(-45)
         self._rotation_spin.setSuffix("°")
+        self._rotation_spin.valueChanged.connect(self._on_preview)
         rot_form.addRow("Rotazione:", self._rotation_spin)
         pos_layout.addLayout(rot_form)
 
@@ -137,6 +145,7 @@ class WatermarkPanel(BasePanelWidget):
         self._opacity_slider.setValue(30)
         self._opacity_label = QLabel("30%", opacity_group)
         self._opacity_slider.valueChanged.connect(lambda v: self._opacity_label.setText(f"{v}%"))
+        self._opacity_slider.valueChanged.connect(self._on_preview)
         op_layout.addWidget(self._opacity_slider)
         op_layout.addWidget(self._opacity_label)
         self._content_layout.addWidget(opacity_group)
@@ -167,6 +176,8 @@ class WatermarkPanel(BasePanelWidget):
         if path:
             self._image_path = Path(path)
             self._img_label.setText(Path(path).name)
+            # Refresh preview when image is selected
+            self._on_preview()
 
     def _collect_config_impl(self) -> WatermarkConfig:
         is_text = self._tabs.currentIndex() == 0
