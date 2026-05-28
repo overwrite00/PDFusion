@@ -17,6 +17,31 @@ from reportlab.pdfbase.ttfonts import TTFont
 from utils.font_manager import FontManager, get_font_manager
 
 
+@pytest.fixture(scope="module", autouse=True)
+def cleanup_font_manager_module_after_all_tests():
+    """
+    After ALL tests in test_font_manager.py complete, reload the module
+    to ensure clean state for subsequent test modules (e.g., test_resource_cleanup).
+
+    This is paired with the reset of FontManager._instance in conftest.py's mock_bundled_font_for_tests.
+    Module scope ensures this only runs once per module, not after each test.
+    """
+    yield
+
+    # After all tests in this module complete, reload the entire module
+    # to ensure any cached MagicMock objects are discarded
+    try:
+        import sys
+        import importlib
+        # Force reload of the utils.font_manager module
+        if "utils.font_manager" in sys.modules:
+            del sys.modules["utils.font_manager"]
+        # Re-import it to get a fresh version
+        import utils.font_manager  # noqa: F401
+    except Exception:
+        pass
+
+
 class TestFontManagerSingleton:
     """Verifica che FontManager sia un vero singleton."""
 

@@ -197,13 +197,34 @@ def mock_bundled_font_for_tests(temp_bundled_font, monkeypatch, request):
     # Cleanup dopo il test
     test_mocked_fonts.clear()
 
-    # CRITICO: Reset FontManager singleton per evitare cache di MagicMock
-    # Questo previene che MagicMock TTFont rimangano in memoria e inquinino
-    # i test successivi (es. test_resource_cleanup.py)
+    # CRITICO: Clear reportlab's pdfmetrics registry of the mocked font
+    # This is essential because pdfmetrics.registerFont() adds objects to a
+    # global registry that persists even after monkeypatch is undone.
+    # The mocked TTFont is a MagicMock that returns MagicMock for stringWidth(),
+    # causing TypeError in subsequent code that expects a float.
     try:
+        from reportlab.pdfbase import pdfmetrics
+        # Remove PDFusionFont if it exists and is a MagicMock
+        if 'PDFusionFont' in pdfmetrics._fonts:
+            font_obj = pdfmetrics._fonts['PDFusionFont']
+            # Check if it's a MagicMock (not a real font)
+            if hasattr(font_obj, '_mock_name'):
+                del pdfmetrics._fonts['PDFusionFont']
+    except Exception:
+        pass
+
+    # CRITICO: Reset BOTH singleton mechanisms in FontManager
+    # There are two: FontManager._instance (class variable) and
+    # _font_manager (module-level variable used by get_font_manager)
+    # Both must be reset to prevent MagicMock cache contamination
+    try:
+        import utils.font_manager as fm_module
+        fm_module._font_manager = None  # Reset module-level singleton
         from utils.font_manager import FontManager
-        FontManager._instance = None  # Reset singleton
-        fm_fresh = FontManager()  # Reinizializza
-        fm_fresh.clear_bundled_fonts()
-    except Exception as e:
-        pass  # Se FontManager non è importabile, ignora
+        FontManager._instance = None  # Reset class-level singleton
+    except Exception:
+        pass
+
+    # NOTE: Module reload (Soluzione 5) is handled by a module-scoped fixture
+    # in test_font_manager.py that runs after all tests in that module complete.
+    # This avoids breaking the singleton pattern during test_font_manager tests.
