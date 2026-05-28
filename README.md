@@ -256,6 +256,7 @@ pyinstaller PDFusion.spec --noconfirm
 ### Contributing
 
 For detailed guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**:
+
 - ✓ Development setup (Python 3.11–3.13)
 - ✓ Branch strategy (`feature/*` → `develop` → `main`)
 - ✓ Commit conventions (feat/fix/refactor/docs/test)
@@ -264,6 +265,7 @@ For detailed guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**:
 - ✓ PR workflow (review, CI/CD checks)
 
 **Quick PR Checklist:**
+
 - [ ] Tests pass: `pytest tests/ -q`
 - [ ] Type check: `mypy src/`
 - [ ] Formatting: `python -m ruff format src/`

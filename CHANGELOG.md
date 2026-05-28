@@ -11,12 +11,14 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 ## [Unreleased]
 
 ### Security
+
 - Fixed race condition in main_window._on_operation_done() after _cleanup_all_temps() — added file existence guard
 - Fixed thread timeout vulnerability in base_panel worker cleanup — snapshot pattern + fallback terminate()
 - Fixed thread-unsafe document closure in viewer.py and thumbnail_panel.py using reference snapshot pattern
 - Fixed silent password failures in batch operations — explicit error raising instead of silent fallback
 
 ### Fixed
+
 - **CRITICAL #1**: Resource leak in compress.py, pdf_to_images.py, headers_footers.py — nested try-finally
 - **CRITICAL #9**: Thread-unsafe worker cleanup (viewer, thumbnail_panel) — snapshot pattern for safe reference
 - **CRITICAL #11**: Per-file passwords in batch — added password_map for per-file password resolution
@@ -30,6 +32,7 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 - **BUG #3**: Test fixture password handling — corrected ProtectConfig usage in test_batch_passwords.py
 
 ### Added
+
 - **New Utility**: `src/core/pdf_opener.py` — centralized PDF opening with password+format error handling
 - **New Utility**: `src/utils/font_manager.py` — singleton FontManager preventing duplicate registrations
 - **New Utility**: `src/utils/page_validator.py` — page range validation with helpful error messages
@@ -48,6 +51,7 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 - **Documentation**: CONTRIBUTING.md with dev setup, PR workflow, testing guidelines
 
 ### Changed
+
 - **Refactor**: BasePanelWidget SOLID refactoring — extracted FileMonitorManager, PreviewRenderer (REFACTOR #17)
 - **DRY**: Consolidated 18 duplicate pikepdf.open() calls into pdf_opener.py helper (REFACTOR #16)
 - **Code Quality**: Enhanced exception handling across all core modules (specific > generic)
@@ -59,6 +63,7 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 ## [0.1.0] — 2026-04-27
 
 ### Added
+
 - **Split PDF**: divisione ogni N pagine o per intervalli personalizzati (`1-3, 5, 7-9`)
 - **Merge PDF**: unione di più file PDF in uno, con ordine personalizzabile
 - **Delete pages**: eliminazione pagine singole o per intervallo, sia dal viewer che da input diretto
@@ -91,5 +96,4 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 - **Test suite**: ~70 test su tutti i moduli core con fixture PDF autogenerati
 
 [Unreleased]: https://github.com/0verwrite/PDFusion/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/0verwrite/PDFusion/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/0verwrite/PDFusion/releases/tag/v0.1.0

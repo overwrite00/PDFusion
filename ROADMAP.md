@@ -7,12 +7,14 @@ This document outlines planned features and improvements for PDFusion. Features 
 ## 🎯 Next Release (v0.3.0) — Q3 2026
 
 ### UI/UX Enhancements
+
 - [ ] **Real-time watermark preview** in viewer while configuring watermark options
 - [ ] **Drag-and-drop support** from file manager directly to tool panels in sidebar
 - [ ] **Dark mode** theme with automatic system preference detection
 - [ ] **Keyboard shortcuts panel** with customizable bindings
 
 ### Testing & Quality
+
 - [ ] Increase UI test coverage to 70%+
 - [ ] Add integration tests for multi-step workflows (e.g., watermark → compress → protect)
 - [ ] Performance benchmarking suite for large PDFs (100+ MB)
@@ -22,6 +24,7 @@ This document outlines planned features and improvements for PDFusion. Features 
 ## 🚀 Future Releases (v0.4.0+) — Q4 2026 and Beyond
 
 ### Document Security
+
 - [ ] **Digital signature support** (PKCS#7 / PAdES standard)
   - Sign PDFs with X.509 certificates
   - Signature verification UI
@@ -31,12 +34,14 @@ This document outlines planned features and improvements for PDFusion. Features 
 - [ ] **Advanced permissions** (content extraction, form field editing, etc.)
 
 ### Content Management
+
 - [ ] **CSV export reports** of batch processing results
 - [ ] **Batch metadata templating** (apply same metadata to multiple PDFs)
 - [ ] **Table of contents auto-generation** based on PDF structure
 - [ ] **OCR integration** for scanned PDFs (Tesseract backend)
 
 ### Localization & Accessibility
+
 - [ ] **Internationalization (i18n)**
   - Italian (100%, current)
   - English (100%, current)
@@ -47,6 +52,7 @@ This document outlines planned features and improvements for PDFusion. Features 
   - Keyboard-only navigation
 
 ### Developer Features
+
 - [ ] **Plugin architecture** for custom PDF operations
   - Plugin SDK with example plugins
   - Plugin marketplace / registry
@@ -56,6 +62,7 @@ This document outlines planned features and improvements for PDFusion. Features 
 - [ ] **REST API** for embedding PDFusion operations in web services
 
 ### Performance & Infrastructure
+
 - [ ] **GPU acceleration** for image processing (optional, CUDA/OpenCL)
 - [ ] **Streaming mode** for processing PDFs larger than available RAM
 - [ ] **Network support** (open files from SMB/NFS shares)
@@ -66,12 +73,14 @@ This document outlines planned features and improvements for PDFusion. Features 
 ## 📋 Known Limitations & TODOs
 
 ### Current Limitations
+
 - No support for encrypted PDFs with owner password (read-only for protected content)
 - Watermark text does not support Unicode/emoji properly
 - Large PDFs (> 500 MB) may cause slowdowns in preview rendering
 - No support for PDF forms (AcroForms, XFA)
 
 ### Improvement Areas
+
 - [ ] Optimize memory usage for large batch operations
 - [ ] Improve preview rendering performance with progressive loading
 - [ ] Add undo/redo functionality in batch mode
@@ -82,6 +91,7 @@ This document outlines planned features and improvements for PDFusion. Features 
 ## 🤝 Contributing
 
 Want to help with any of these features? See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+
 - Setting up development environment
 - Creating feature branches
 - Submitting pull requests
@@ -102,7 +112,8 @@ Want to help with any of these features? See [CONTRIBUTING.md](CONTRIBUTING.md) 
 
 ## 💬 Feedback
 
-Have ideas for features not listed? 
+Have ideas for features not listed?
+
 - Open an [issue on GitHub](https://github.com/0verwrite/PDFusion/issues)
 - Discuss in [GitHub Discussions](https://github.com/0verwrite/PDFusion/discussions)
 
