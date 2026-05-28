@@ -2,6 +2,7 @@
 Fixtures pytest condivise tra tutti i test.
 I PDF vengono generati on-demand se non esistono già.
 """
+import gc
 import subprocess
 import sys
 import tempfile
@@ -37,6 +38,19 @@ def _create_minimal_ttf_file() -> Path:
     tmp.write(b"PLACEHOLDER_TTF_FILE")
     tmp.close()
     return Path(tmp.name)
+
+
+@pytest.fixture(autouse=True)
+def cleanup_resources_between_tests():
+    """Auto-cleanup: esegue gc.collect() tra un test e l'altro.
+
+    Questo previene contaminazione di stato quando i test vengono
+    eseguiti in sequenza, specialmente importante per test che
+    controllano il numero di file handle aperti.
+    """
+    gc.collect()  # Cleanup prima del test
+    yield
+    gc.collect()  # Cleanup dopo il test
 
 
 @pytest.fixture(scope="session", autouse=True)
