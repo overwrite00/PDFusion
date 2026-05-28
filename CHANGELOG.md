@@ -17,17 +17,17 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 - Fixed silent password failures in batch operations — explicit error raising instead of silent fallback
 
 ### Fixed
-- **CRITICO #1**: Resource leak in compress.py, pdf_to_images.py, headers_footers.py — nested try-finally
-- **CRITICO #9**: Thread-unsafe worker cleanup (viewer, thumbnail_panel) — snapshot pattern for safe reference
-- **CRITICO #11**: Per-file passwords in batch — added password_map for per-file password resolution
-- **ALTO #10**: Large PDF memory spike — binary tree chunked merge (O(sqrt(n)) instead of O(n))
-- **ALTO #12**: PIL Image and reportlab Canvas resource leaks — context managers and explicit cleanup
-- **ALTO #13**: Font registry pollution in batch operations — singleton FontManager with idempotent registration
-- **ALTO #14**: ThreadPoolExecutor hanging — timeout handling (30s) with exponential backoff retry
-- **ALTO #15**: Silent page range failures — validation before operations + detailed logging
-- Encrypted PDF handling in compress.py — added doc.authenticate() before saving protected documents
-- Batch watermark operations with None config — provide default WatermarkConfig when not specified
-- Test fixture password handling — corrected ProtectConfig usage in test_batch_passwords.py
+- **CRITICAL #1**: Resource leak in compress.py, pdf_to_images.py, headers_footers.py — nested try-finally
+- **CRITICAL #9**: Thread-unsafe worker cleanup (viewer, thumbnail_panel) — snapshot pattern for safe reference
+- **CRITICAL #11**: Per-file passwords in batch — added password_map for per-file password resolution
+- **HIGH #10**: Large PDF memory spike — binary tree chunked merge (O(sqrt(n)) instead of O(n))
+- **HIGH #12**: PIL Image and reportlab Canvas resource leaks — context managers and explicit cleanup
+- **HIGH #13**: Font registry pollution in batch operations — singleton FontManager with idempotent registration
+- **HIGH #14**: ThreadPoolExecutor hanging — timeout handling (30s) with exponential backoff retry
+- **HIGH #15**: Silent page range failures — validation before operations + detailed logging
+- **BUG #1**: Encrypted PDF handling in compress.py — added doc.authenticate() before saving protected documents
+- **BUG #2**: Batch watermark operations with None config — provide default WatermarkConfig when not specified
+- **BUG #3**: Test fixture password handling — corrected ProtectConfig usage in test_batch_passwords.py
 
 ### Added
 - **New Utility**: `src/core/pdf_opener.py` — centralized PDF opening with password+format error handling
