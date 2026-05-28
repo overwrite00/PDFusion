@@ -262,9 +262,10 @@ def _dispatch(input_path: Path, output_path: Path, job: BatchJob) -> None:
         protect(input_path, output_path, cfg, pwd)
 
     elif job.operation == BatchOperation.WATERMARK:
-        from core.watermark import apply_watermark
+        from core.watermark import apply_watermark, WatermarkConfig
 
-        apply_watermark(input_path, output_path, cfg, pwd)
+        watermark_cfg = cfg if isinstance(cfg, WatermarkConfig) else WatermarkConfig()
+        apply_watermark(input_path, output_path, watermark_cfg, pwd)
 
     elif job.operation == BatchOperation.ROTATE:
         from core.rotate import rotate_all

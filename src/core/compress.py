@@ -91,6 +91,18 @@ def compress(
         except Exception as exc:
             raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
+        # Se il documento è encrypted, autenticalo con la password
+        if doc.is_encrypted:
+            if not password:
+                raise PDFusionError(
+                    f"Il PDF {input_path.name} è protetto da password ma non è stata fornita alcuna password."
+                )
+            auth_result = doc.authenticate(password)
+            if auth_result < 1:  # 0 = fallimento, 1 = owner password, 2 = user password
+                raise PDFusionError(
+                    f"Password errata per il PDF {input_path.name}"
+                )
+
         _resample_images(doc, config)
 
         if config.flatten_annotations:

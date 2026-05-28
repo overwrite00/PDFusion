@@ -48,14 +48,13 @@ def three_protected_same_pwd(sample_pdf, tmp_path):
 
     paths = []
     for i in range(3):
-        # Proteggi il PDF con password "same123"
+        # Proteggi il PDF con password "same123" nella config (output password)
         dst = src_dir / f"input_{i}.pdf"
         temp_protected = temp_dir / f"protected_{i}.pdf"
         protect(
             sample_pdf,
             temp_protected,
-            ProtectConfig(),
-            password="same123",
+            ProtectConfig(user_password="same123"),  # Set OUTPUT password
         )
         shutil.move(temp_protected, dst)
         paths.append(dst)
@@ -75,14 +74,13 @@ def three_protected_diff_pwd(sample_pdf, tmp_path):
     paths = []
     passwords = ["pwd_alpha", "pwd_beta", "pwd_gamma"]
     for i, pwd in enumerate(passwords):
-        # Proteggi il PDF con password diversa
+        # Proteggi il PDF con password diversa nella config (output password)
         dst = src_dir / f"input_{i}.pdf"
         temp_protected = temp_dir / f"protected_{i}.pdf"
         protect(
             sample_pdf,
             temp_protected,
-            ProtectConfig(),
-            password=pwd,
+            ProtectConfig(user_password=pwd),  # Set OUTPUT password
         )
         shutil.move(temp_protected, dst)
         paths.append(dst)
@@ -105,8 +103,7 @@ def mixed_protected_unprotected(sample_pdf, tmp_path):
     protect(
         sample_pdf,
         temp_protected0,
-        ProtectConfig(),
-        password="pwd1",
+        ProtectConfig(user_password="pwd1"),  # Set OUTPUT password
     )
     shutil.move(temp_protected0, dst0)
 
@@ -120,8 +117,7 @@ def mixed_protected_unprotected(sample_pdf, tmp_path):
     protect(
         sample_pdf,
         temp_protected2,
-        ProtectConfig(),
-        password="pwd2",
+        ProtectConfig(user_password="pwd2"),  # Set OUTPUT password
     )
     shutil.move(temp_protected2, dst2)
 
@@ -266,8 +262,7 @@ class TestBatchPasswordsStress:
             protect(
                 sample_pdf,
                 temp_protected,
-                ProtectConfig(),
-                password=pwd,
+                ProtectConfig(user_password=pwd),  # Set OUTPUT password
             )
             shutil.move(temp_protected, dst)
             paths.append(dst)
