@@ -9,7 +9,7 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
 [![Platform](https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
-[![Last Updated](https://img.shields.io/badge/last%20updated-2026--05--27-blue)]()
+[![Last Updated](https://img.shields.io/badge/last%20updated-2026--05--28-blue)]()
 
 ---
 
@@ -385,7 +385,7 @@ Contributions are welcome! Please follow these steps:
 >
 > - **SVG Watermarks**: Basic SVG support only (complex paths may not render)
 > - **Large Files**: Documents with 500+ pages may require more processing time
-> - **Password-Protected PDFs**: User must enter password to open
+> - **Password-Protected PDFs**: Supported in both single operations and batch mode — provide password when requested
 
 [⬆ Back to Top](#table-of-contents)
 

@@ -235,6 +235,9 @@ python -m pytest tests/ -v
 # Test specifico
 python -m pytest tests/core/test_compress.py::TestCompress::test_screen_preset -v
 
+# Test batch con password
+python -m pytest tests/test_batch_passwords.py -v
+
 # Con coverage
 python -m pytest tests/ --cov=src --cov-report=html
 ```
@@ -260,6 +263,26 @@ def test_compress_with_screen_preset(tmp_path):
 
     assert output.exists()
     assert output.stat().st_size < input_pdf.stat().st_size
+```
+
+**Esempio Test con PDF Protetto da Password:**
+
+```python
+def test_compress_protected_pdf(tmp_path, sample_pdf):
+    """Verifica compressione di PDF protetto da password."""
+    from core.protect import protect, ProtectConfig
+    from core.compress import compress, CompressConfig, CompressPreset
+
+    # IMPORTANTE: Usare ProtectConfig(user_password=...) per impostare la password di output
+    protected_pdf = tmp_path / "protected.pdf"
+    protect(sample_pdf, protected_pdf, ProtectConfig(user_password="test123"))
+
+    # Quando chiami compress(), fornisci la password per APRIRE il file
+    output = tmp_path / "output.pdf"
+    config = CompressConfig(preset=CompressPreset.EBOOK)
+    result = compress(protected_pdf, output, config, password="test123")
+
+    assert output.exists()
 ```
 
 ### Coverage Target

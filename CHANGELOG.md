@@ -25,6 +25,9 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 - **ALTO #13**: Font registry pollution in batch operations — singleton FontManager with idempotent registration
 - **ALTO #14**: ThreadPoolExecutor hanging — timeout handling (30s) with exponential backoff retry
 - **ALTO #15**: Silent page range failures — validation before operations + detailed logging
+- Encrypted PDF handling in compress.py — added doc.authenticate() before saving protected documents
+- Batch watermark operations with None config — provide default WatermarkConfig when not specified
+- Test fixture password handling — corrected ProtectConfig usage in test_batch_passwords.py
 
 ### Added
 - **New Utility**: `src/core/pdf_opener.py` — centralized PDF opening with password+format error handling
