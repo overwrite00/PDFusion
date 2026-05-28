@@ -174,7 +174,9 @@ def _draw_text_watermark(
         c.saveState()
         c.translate(width / 2, height / 2)
         c.rotate(config.rotation)
-        c.drawCentredString(0, 0, config.text)
+        # Offset verticale per centrare il testo (ReportLab usa la baseline, non il centro)
+        vertical_offset = -config.font_size * 0.3
+        c.drawCentredString(0, vertical_offset, config.text)
         c.restoreState()
 
     elif config.position == WatermarkPosition.CENTER:
