@@ -4,200 +4,207 @@ Thank you for your interest in contributing to PDFusion! This guide will help yo
 
 ---
 
-## 📋 Indice
+## 📋 Table of Contents
 
-1. [Requisiti](#requisiti)
-2. [Setup Ambiente Sviluppo](#setup-ambiente-sviluppo)
-3. [Workflow PR](#workflow-pr)
+1. [Requirements](#requirements)
+2. [Development Environment Setup](#development-environment-setup)
+3. [PR Workflow](#pr-workflow)
 4. [Code Style](#code-style)
 5. [Testing](#testing)
-6. [Commit Message](#commit-message)
+6. [Commit Messages](#commit-messages)
 
 ---
 
-## Requisiti
+## Requirements
 
-- **Python**: 3.11, 3.12, o 3.13
-- **Git**: versione recente
-- **Sistema Operativo**: Windows 10+, macOS 11+, o Linux
+- **Python**: 3.11, 3.12, or 3.13
+- **Git**: Recent version
+- **Operating System**: Windows 10+, macOS 11+, or Linux
 
 ---
 
-## Setup Ambiente Sviluppo
+## Development Environment Setup
 
-### 1. Clone il Repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/overwrite00/PDFusion.git
 cd PDFusion
 ```
 
-### 2. Crea un Virtual Environment
+### 2. Create a Virtual Environment
 
 **Windows (PowerShell):**
+
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
 **macOS/Linux:**
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3. Installa le Dipendenze
+### 3. Install Dependencies
 
 ```bash
-# Dipendenze runtime
+# Runtime dependencies
 pip install -r requirements.txt
 
-# Dipendenze sviluppo (testing, linting, type checking)
+# Development dependencies (testing, linting, type checking)
 pip install -r requirements-dev.txt
 ```
 
-### 4. Verifica Setup
+### 4. Verify Setup
 
 ```bash
 python -m pytest tests/ -v --tb=short
 ```
 
-Se tutti i test passano, l'ambiente è pronto! ✅
+If all tests pass, your environment is ready! ✅
 
 ---
 
-## Workflow PR
+## PR Workflow
 
-### 1. Crea un Branch
+### 1. Create a Branch
 
 ```bash
 git checkout develop
 git pull origin develop
-git checkout -b feature/nome-feature
+git checkout -b feature/feature-name
 ```
 
 **Naming convention:**
-- `feature/` per nuove funzionalità
-- `fix/` per bug fix
-- `refactor/` per refactoring
-- `docs/` per documentazione
 
-### 2. Fai i Tuoi Cambiamenti
+- `feature/` for new features
+- `fix/` for bug fixes
+- `refactor/` for refactoring
+- `docs/` for documentation
+
+### 2. Make Your Changes
 
 ```bash
-# Modifica i file
+# Modify files
 # ...
 
-# Esegui i test localmente
+# Run tests locally
 python -m pytest tests/ -v
 
-# Verifica code style
-python -m isort src/                # Organizza imports
+# Verify code style
+python -m isort src/                # Organize imports
 python -m ruff check src/           # Lint check
 python -m ruff format src/          # Auto-format
 ```
 
-### 3. Commit i Cambiamenti
+### 3. Commit Your Changes
 
 ```bash
 git add <file1> <file2> ...
-git commit -m "fix: descrizione breve del cambio"
+git commit -m "fix: brief description of change"
 ```
 
-**Linee Guida Commit Message:**
-- **Tipo**: `fix:`, `feat:`, `refactor:`, `docs:`, `test:`, `chore:`
-- **Descrizione**: imperativa, minuscola
-- **Lunghezza**: < 72 caratteri per la prima linea
-- **Corpo** (opzionale): spiegazione dettagliata dopo una linea vuota
+**Commit Message Guidelines:**
 
-### 4. Push e Crea PR
+- **Type**: `fix:`, `feat:`, `refactor:`, `docs:`, `test:`, `chore:`
+- **Description**: imperative, lowercase
+- **Length**: < 72 characters for first line
+- **Body** (optional): detailed explanation after blank line
+
+### 4. Push and Create PR
 
 ```bash
-git push -u origin feature/nome-feature
+git push -u origin feature/feature-name
 ```
 
-Poi vai su GitHub e crea una Pull Request. Target base: `develop` (non `main`).
+Then go to GitHub and create a Pull Request. Target base: `develop` (not `main`).
 
 **PR Title Format:**
+
 ```
-feat: Aggiungi supporto per firma digitale
+feat: Add support for digital signatures
 ```
 
 **PR Description Template:**
 
 ```markdown
-## 📝 Descrizione
+## 📝 Description
 
-Breve descrizione dei cambiamenti.
+Brief description of changes.
 
-## ✅ Tipo di Cambio
+## ✅ Type of Change
 
-- [ ] Bug fix (non-breaking change che risolve un issue)
-- [ ] Feature (non-breaking change che aggiunge funzionalità)
-- [ ] Breaking change (cambio che rompe compatibilità)
+- [ ] Bug fix (non-breaking change that fixes an issue)
+- [ ] Feature (non-breaking change that adds functionality)
+- [ ] Breaking change (change that breaks compatibility)
 
-## 🧪 Test
+## 🧪 Testing
 
-Descrivi come hai testato i cambiamenti:
+Describe how you tested your changes:
 
-- [ ] Test unitari scritti/aggiornati
-- [ ] Manual test completato
-- [ ] Coverage >= 80% per i file modificati
+- [ ] Unit tests written/updated
+- [ ] Manual testing completed
+- [ ] Coverage >= 80% for modified files
 
 ## 📋 Checklist
 
 - [ ] Code style (ruff format, ruff check)
 - [ ] Type hints (mypy --strict)
-- [ ] Docstring per nuove funzioni/classi
-- [ ] CHANGELOG.md aggiornato
+- [ ] Docstrings for new functions/classes
+- [ ] CHANGELOG.md updated
 ```
 
 ---
 
 ## Code Style
 
-### Linting con Ruff
+### Linting with Ruff
 
 ```bash
-# Verifica lo style
+# Verify style
 python -m isort src/ tests/
 python -m ruff check src/ tests/
 
-# Auto-fix problemi comuni
+# Auto-fix common issues
 python -m ruff check --fix src/ tests/
 
-# Formattazione
+# Formatting
 python -m ruff format src/ tests/
 ```
 
-**Configurazione**: Vedi `pyproject.toml` sezione `[tool.ruff]`
+**Configuration**: See `pyproject.toml` section `[tool.ruff]`
 
 ### Type Hints
 
-Usa type hints per:
-- Parametri di funzione
-- Return types di funzione
-- Attributi di classe (quando ambigui)
+Use type hints for:
 
-**Esempio:**
+- Function parameters
+- Function return types
+- Class attributes (when ambiguous)
+
+**Example:**
 
 ```python
 def process_pdf(
     input_path: Path,
     options: dict[str, Any] | None = None,
 ) -> Path:
-    """Processa un PDF con le opzioni fornite."""
+    """Process a PDF with the provided options."""
     ...
 ```
 
-### Docstring
+### Docstrings
 
-Usa docstring per:
-- Funzioni pubbliche
-- Classi
-- Moduli complessi
+Use docstrings for:
 
-**Formato (Google-style):**
+- Public functions
+- Classes
+- Complex modules
+
+**Format (Google-style):**
 
 ```python
 def extract_pages(
@@ -206,18 +213,18 @@ def extract_pages(
     output_path: Path,
 ) -> Path:
     """
-    Estrae pagine specifiche da un PDF.
+    Extract specific pages from a PDF.
 
     Args:
-        input_path: Percorso del PDF sorgente.
-        ranges: Lista di tuple (start, end) 1-based.
-        output_path: Percorso del file risultante.
+        input_path: Path to source PDF.
+        ranges: List of tuples (start, end) 1-based.
+        output_path: Path to output file.
 
     Returns:
-        output_path dopo il salvataggio.
+        output_path after saving.
 
     Raises:
-        PDFusionError: Se il file non esiste o è corrotto.
+        PDFusionError: If file doesn't exist or is corrupted.
     """
     ...
 ```
@@ -226,33 +233,33 @@ def extract_pages(
 
 ## Testing
 
-### Eseguire i Test
+### Running Tests
 
 ```bash
-# Tutti i test
+# All tests
 python -m pytest tests/ -v
 
-# Test specifico
+# Specific test
 python -m pytest tests/core/test_compress.py::TestCompress::test_screen_preset -v
 
-# Test batch con password
+# Batch password tests
 python -m pytest tests/test_batch_passwords.py -v
 
-# Con coverage
+# With coverage
 python -m pytest tests/ --cov=src --cov-report=html
 ```
 
-### Scrivere i Test
+### Writing Tests
 
-1. **Test unitari** in `tests/core/test_*.py`
+1. **Unit tests** in `tests/core/test_*.py`
 2. **UI tests** in `tests/ui/test_*.py`
 3. **Fixtures** in `tests/fixtures/`
 
-**Esempio Test:**
+**Example Test:**
 
 ```python
 def test_compress_with_screen_preset(tmp_path):
-    """Verifica compressione con preset screen."""
+    """Verify compression with screen preset."""
     from core.compress import compress, CompressConfig, CompressPreset
 
     input_pdf = Path(__file__).parent / "fixtures" / "sample.pdf"
@@ -265,19 +272,19 @@ def test_compress_with_screen_preset(tmp_path):
     assert output.stat().st_size < input_pdf.stat().st_size
 ```
 
-**Esempio Test con PDF Protetto da Password:**
+**Example Test with Password-Protected PDF:**
 
 ```python
 def test_compress_protected_pdf(tmp_path, sample_pdf):
-    """Verifica compressione di PDF protetto da password."""
+    """Verify compression of password-protected PDF."""
     from core.protect import protect, ProtectConfig
     from core.compress import compress, CompressConfig, CompressPreset
 
-    # IMPORTANTE: Usare ProtectConfig(user_password=...) per impostare la password di output
+    # IMPORTANT: Use ProtectConfig(user_password=...) to set output password
     protected_pdf = tmp_path / "protected.pdf"
     protect(sample_pdf, protected_pdf, ProtectConfig(user_password="test123"))
 
-    # Quando chiami compress(), fornisci la password per APRIRE il file
+    # When calling compress(), provide password to OPEN the file
     output = tmp_path / "output.pdf"
     config = CompressConfig(preset=CompressPreset.EBOOK)
     result = compress(protected_pdf, output, config, password="test123")
@@ -291,94 +298,95 @@ def test_compress_protected_pdf(tmp_path, sample_pdf):
 - **Utils** (`src/utils/`): >= 90%
 - **UI modules** (`src/ui/`): >= 50%
 
-Per visualizzare il coverage dettagliato:
+To view detailed coverage:
 
 ```bash
 python -m pytest tests/ --cov=src --cov-report=html
-# Apri htmlcov/index.html nel browser
+# Open htmlcov/index.html in your browser
 ```
 
 ---
 
-## Commit Message
+## Commit Messages
 
-### Formato
+### Format
 
 ```
-<tipo>(<scope>): <descrizione breve>
+<type>(<scope>): <short description>
 
-<corpo opzionale>
+<optional body>
 
-<footer opzionale>
+<optional footer>
 ```
 
-### Tipi
+### Types
 
 - **fix**: bug fix
-- **feat**: nuova funzionalità
-- **refactor**: refactoring senza cambio funzionale
-- **docs**: documentazione
-- **test**: aggiunta/modifica test
-- **chore**: cambiamenti build, dipendenze, ecc.
+- **feat**: new feature
+- **refactor**: refactoring without functional change
+- **docs**: documentation
+- **test**: test addition/modification
+- **chore**: build, dependencies, etc.
 
-### Scope (opzionale)
-
-```
-fix(compress): Correggi resize immagini corrotte
-feat(watermark): Aggiungi supporto watermark tiled
-test(main_window): Aggiungi UI test per file opening
-```
-
-### Esempi
+### Scope (optional)
 
 ```
-fix(compress): Gestire eccezioni specifiche PIL non generiche
+fix(compress): Correct corrupt image resizing
+feat(watermark): Add tiled watermark support
+test(main_window): Add UI tests for file opening
 ```
 
-```
-feat(batch): Supportare processamento parallelo PDF
+### Examples
 
-- Aggiungi processing parallelo con ThreadPoolExecutor
-- Limite di 4 worker simultanei per non sovraccaricare sistema
-- Progress bar aggiornata in tempo reale
+```
+fix(compress): Handle specific PIL exceptions instead of generic ones
 ```
 
 ```
-docs: Aggiungi guida contributo CONTRIBUTING.md
+feat(batch): Support parallel PDF processing
 
-Includi setup ambiente, workflow PR, code style, testing.
+- Add parallel processing with ThreadPoolExecutor
+- Limit to 4 concurrent workers to prevent system overload
+- Update progress bar in real time
+```
+
+```
+docs: Add contributing guide CONTRIBUTING.md
+
+Include environment setup, PR workflow, code style, testing.
 ```
 
 ---
 
-## 🔍 Checklist Pre-Push
+## 🔍 Pre-Push Checklist
 
-Prima di pushare il tuo PR:
+Before pushing your PR:
 
-- [ ] Hai fatto `git pull origin develop` per gli ultimi cambiamenti
-- [ ] Hai eseguito `python -m pytest tests/ -v` — tutti i test passano
-- [ ] Hai eseguito `python -m ruff check src/` — zero warnings
-- [ ] Hai eseguito `python -m ruff format src/` — code formattato
-- [ ] Hai scritto/aggiornato test per i tuoi cambiamenti
-- [ ] Hai aggiunto docstring per funzioni/classi nuove
-- [ ] Hai aggiornato CHANGELOG.md se necessario
-- [ ] Il commit message segue la convenzione di questo progetto
-
----
-
-## ❓ Domande o Problemi?
-
-Se hai dubbi:
-1. Apri un **issue** con dettagli del problema
-2. Discuti il design in una PR draft se è una feature complessa
-3. Guarda i PR esistenti per esempi di code style
+- [ ] You ran `git pull origin develop` for latest changes
+- [ ] You ran `python -m pytest tests/ -v` — all tests pass
+- [ ] You ran `python -m ruff check src/` — zero warnings
+- [ ] You ran `python -m ruff format src/` — code formatted
+- [ ] You wrote/updated tests for your changes
+- [ ] You added docstrings for new functions/classes
+- [ ] You updated CHANGELOG.md if necessary
+- [ ] Your commit message follows project conventions
 
 ---
 
-## 📄 Licenza
+## ❓ Questions or Issues?
 
-Contribuendo a PDFusion, accetti che i tuoi cambiamenti siano licenziati sotto MIT License, la stessa del progetto.
+If you have doubts:
+
+1. Open an **issue** with problem details
+2. Discuss design in a draft PR if it's a complex feature
+3. Look at existing PRs for code style examples
 
 ---
 
-Grazie di contribuire a PDFusion! 🎉
+## 📄 License
+
+By contributing to PDFusion, you agree that your changes will be licensed under the MIT License, the same as the project.
+
+---
+
+Thank you for contributing to PDFusion! 🎉
