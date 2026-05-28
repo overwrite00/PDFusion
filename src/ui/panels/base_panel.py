@@ -169,20 +169,38 @@ class BasePanelWidget(QWidget, ConfigCollector):
     # ------------------------------------------------------------------
 
     def set_current_file(self, path: Path | None, password: str = "") -> None:
-        self._current_path = path
-        self._current_password = password
-        # Aggiorna _original_stem solo con file "reali":
-        # - None → resetta (documento chiuso)
-        # - file temp di anteprima → conserva lo stem precedente (chaining)
-        # - file normale → usa il suo stem
+        # IMPORTANTE: Non aggiornare _current_path se è una preview temporanea.
+        # Questo previene l'accumulo di watermark/effetti nelle preview multiple:
+        # - Preview 1: applica effetto al file originale → .pdfusion_preview_1
+        # - Preview 2: deve partire dal file originale, NON da .pdfusion_preview_1
+        # Se aggiornassimo _current_path, la preview 2 applicherebbe l'effetto sopra
+        # al risultato della preview 1, creando duplicazione.
+
+        is_preview = path is not None and path.name.startswith(".pdfusion_preview_")
+
         if path is None:
+            # Documento chiuso
+            self._current_path = None
+            self._current_password = ""
             self._original_stem = ""
-        elif not path.name.startswith(".pdfusion_preview_"):
+        elif not is_preview:
+            # È un file reale - aggiorna tracciamento completo
+            self._current_path = path
+            self._current_password = password
             self._original_stem = path.stem
-        # se è un temp preview, _original_stem rimane invariato
-        self._apply_btn.setEnabled(path is not None)
-        self._preview_btn.setEnabled(path is not None and self._supports_preview)
-        self._on_file_changed(path)
+        # else: È una preview - NON aggiornare _current_path
+        # Mantieni il file originale come riferimento per le preview successive
+
+        # Aggiorna UI basato sul file REALE (_current_path), non sulla preview
+        # Così i bottoni rimangono correttamente abilitati/disabilitati
+        self._apply_btn.setEnabled(self._current_path is not None)
+        self._preview_btn.setEnabled(
+            self._current_path is not None and self._supports_preview
+        )
+
+        # Notifica hook solo per file reali, non per preview temporanee
+        if not is_preview:
+            self._on_file_changed(self._current_path)
 
     def set_current_page(self, page_idx: int) -> None:
         pass
