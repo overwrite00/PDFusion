@@ -196,3 +196,14 @@ def mock_bundled_font_for_tests(temp_bundled_font, monkeypatch, request):
 
     # Cleanup dopo il test
     test_mocked_fonts.clear()
+
+    # CRITICO: Reset FontManager singleton per evitare cache di MagicMock
+    # Questo previene che MagicMock TTFont rimangano in memoria e inquinino
+    # i test successivi (es. test_resource_cleanup.py)
+    try:
+        from utils.font_manager import FontManager
+        FontManager._instance = None  # Reset singleton
+        fm_fresh = FontManager()  # Reinizializza
+        fm_fresh.clear_bundled_fonts()
+    except Exception as e:
+        pass  # Se FontManager non è importabile, ignora
