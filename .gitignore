@@ -60,3 +60,6 @@ installer/macos/*.dmg
 .ruff_cache/
 .mypy_cache/
 htmlcov/
+
+# Investigation/documentation files
+TEST_FLAKY_INVESTIGATION.md
