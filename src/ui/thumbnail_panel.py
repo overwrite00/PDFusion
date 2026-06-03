@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 
 import fitz
@@ -265,25 +266,48 @@ class ThumbnailPanel(QWidget):
 
     @staticmethod
     def _shutdown_thread(thread: QThread | None) -> None:
-        """Ferma un QThread in modo robusto, senza propagare eccezioni.
+        """Ferma un QThread con timeout esterno robusto.
 
         Anche se ``quit()`` solleva, garantisce che un thread ancora in
         esecuzione venga terminato forzatamente.
+
+        Non usa wait() che può bloccarsi indefinitamente su Linux headless o
+        causare access violation su Windows se il thread è garbage collected.
         """
-        if thread is None or not thread.isRunning():
+        if thread is None:
+            return
+        try:
+            if not thread.isRunning():
+                return
+        except RuntimeError:
+            # Thread è stato garbage collected
             return
         logger.debug("Arresto thread thumbnail...")
         try:
             thread.quit()
-            stopped = thread.wait(2000)
+            # wait() con timeout breve (100ms polling) in caso di deadlock
+            for _ in range(20):  # 20 * 100ms = 2 secondi
+                if thread.wait(100):
+                    logger.debug("Thread thumbnail fermato da quit()")
+                    return
+                try:
+                    if not thread.isRunning():
+                        return
+                except RuntimeError:
+                    return
         except Exception as e:
             logger.warning(f"quit() del thread thumbnail fallito, forzamento terminazione: {e}")
-            stopped = False
-        if not stopped and thread.isRunning():
-            logger.warning("Thread thumbnail non fermato dal quit(), forzamento terminazione")
-            try:
+
+        # Fallback: terminate() se quit() non ha funzionato
+        try:
+            if thread.isRunning():
+                logger.warning("Thread thumbnail non fermato dal quit(), forzamento terminazione")
                 thread.terminate()
-                thread.wait(1000)
-            except Exception as e:
-                logger.warning(f"Errore durante terminate() del thread thumbnail: {e}")
+                # wait() con timeout breve (100ms polling)
+                for _ in range(10):  # 10 * 100ms = 1 secondo
+                    if thread.wait(100):
+                        logger.debug("Thread thumbnail terminato da terminate()")
+                        return
+        except Exception as e:
+            logger.warning(f"Errore durante terminate() del thread thumbnail: {e}")
         logger.debug("Thread thumbnail fermato")
