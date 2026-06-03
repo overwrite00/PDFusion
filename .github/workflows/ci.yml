@@ -62,15 +62,20 @@ jobs:
             libxcb-xinerama0 libxcb-xfixes0 libxkbcommon-x11-0 \
             libx11-6 libxext6 libxcb-xkb1 \
             libfreetype6 libfontconfig1 libharfbuzz0b \
-            libxkbcommon0 libdbus-1-3 \
-            xvfb
+            libxkbcommon0 libdbus-1-3
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
+      # Linux runners have no real display. Instead of the fragile xcb+xvfb
+      # combo (which aborts with SIGABRT even under xvfb on these runners),
+      # we use Qt's "offscreen" platform plugin: it renders to an in-memory
+      # buffer, needs no display server, and lets every Qt test run.
       - name: Run tests (Linux — headless)
         if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum pytest tests/ -v --tb=short
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: pytest tests/ -v --tb=short
 
       - name: Run tests (Windows)
         if: runner.os == 'Windows'

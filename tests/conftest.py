@@ -12,6 +12,36 @@ from unittest.mock import MagicMock
 
 import pytest
 
+# ---------------------------------------------------------------------------
+# Qt headless setup (CRITICAL — must run before any PyQt6 import)
+# ---------------------------------------------------------------------------
+# On headless CI runners (Linux GitHub Actions), instantiating a QApplication
+# against the xcb/X11 platform plugin crashes with "Fatal Python error: Aborted"
+# (SIGABRT, exit code 134) even when xvfb is running. The robust, officially
+# supported solution is Qt's "offscreen" platform plugin, which renders to an
+# in-memory buffer and requires no display server. This lets every Qt test run
+# normally (no skips) on Windows, Linux and macOS alike.
+#
+# We force "offscreen" when no usable display is configured OR when running on
+# a CI runner. The latter is essential: GitHub Actions' xvfb sets DISPLAY, but
+# the xcb plugin still aborts there — so the presence of DISPLAY is NOT a
+# reliable signal that xcb will work. On a developer's machine with a real
+# display (and not under CI) we keep the native platform. Setting this here, at
+# conftest import time before any test module imports PyQt6, guarantees the
+# variable is in place when Qt initializes.
+if not os.environ.get("QT_QPA_PLATFORM"):
+    _on_ci = any(
+        os.environ.get(marker)
+        for marker in ("CI", "GITHUB_ACTIONS", "CONTINUOUS_INTEGRATION")
+    )
+    _is_native_desktop = os.name == "nt" or sys.platform == "darwin"
+    _has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+
+    # Use the native platform only on a real desktop that is not a CI runner.
+    _use_native = _is_native_desktop or (_has_display and not _on_ci)
+    if not _use_native:
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 SAMPLE = FIXTURES_DIR / "sample.pdf"
 MULTIPAGE = FIXTURES_DIR / "multipage.pdf"
@@ -21,25 +51,17 @@ WITH_IMAGES = FIXTURES_DIR / "with_images.pdf"
 
 def is_headless_environment() -> bool:
     """
-    Detects if running in a headless environment (CI/server without display).
-    Used to determine if QApplication can be safely initialized.
+    Reports whether a QApplication CANNOT be initialized in this environment.
+
+    With Qt's "offscreen" platform plugin forced above for displayless
+    environments, a QApplication can always be created safely — there is no
+    longer any need to skip Qt tests on CI. This always returns ``False`` so
+    that all Qt tests actually run (on Windows, Linux headless and macOS).
+
+    The function is retained for backward compatibility with existing test
+    fixtures that import it.
     """
-    # Linux headless: no DISPLAY variable or empty
-    if os.name == "posix" and not os.environ.get("DISPLAY"):
-        return True
-
-    # Check for xvfb in LD_PRELOAD (some configurations)
-    if "xvfb" in os.environ.get("LD_PRELOAD", "").lower():
-        return True
-
-    # Check if running under CI/runner with GITHUB_ACTIONS or similar markers
-    # These environments often use virtual displays that QApplication can't initialize
-    ci_markers = [
-        "GITHUB_ACTIONS",
-        "CI",  # Generic CI marker
-        "CONTINUOUS_INTEGRATION",
-    ]
-    return any(os.environ.get(marker) for marker in ci_markers)
+    return False
 
 
 def _ensure_fixtures() -> None:

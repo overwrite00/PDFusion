@@ -24,47 +24,91 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from .conftest import is_headless_environment
 from ui.thumbnail_panel import ThumbnailPanel
 from ui.viewer import PDFViewer, _RenderWorker
 
 logger = logging.getLogger(__name__)
 
-# Use the conftest headless detection which is more robust
-_is_headless_environment = is_headless_environment
-
 
 def _safe_qapplication_creation():
     """
-    Crea una QApplication in modo sicuro, con handling per ambienti headless.
+    Restituisce una QApplication condivisa per i test.
 
-    Su Linux headless senza display manager, QApplication initialization CRASH
-    con "Fatal Python error: Aborted". Questo wrapper:
-    1. Rileva ambienti headless PRIMA di importare PyQt6
-    2. Se headless, skippa il test senza importare PyQt6
-    3. Se non headless, importa e crea QApplication
-
-    CRITICAL: Questo evita che PyQt6 tenti di connettersi a X11 su headless.
+    L'inizializzazione di Qt su ambienti senza display (CI headless) è gestita
+    da ``tests/conftest.py``, che forza il platform plugin "offscreen" prima di
+    qualsiasi import di PyQt6. Con "offscreen" la QApplication può sempre essere
+    creata senza connettersi a X11, quindi non serve più rilevare/skippare gli
+    ambienti headless: tutti i test girano realmente.
     """
-    # Se è headless, skippa senza importare PyQt6 (evita crash)
-    if _is_headless_environment():
-        pytest.skip("QApplication non supportato in ambiente headless (no display)")
-
-    # Solo se non headless, importa PyQt6
     from PyQt6.QtWidgets import QApplication
 
-    # Try to get existing instance first
+    # Riusa l'istanza esistente se presente (una sola QApplication per processo).
     app = QApplication.instance()
-    if app is not None:
-        return app
+    if app is None:
+        app = QApplication([])
+    return app
 
-    # Try to create a new application
-    try:
-        return QApplication([])
-    except Exception as e:
-        logger.error(f"QApplication initialization failed: {e}")
-        # Fallback: se la creazione fallisce anche in non-headless, skippa
-        pytest.skip(f"QApplication initialization failed: {e}")
+
+@pytest.fixture(autouse=True)
+def _flush_qt_deletions():
+    """Esegue le ``deleteLater()`` pendenti dopo ogni test.
+
+    In produzione il loop eventi di Qt elabora ``deleteLater()`` e distrugge
+    worker/QThread in modo sicuro. Nei test non c'è un loop eventi in
+    esecuzione, quindi worker e thread chiusi via ``_close_worker()`` non
+    verrebbero mai distrutti: si accumulerebbero e, quando il garbage
+    collector di Python distrugge un ``PDFViewer``/``ThumbnailPanel`` con un
+    QThread ancora vivo, Qt aborta con "QThread: Destroyed while thread is
+    still running" (SIGABRT). Svuotando la coda degli eventi posticipati dopo
+    ogni test eliminiamo questa contaminazione tra test.
+    """
+    yield
+
+    import gc
+
+    from PyQt6.QtCore import QCoreApplication, QEvent, QEventLoop, QThread
+    from PyQt6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        return
+
+    # 1. Ferma in modo sicuro qualsiasi QThread ancora in esecuzione lasciato
+    #    da widget creati nel corpo del test (o da chiusure fallite, es. test
+    #    che mockano thread.quit() per sollevare). Un QThread distrutto dal GC
+    #    mentre è ancora running fa abortire Qt ("QThread: Destroyed while
+    #    thread is still running" -> SIGABRT), contaminando i test successivi.
+    def _stop_thread(thread: QThread | None) -> None:
+        if thread is not None and thread.isRunning():
+            thread.quit()
+            if not thread.wait(2000):
+                thread.terminate()
+                thread.wait(1000)
+
+    for widget in app.allWidgets():
+        if isinstance(widget, PDFViewer | ThumbnailPanel):
+            # Ferma direttamente il thread del widget: _close_worker() esce
+            # subito se _worker è già None (es. dopo una chiusura fallita),
+            # lasciando però il thread ancora in esecuzione.
+            _stop_thread(getattr(widget, "_thread", None))
+            try:
+                widget._close_worker()
+            except Exception:
+                pass
+    # Backstop: qualsiasi altro QThread ancora vivo nell'albero degli oggetti.
+    for thread in app.findChildren(QThread):
+        _stop_thread(thread)
+
+    # 2. Elabora gli eventi normali e poi forza gli eventi DeferredDelete
+    #    (generati da deleteLater()), che processEvents da solo non elabora
+    #    finché il loop non torna al livello di creazione dell'oggetto.
+    app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete.value)
+    app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
+
+    # 3. Forza il GC mentre i thread sono fermi: ora la distruzione dei
+    #    widget orfani è sicura.
+    gc.collect()
 
 
 class TestRenderWorkerThreadSafety:
@@ -181,8 +225,11 @@ class TestPDFViewerThreadSafety:
 
     @pytest.fixture
     def viewer(self, qapp):
-        """Create a PDFViewer instance."""
-        return PDFViewer()
+        """Create a PDFViewer instance, garantendo la chiusura del worker."""
+        v = PDFViewer()
+        yield v
+        # Teardown: non lasciare mai un QThread in esecuzione al GC del widget.
+        v._close_worker()
 
     @pytest.fixture
     def sample_pdf(self, tmp_path):
@@ -324,16 +371,27 @@ class TestPDFViewerThreadSafety:
         assert success, "File handle still locked after _close_worker()"
 
     def test_close_worker_exception_logging(self, viewer, sample_pdf, caplog):
-        """Verify exceptions in _close_worker are properly logged."""
+        """Verify exceptions during thread shutdown are handled gracefully.
+
+        Anche se ``quit()`` solleva, _close_worker() non deve propagare
+        l'eccezione, deve loggare l'errore e — punto critico — deve comunque
+        terminare il thread (un thread lasciato running fa abortire Qt al GC).
+        """
         viewer.load_document(Path(sample_pdf))
+        thread = viewer._thread
 
         # Mock _thread.quit to raise an exception
-        with patch.object(viewer._thread, 'quit', side_effect=RuntimeError("Mock error")):
-            with caplog.at_level(logging.ERROR):
+        with patch.object(thread, 'quit', side_effect=RuntimeError("Mock error")):
+            with caplog.at_level(logging.WARNING):
+                # Non deve sollevare
                 viewer._close_worker()
 
-            # Should log the error but not crash
-            assert "Errore durante chiusura worker viewer" in caplog.text
+            # L'errore di quit() deve essere loggato (fallback a terminate()).
+            assert "forzamento terminazione" in caplog.text
+
+        # Il worker è azzerato e il thread è stato fermato, non lasciato running.
+        assert viewer._worker is None
+        assert not thread.isRunning()
 
 
 class TestThumbnailPanelThreadSafety:
@@ -363,7 +421,7 @@ class TestThumbnailPanelThreadSafety:
     def test_thumb_worker_snapshot_prevents_use_after_free(self, qapp, sample_pdf):
         """Test that thumbnail worker uses snapshot pattern correctly."""
         panel = ThumbnailPanel()
-        panel.load_document(Path(sample_pdf), "")
+        panel.load_document(Path(sample_pdf), total_pages=5)
         assert panel._worker is not None
 
         original_worker = panel._worker
@@ -377,7 +435,7 @@ class TestThumbnailPanelThreadSafety:
     def test_thumb_worker_idempotency(self, qapp, sample_pdf):
         """Calling _close_worker multiple times on thumbnail panel should be safe."""
         panel = ThumbnailPanel()
-        panel.load_document(Path(sample_pdf), "")
+        panel.load_document(Path(sample_pdf), total_pages=5)
 
         panel._close_worker()
         assert panel._worker is None
@@ -391,7 +449,7 @@ class TestThumbnailPanelThreadSafety:
         This tests the snapshot pattern under concurrent load.
         """
         panel = ThumbnailPanel()
-        panel.load_document(Path(sample_pdf), "")
+        panel.load_document(Path(sample_pdf), total_pages=5)
 
         # Request rendering of multiple thumbnails
         for i in range(3):
@@ -442,7 +500,7 @@ class TestConcurrentOperations:
         thumb = ThumbnailPanel()
 
         viewer.load_document(Path(sample_pdf))
-        thumb.load_document(Path(sample_pdf), "")
+        thumb.load_document(Path(sample_pdf), total_pages=5)
 
         # Close both concurrently in separate threads
         errors = []
@@ -550,15 +608,28 @@ class TestWindowsSpecificIssues:
         assert success, "fitz document not properly closed, file handle locked"
 
     def test_thread_termination_on_wait_timeout(self, qapp, sample_pdf):
-        """Test that thread.terminate() is called if quit() timeout is exceeded."""
+        """Test that thread.terminate() is called if quit() timeout is exceeded.
+
+        ``terminate()`` viene mockato (non eseguito davvero): terminare con la
+        forza un QThread che sta renderizzando con fitz corrompe lo stato e fa
+        crashare il processo. Qui verifichiamo solo che il fallback venga
+        invocato; la chiusura reale del thread avviene nel ramo non-mockato.
+        """
         viewer = PDFViewer()
         viewer.load_document(Path(sample_pdf))
+        thread = viewer._thread
 
-        # Mock the wait to fail
-        with patch.object(viewer._thread, 'wait', return_value=False):
-            with patch.object(viewer._thread, 'terminate', wraps=viewer._thread.terminate) as mock_term:
+        # Mock the wait to fail e terminate per evitare di uccidere davvero il
+        # thread mentre renderizza.
+        with patch.object(thread, 'wait', return_value=False):
+            with patch.object(thread, 'terminate') as mock_term:
                 viewer._close_worker()
                 mock_term.assert_called()
+
+        # Cleanup reale del thread (wait/terminate non sono più mockati).
+        viewer._close_worker()
+        thread.quit()
+        thread.wait(2000)
 
 
 class TestEdgeCases:
