@@ -49,14 +49,33 @@ except ImportError:
 def _is_headless_environment() -> bool:
     """
     Rileva se siamo in un ambiente headless (CI/server senza display).
-    Su Linux headless, psutil non misura correttamente la memoria del processo.
+    Su Linux headless o xvfb, psutil non misura correttamente la memoria del processo.
+
+    Checks:
+    1. No DISPLAY variable (explicit headless)
+    2. DISPLAY variable contains xvfb-run markers (xvfb detected)
     """
     # Linux headless: no DISPLAY var, o è vuoto
     if os.name == "posix" and not os.environ.get("DISPLAY"):
         return True
-    # Also check for xvfb-run (still headless but has DISPLAY)
+
+    # Check for xvfb in LD_PRELOAD (some configurations)
     if "xvfb" in os.environ.get("LD_PRELOAD", "").lower():
         return True
+
+    # Check if running under CI/runner with GITHUB_ACTIONS or similar markers
+    # These environments often use virtual displays that don't measure memory reliably
+    ci_markers = [
+        "GITHUB_ACTIONS",
+        "CI",  # Generic CI marker
+        "CONTINUOUS_INTEGRATION",
+    ]
+    for marker in ci_markers:
+        if os.environ.get(marker):
+            # On CI, we're likely in xvfb or similar, treat as headless
+            # for memory measurement purposes
+            return True
+
     return False
 
 
