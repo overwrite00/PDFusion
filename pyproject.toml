@@ -4,7 +4,7 @@ build-backend = "setuptools.backends.legacy:build"
 
 [project]
 name = "pdfusion"
-version = "0.1.11"
+version = "0.2.0"
 description = "Cross-platform PDF management desktop application"
 license = { text = "MIT" }
 requires-python = ">=3.11,<3.14"

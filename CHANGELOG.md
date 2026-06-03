@@ -10,6 +10,14 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+### Added
+
+- Planned features and improvements for future releases.
+
+---
+
+## [0.2.0] — 2026-06-03
+
 ### Security
 
 - Fixed race condition in main_window._on_operation_done() after _cleanup_all_temps() — added file existence guard
@@ -96,4 +104,5 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 - **Test suite**: ~70 test su tutti i moduli core con fixture PDF autogenerati
 
 [Unreleased]: https://github.com/0verwrite/PDFusion/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/0verwrite/PDFusion/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/0verwrite/PDFusion/releases/tag/v0.1.0
