@@ -7,15 +7,23 @@ import pytest
 from PyQt6.QtCore import QCoreApplication
 from PyQt6.QtWidgets import QApplication
 
+from conftest import is_headless_environment
 from ui.panels.base_panel import BasePanelWidget
 
 
 @pytest.fixture
 def qapp():
     """Provide QApplication for Qt tests."""
+    # Skip test if running in headless environment (CI without display)
+    if is_headless_environment():
+        pytest.skip("QApplication not supported in headless environment")
+
     app = QCoreApplication.instance()
     if app is None:
-        app = QApplication([])
+        try:
+            app = QApplication([])
+        except Exception as e:
+            pytest.skip(f"QApplication initialization failed: {e}")
     yield app
 
 

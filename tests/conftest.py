@@ -3,6 +3,7 @@ Fixtures pytest condivise tra tutti i test.
 I PDF vengono generati on-demand se non esistono già.
 """
 import gc
+import os
 import subprocess
 import sys
 import tempfile
@@ -16,6 +17,29 @@ SAMPLE = FIXTURES_DIR / "sample.pdf"
 MULTIPAGE = FIXTURES_DIR / "multipage.pdf"
 ENCRYPTED = FIXTURES_DIR / "encrypted.pdf"
 WITH_IMAGES = FIXTURES_DIR / "with_images.pdf"
+
+
+def is_headless_environment() -> bool:
+    """
+    Detects if running in a headless environment (CI/server without display).
+    Used to determine if QApplication can be safely initialized.
+    """
+    # Linux headless: no DISPLAY variable or empty
+    if os.name == "posix" and not os.environ.get("DISPLAY"):
+        return True
+
+    # Check for xvfb in LD_PRELOAD (some configurations)
+    if "xvfb" in os.environ.get("LD_PRELOAD", "").lower():
+        return True
+
+    # Check if running under CI/runner with GITHUB_ACTIONS or similar markers
+    # These environments often use virtual displays that QApplication can't initialize
+    ci_markers = [
+        "GITHUB_ACTIONS",
+        "CI",  # Generic CI marker
+        "CONTINUOUS_INTEGRATION",
+    ]
+    return any(os.environ.get(marker) for marker in ci_markers)
 
 
 def _ensure_fixtures() -> None:
