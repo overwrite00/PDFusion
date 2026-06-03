@@ -12,7 +12,6 @@ Tests cover:
 from __future__ import annotations
 
 import logging
-import os
 
 # Import modules under test
 import sys
@@ -32,12 +31,6 @@ from ui.thumbnail_panel import ThumbnailPanel
 from ui.viewer import PDFViewer, _RenderWorker
 
 logger = logging.getLogger(__name__)
-
-# Skip UI tests on headless systems (Linux without X11)
-pytestmark = pytest.mark.skipif(
-    sys.platform.startswith("linux") and not os.environ.get("DISPLAY"),
-    reason="UI tests require display server (X11 on Linux)"
-)
 
 
 class TestRenderWorkerThreadSafety:
