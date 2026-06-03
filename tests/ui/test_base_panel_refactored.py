@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from PyQt6.QtCore import QCoreApplication
+from PyQt6.QtCore import QCoreApplication  # noqa: I001
 from PyQt6.QtWidgets import QApplication
 
 from conftest import is_headless_environment
