@@ -9,10 +9,10 @@ Testa:
 """
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
+
+import pytest
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 from utils.font_manager import FontManager, get_font_manager
 
@@ -32,7 +32,6 @@ def cleanup_font_manager_module_after_all_tests():
     # to ensure any cached MagicMock objects are discarded
     try:
         import sys
-        import importlib
         # Force reload of the utils.font_manager module
         if "utils.font_manager" in sys.modules:
             del sys.modules["utils.font_manager"]

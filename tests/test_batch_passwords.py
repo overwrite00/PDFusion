@@ -13,14 +13,12 @@ Covers:
 """
 
 import shutil
-from pathlib import Path
 
 import pytest
 
 from core.batch import BatchJob, BatchOperation, run_batch
 from core.compress import CompressConfig, CompressPreset
 from core.protect import ProtectConfig
-from utils.exceptions import PDFusionError
 
 
 @pytest.fixture

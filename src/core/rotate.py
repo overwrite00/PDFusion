@@ -1,12 +1,10 @@
 import logging
 from pathlib import Path
 
-import pikepdf
-
 from core.pdf_opener import open_pdf_safe
 from utils.exceptions import PDFusionError
 from utils.page_range_parser import parse_page_ranges, ranges_to_indices
-from utils.page_validator import validate_page_indices, log_page_operations
+from utils.page_validator import log_page_operations, validate_page_indices
 from utils.temp_manager import atomic_write
 
 logger = logging.getLogger(__name__)

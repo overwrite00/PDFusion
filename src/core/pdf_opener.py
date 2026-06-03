@@ -69,7 +69,7 @@ def open_pdf_safe(
     except pikepdf.PasswordError as exc:
         logger.error(f"Password error for {path.name}: {exc}")
         raise PDFusionError(
-            f"Password errata o mancante per aprire il PDF."
+            "Password errata o mancante per aprire il PDF."
         ) from exc
 
     except pikepdf.PdfError as exc:
@@ -78,7 +78,7 @@ def open_pdf_safe(
             f"File non valido o corrotto: {path.name}"
         ) from exc
 
-    except (OSError, IOError) as exc:
+    except OSError as exc:
         logger.error(f"IO error for {path.name}: {exc}")
         raise PDFusionError(
             f"Errore di accesso al file: {path.name}"

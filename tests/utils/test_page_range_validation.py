@@ -5,11 +5,11 @@ import pytest
 
 from utils.exceptions import PDFusionError
 from utils.page_validator import (
+    log_page_operations,
     validate_page_index,
     validate_page_indices,
     validate_page_range,
     validate_page_ranges,
-    log_page_operations,
 )
 
 

@@ -18,10 +18,10 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from utils.exceptions import PDFusionError
 from ui.panels.config_collector import ConfigCollector
 from ui.panels.file_monitor import FileMonitorManager
 from ui.panels.preview_renderer import PreviewRenderer
+from utils.exceptions import PDFusionError
 
 logger = logging.getLogger(__name__)
 
