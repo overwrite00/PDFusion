@@ -23,8 +23,8 @@ Memory validation:
 """
 
 import logging
-import shutil
 import os
+import shutil
 from pathlib import Path
 
 import pikepdf
