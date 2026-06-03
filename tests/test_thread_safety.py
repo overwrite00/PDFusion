@@ -22,9 +22,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from PyQt6.QtCore import QThread
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtWidgets import QApplication
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -73,24 +70,29 @@ def _is_headless_environment() -> bool:
     return False
 
 
-def _safe_qapplication_creation() -> QApplication:
+def _safe_qapplication_creation():
     """
     Crea una QApplication in modo sicuro, con handling per ambienti headless.
 
     Su Linux headless senza display manager, QApplication initialization CRASH
     con "Fatal Python error: Aborted". Questo wrapper:
-    1. Prova a ottenere l'istanza esistente
-    2. Se non esiste, prova a crearne una con handling degli errori
-    3. Se è headless, skippa il test
+    1. Rileva ambienti headless PRIMA di importare PyQt6
+    2. Se headless, skippa il test senza importare PyQt6
+    3. Se non headless, importa e crea QApplication
+
+    CRITICAL: Questo evita che PyQt6 tenti di connettersi a X11 su headless.
     """
+    # Se è headless, skippa senza importare PyQt6 (evita crash)
+    if _is_headless_environment():
+        pytest.skip("QApplication non supportato in ambiente headless (no display)")
+
+    # Solo se non headless, importa PyQt6
+    from PyQt6.QtWidgets import QApplication
+
     # Try to get existing instance first
     app = QApplication.instance()
     if app is not None:
         return app
-
-    # Se è headless, non possiamo creare QApplication
-    if _is_headless_environment():
-        pytest.skip("QApplication non supportato in ambiente headless (no display)")
 
     # Try to create a new application
     try:
@@ -127,6 +129,7 @@ class TestRenderWorkerThreadSafety:
 
     def test_worker_close_flag_prevents_reopening(self, qapp, sample_pdf):
         """Verify that calling close() prevents reopening the document."""
+        from PyQt6.QtCore import QThread
         worker = _RenderWorker(sample_pdf)
         thread = QThread()
         worker.moveToThread(thread)
@@ -144,6 +147,10 @@ class TestRenderWorkerThreadSafety:
 
     def test_worker_signal_emission_on_render(self, qapp, sample_pdf):
         """Verify worker emits rendered signal with correct data."""
+        from PyQt6.QtCore import QThread
+        from PyQt6.QtGui import QPixmap
+        from PyQt6.QtWidgets import QApplication
+
         worker = _RenderWorker(sample_pdf)
         thread = QThread()
         worker.moveToThread(thread)
@@ -173,6 +180,9 @@ class TestRenderWorkerThreadSafety:
 
     def test_worker_error_signal_on_invalid_page(self, qapp, sample_pdf):
         """Verify worker emits error signal for invalid page indices."""
+        from PyQt6.QtCore import QThread
+        from PyQt6.QtWidgets import QApplication
+
         worker = _RenderWorker(sample_pdf)
         thread = QThread()
         worker.moveToThread(thread)
@@ -501,6 +511,7 @@ class TestConcurrentOperations:
         Each switch calls load_document which calls _close_worker.
         """
         import shutil
+        from PyQt6.QtWidgets import QApplication
 
         # Create multiple test PDFs
         pdfs = []
