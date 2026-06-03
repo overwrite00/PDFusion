@@ -290,6 +290,8 @@ class TestPDFViewerThreadSafety:
         CRITICAL: Simulate signal callback deleting _worker during _close_worker().
         The snapshot pattern should prevent use-after-free.
         """
+        from PyQt6.QtGui import QPixmap
+
         viewer.load_document(Path(sample_pdf))
 
         # Monkey-patch _on_rendered to simulate concurrent deletion
