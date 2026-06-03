@@ -7,7 +7,7 @@ import pytest
 from PyQt6.QtCore import QCoreApplication
 from PyQt6.QtWidgets import QApplication
 
-from conftest import is_headless_environment
+from ..conftest import is_headless_environment
 from ui.panels.base_panel import BasePanelWidget
 
 

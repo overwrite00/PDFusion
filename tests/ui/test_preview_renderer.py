@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 from PyQt6.QtCore import QCoreApplication
 
-from conftest import is_headless_environment
+from ..conftest import is_headless_environment
 from ui.panels.preview_renderer import PreviewRenderer
 
 
