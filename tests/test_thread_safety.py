@@ -151,7 +151,10 @@ class TestRenderWorkerThreadSafety:
         assert worker._doc is None, "Document should not reopen after close() call"
 
         thread.quit()
-        thread.wait()
+        # Wait bounded: thread was never started (quit() is a no-op), so this
+        # returns immediately. Never block unbounded — a stuck wait() would hang
+        # the entire test session on a headless CI runner.
+        thread.wait(2000)
 
     def test_worker_signal_emission_on_render(self, qapp, sample_pdf):
         """Verify worker emits rendered signal with correct data."""
@@ -184,7 +187,9 @@ class TestRenderWorkerThreadSafety:
         assert isinstance(pixmap, QPixmap)
 
         thread.quit()
-        thread.wait()
+        if not thread.wait(2000):
+            thread.terminate()
+            thread.wait(1000)
 
     def test_worker_error_signal_on_invalid_page(self, qapp, sample_pdf):
         """Verify worker emits error signal for invalid page indices."""
@@ -212,7 +217,9 @@ class TestRenderWorkerThreadSafety:
             time.sleep(0.01)
 
         thread.quit()
-        thread.wait()
+        if not thread.wait(2000):
+            thread.terminate()
+            thread.wait(1000)
 
 
 class TestPDFViewerThreadSafety:

@@ -12,6 +12,15 @@ requires-python = ">=3.11,<3.14"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+# Hard per-test timeout: converts any hang (e.g. a Qt thread that never quits on
+# a headless Linux runner) into a normal test failure WITH a full traceback of
+# every thread, instead of silently blocking the whole CI job for 30+ minutes.
+# "thread" method works without SIGALRM (portable to Windows) and dumps stacks.
+timeout = 120
+timeout_method = "thread"
+# Dump all thread stacks if the whole session stalls past this many seconds —
+# a backstop independent of pytest-timeout.
+faulthandler_timeout = 300
 
 [tool.ruff]
 src = ["src"]

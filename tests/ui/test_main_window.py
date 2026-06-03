@@ -9,11 +9,24 @@ from ui.main_window import MainWindow
 
 @pytest.fixture
 def main_window(qtbot):
-    """Fixture che crea la finestra principale per i test."""
+    """Fixture che crea la finestra principale per i test.
+
+    Teardown esplicito: ``shutdown()`` chiude documenti e ferma i worker
+    thread di viewer/thumbnail PRIMA che qtbot/il GC distruggano il widget.
+    Senza questo, un QThread di rendering ancora vivo verrebbe distrutto dal
+    GC e farebbe abortire Qt ("QThread: Destroyed while thread is still
+    running"), oppure resterebbe appeso su un runner Linux headless bloccando
+    l'intera sessione di test.
+    """
     window = MainWindow()
     qtbot.addWidget(window)
     window.show()
-    return window
+    yield window
+    # Ferma in modo deterministico tutti i thread/documenti del window.
+    try:
+        window.shutdown()
+    except Exception:
+        pass
 
 
 @pytest.fixture
