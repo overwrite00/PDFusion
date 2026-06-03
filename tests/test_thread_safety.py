@@ -12,7 +12,6 @@ Tests cover:
 from __future__ import annotations
 
 import logging
-import os
 
 # Import modules under test
 import sys
@@ -25,49 +24,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from .conftest import is_headless_environment
 from ui.thumbnail_panel import ThumbnailPanel
 from ui.viewer import PDFViewer, _RenderWorker
 
 logger = logging.getLogger(__name__)
 
-
-def _is_headless_environment() -> bool:
-    """
-    Rileva se siamo in un ambiente headless (CI/server senza proper display).
-
-    Headless indicators:
-    - Linux senza DISPLAY
-    - DISPLAY=:99 (xvfb standard) ma senza Xvfb running
-    - Ambiente CI (GitHub Actions, GitLab CI, etc.)
-    """
-    # Caso 1: No DISPLAY at all
-    if os.name == "posix" and not os.environ.get("DISPLAY"):
-        return True
-
-    # Caso 2: DISPLAY=:99 or :X (xvfb) but server not actually running
-    # Per testare se Xvfb è running, proviamo a connetterci
-    if os.name == "posix" and os.environ.get("DISPLAY"):
-        display = os.environ.get("DISPLAY")
-        # Se è :99 o :X e non è localhost:X.0, probabilmente è xvfb non funzionante
-        if display.startswith(":"):
-            # Try to detect if xvfb-run is active (LD_PRELOAD contains xvfb)
-            if "xvfb" not in os.environ.get("LD_PRELOAD", "").lower():
-                # No xvfb in LD_PRELOAD, ma ha DISPLAY virtuale -> xvfb non running
-                try:
-                    import subprocess
-                    result = subprocess.run(
-                        ["ps", "aux"],
-                        capture_output=True,
-                        text=True,
-                        timeout=2
-                    )
-                    if "Xvfb" not in result.stdout and "Xvfb" not in result.stderr:
-                        # Xvfb not in process list
-                        return True
-                except Exception:
-                    pass  # Assume headless if we can't check
-
-    return False
+# Use the conftest headless detection which is more robust
+_is_headless_environment = is_headless_environment
 
 
 def _safe_qapplication_creation():
