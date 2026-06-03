@@ -84,7 +84,7 @@ class ProtectPanel(BasePanelWidget):
         enc_form.addRow("Crittografia:", self._enc_combo)
         self._content_layout.addWidget(enc_group)
 
-    def _collect_config(self) -> ProtectConfig:
+    def _collect_config_impl(self) -> ProtectConfig:
         return ProtectConfig(
             user_password=self._user_pwd.text(),
             owner_password=self._owner_pwd.text(),
@@ -99,5 +99,6 @@ class ProtectPanel(BasePanelWidget):
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
         from core.protect import protect
+
         protect(input_path, output_path, config, password or None)
         return output_path

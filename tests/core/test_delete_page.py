@@ -1,3 +1,4 @@
+import logging
 import shutil
 
 import pikepdf
@@ -39,3 +40,21 @@ class TestDeletePages:
         result = delete_pages(src, [0], dst)
         with pikepdf.open(result) as pdf:
             assert len(pdf.pages) == 9
+
+    def test_out_of_bounds_delete_raises(self, multipage_pdf, tmp_output):
+        """Deleting out-of-bounds page should raise PDFusionError."""
+        with pytest.raises(PDFusionError, match="non esiste"):
+            delete_pages(multipage_pdf, [999], tmp_output)
+
+    def test_negative_out_of_bounds_delete_raises(self, sample_pdf, tmp_output):
+        """Deleting with invalid negative index should raise."""
+        with pytest.raises(PDFusionError):
+            delete_pages(sample_pdf, [-999], tmp_output)
+
+    def test_deletion_logs_operation(self, multipage_pdf, tmp_output, caplog):
+        """Deletion should log the operation."""
+        with caplog.at_level(logging.INFO):
+            delete_pages(multipage_pdf, [0, 1, 2], tmp_output)
+
+        assert "delete" in caplog.text.lower()
+        assert "3 pagine eliminate" in caplog.text

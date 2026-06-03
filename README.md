@@ -4,12 +4,12 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 
 ![PDFusion Interface](assets/hero.png)
 
-[![Version](https://img.shields.io/badge/version-0.1.11-blue)]()
+[![Version](https://img.shields.io/badge/version-0.2.0-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
 [![Platform](https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
-[![Last Updated](https://img.shields.io/badge/last%20updated-2026--04--30-blue)]()
+[![Last Updated](https://img.shields.io/badge/last%20updated-2026--05--28-blue)]()
 
 ---
 
@@ -201,29 +201,75 @@ Complete reference to all 16 integrated tools:
 
 ## 🔧 Development
 
-### Setup Development Environment
+### Quick Start
 
 ```bash
+# Clone and setup
+git clone https://github.com/overwrite00/PDFusion.git
+cd PDFusion
+
+# Create virtual environment
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1   # Windows (PowerShell)
+source .venv/bin/activate       # Linux/macOS
+
+# Install dependencies
+pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-### Run Tests
+### Running Tests
 
 ```bash
-# Using pytest directly
-pytest tests/ -v
+# Full test suite with coverage report
+pytest tests/ -v --cov=src --cov-report=html
 
-# Or using scripts
-./run_tests.sh       # Linux/macOS
-run_tests.bat        # Windows
+# Quick test run
+pytest tests/ -q
+
+# Specific test file
+pytest tests/core/test_compress.py -v
 ```
 
-### Build Standalone Executable
+### Code Quality Checks
 
 ```bash
+# Type checking (recommended)
+mypy src/
+
+# Linting and formatting
+python -m ruff check src/     # Check style
+python -m ruff format src/    # Auto-fix style
+
+# View coverage report
+# After pytest: open htmlcov/index.html in browser
+```
+
+### Building Executable
+
+```bash
+# Create standalone Windows/macOS/Linux executable
 pyinstaller PDFusion.spec --noconfirm
-# Output: dist/PDFusion/ (executable + dependencies)
+# Output: dist/PDFusion/ (ready to distribute)
 ```
+
+### Contributing
+
+For detailed guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**:
+
+- ✓ Development setup (Python 3.11–3.13)
+- ✓ Branch strategy (`feature/*` → `develop` → `main`)
+- ✓ Commit conventions (feat/fix/refactor/docs/test)
+- ✓ Code style (PEP 8, type hints, ruff, mypy)
+- ✓ Testing (pytest, ≥70% coverage, unit + integration)
+- ✓ PR workflow (review, CI/CD checks)
+
+**Quick PR Checklist:**
+
+- [ ] Tests pass: `pytest tests/ -q`
+- [ ] Type check: `mypy src/`
+- [ ] Formatting: `python -m ruff format src/`
+- [ ] Coverage: `pytest --cov=src --cov-report=term-missing`
 
 ### Project Structure
 
@@ -341,7 +387,7 @@ Contributions are welcome! Please follow these steps:
 >
 > - **SVG Watermarks**: Basic SVG support only (complex paths may not render)
 > - **Large Files**: Documents with 500+ pages may require more processing time
-> - **Password-Protected PDFs**: User must enter password to open
+> - **Password-Protected PDFs**: Supported in both single operations and batch mode — provide password when requested
 
 [⬆ Back to Top](#table-of-contents)
 

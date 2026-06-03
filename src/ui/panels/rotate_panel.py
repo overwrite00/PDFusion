@@ -45,25 +45,28 @@ class RotatePanel(BasePanelWidget):
         self._radio_range.toggled.connect(self._range_input.setEnabled)
         self._content_layout.addWidget(pages_group)
 
-    def _collect_config(self) -> dict:
+    def _collect_config_impl(self) -> dict:
         angle = 90 if self._radio_90.isChecked() else (180 if self._radio_180.isChecked() else 270)
         if self._radio_all.isChecked():
             return {"angle": angle, "indices": []}
         else:
             if not self._range_input.is_valid():
                 from PyQt6.QtWidgets import QMessageBox
+
                 QMessageBox.warning(
-                    self, "Range non valido",
-                    "Il range di pagine inserito non è valido.\n"
-                    "Esempio corretto: 1-3, 5, 7-9",
+                    self,
+                    "Range non valido",
+                    "Il range di pagine inserito non è valido.\nEsempio corretto: 1-3, 5, 7-9",
                 )
                 return None  # type: ignore[return-value]
             from utils.page_range_parser import ranges_to_indices
+
             ranges = self._range_input.get_ranges()
             return {"angle": angle, "indices": ranges_to_indices(ranges) if ranges else []}
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
         from core.rotate import rotate_pages
+
         rotate_pages(
             input_path,
             config["indices"],

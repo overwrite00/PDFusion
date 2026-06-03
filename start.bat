@@ -12,6 +12,7 @@ if /i "!_UILANG:~0,2!"=="it" (
   set "MSG_PYTHON_FOUND=Python trovato:"
   set "MSG_PYTHON_NOT=Python 3.11-3.13 non trovato. Installa Python 3.13 da python.org e riprova."
   set "MSG_VENV=Creazione ambiente virtuale..."
+  set "MSG_PIP_UPGRADE=Aggiornamento pip..."
   set "MSG_DEPS=Installazione dipendenze..."
   set "MSG_UP=Dipendenze già installate."
   set "MSG_START=Avvio PDFusion..."
@@ -20,6 +21,7 @@ if /i "!_UILANG:~0,2!"=="it" (
   set "MSG_PYTHON_FOUND=Python found:"
   set "MSG_PYTHON_NOT=Python 3.11-3.13 not found. Install Python 3.13 from python.org and retry."
   set "MSG_VENV=Creating virtual environment..."
+  set "MSG_PIP_UPGRADE=Upgrading pip..."
   set "MSG_DEPS=Installing dependencies..."
   set "MSG_UP=Dependencies already installed."
   set "MSG_START=Starting PDFusion..."
@@ -83,11 +85,15 @@ for /f "skip=1 tokens=* delims=" %%H in (
 )
 set "REQ_HASH=!REQ_HASH: =!"
 
+:: --- Upgrade pip (sempre) ---
+echo !MSG_PIP_UPGRADE!
+"%PYTHON_VENV%" -m pip install --quiet --upgrade pip
+
+:: --- Installa dipendenze (se necessario) ---
 if "!REQ_HASH!"=="!SAVED_HASH!" (
   echo !MSG_UP!
 ) else (
   echo !MSG_DEPS!
-  "%PIP_VENV%" install --quiet --upgrade pip
   "%PIP_VENV%" install --quiet -r "%REQ_FILE%"
   echo !REQ_HASH!>"%REQ_HASH_FILE%"
 )

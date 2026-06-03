@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gc
+import logging
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
@@ -24,21 +26,23 @@ from ui.widgets.recent_files_widget import RecentFilesWidget
 from utils.config import APP_NAME, VERSION
 from utils.recent_files import add_recent_file
 
+logger = logging.getLogger(__name__)
+
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self._current_path: Path | None = None
         self._current_password: str = ""
-        self._pending_preview: Path | None = None   # file temp anteprima corrente
-        self._temp_files: list[Path] = []              # tutti i temp creati nella sessione
+        self._pending_preview: Path | None = None  # file temp anteprima corrente
+        self._temp_files: list[Path] = []  # tutti i temp creati nella sessione
 
         self.setWindowTitle(f"{APP_NAME} {VERSION}")
         self.setMinimumSize(1100, 700)
         self.resize(1280, 800)
         self.setAcceptDrops(True)
 
-        self._setup_toolbar()   # deve venire prima di _setup_ui (toolbar_widget usato lì)
+        self._setup_toolbar()  # deve venire prima di _setup_ui (toolbar_widget usato lì)
         self._setup_ui()
         self._setup_menus()
         self._connect_signals()
@@ -211,12 +215,13 @@ class MainWindow(QMainWindow):
         tb_layout.addStretch()
 
         # Inizializzazione degli handle per aggiornare enabled (compatibili con vecchio codice)
-        self._tb_prev = None   # QAction non più usate
+        self._tb_prev = None  # QAction non più usate
         self._tb_next = None
 
         # Aggiungi la toolbar al layout principale sopra il centralWidget
         # Usiamo un wrapper per inserirla come widget fisso sopra lo splitter
         from PyQt6.QtWidgets import QVBoxLayout
+
         wrapper = QWidget(self)
         wrapper_layout = QVBoxLayout(wrapper)
         wrapper_layout.setContentsMargins(0, 0, 0, 0)
@@ -297,7 +302,7 @@ class MainWindow(QMainWindow):
         self._cleanup_all_temps()
         self._current_path = path
         self._current_password = password
-        self._reset_panels()          # resetta tutti i pannelli ai valori di default
+        self._reset_panels()  # resetta tutti i pannelli ai valori di default
         self._viewer.load_document(path, password)
         add_recent_file(path)
         self._welcome.refresh()
@@ -311,8 +316,8 @@ class MainWindow(QMainWindow):
         # Rilascia prima gli handle fitz, poi elimina i temporanei.
         self._viewer.close_document()
         self._thumbnails.close_document()
-        self._cleanup_all_temps()     # elimina tutti i file temporanei della sessione
-        self._reset_panels()          # resetta tutti i pannelli ai valori di default
+        self._cleanup_all_temps()  # elimina tutti i file temporanei della sessione
+        self._reset_panels()  # resetta tutti i pannelli ai valori di default
         self._stack.setCurrentWidget(self._welcome)
         self.setWindowTitle(f"{APP_NAME} {VERSION}")
         self._tb_prev_btn.setEnabled(False)
@@ -350,7 +355,9 @@ class MainWindow(QMainWindow):
         if self._pending_preview:
             thumb_path = self._pending_preview
             thumb_pwd = ""
-            title_suffix = f"{self._current_path.name} — Anteprima" if self._current_path else "Anteprima"
+            title_suffix = (
+                f"{self._current_path.name} — Anteprima" if self._current_path else "Anteprima"
+            )
         else:
             thumb_path = self._current_path
             thumb_pwd = self._current_password
@@ -381,7 +388,7 @@ class MainWindow(QMainWindow):
             f"File salvato:\n{output_path}\n\nVuoi aprirlo ora nel viewer?",
         )
         if answer == QMessageBox.StandardButton.Yes:
-            self.open_file(output_path)   # gestisce cleanup e reset internamente
+            self.open_file(output_path)  # gestisce cleanup e reset internamente
         else:
             # L'utente non apre il risultato nel viewer, ma aggiorniamo comunque
             # il documento corrente all'output. Questo garantisce il chaining corretto:
@@ -397,7 +404,7 @@ class MainWindow(QMainWindow):
             self._thumbnails.close_document()
             self._cleanup_all_temps()
             self._current_path = output_path
-            self._current_password = ""   # password non nota; richiesta se serve
+            self._current_password = ""  # password non nota; richiesta se serve
             self._reset_panels()
             self._viewer.load_document(output_path, "")
             add_recent_file(output_path)
@@ -441,6 +448,11 @@ class MainWindow(QMainWindow):
         Il segnale document_loaded verrà emesso in modo sincrono durante load_document,
         quindi _pending_preview deve essere impostato PRIMA della chiamata.
         """
+        # Guardia contro segnali tardivi: se il file è stato cancellato nel frattempo
+        # (es. da _cleanup_all_temps() dopo una operazione), non tentare di caricarlo
+        if not tmp_path.exists():
+            return
+
         # ORDINE CRITICO su Windows:
         # 1. chiudi viewer e thumbnail → rilascia l'handle fitz sul temp precedente
         # 2. cancella il temp precedente (ora libero)
@@ -448,7 +460,7 @@ class MainWindow(QMainWindow):
         # 4. carica il nuovo temp
         self._viewer.close_document()
         self._thumbnails.close_document()
-        self._cleanup_preview()           # il file è ora libero → unlink() funziona
+        self._cleanup_preview()  # il file è ora libero → unlink() funziona
         self._pending_preview = tmp_path  # deve precedere load_document!
         # Registra il nuovo temp nella lista di tracciamento per cleanup completo
         if tmp_path not in self._temp_files:
@@ -472,12 +484,14 @@ class MainWindow(QMainWindow):
         elif self._current_path:
             # Nessun pannello attivo: propone copia del file corrente
             from PyQt6.QtWidgets import QFileDialog
+
             suggested = self._current_path.parent / (self._current_path.stem + "_copia.pdf")
             dest, _ = QFileDialog.getSaveFileName(
                 self, "Salva copia come…", str(suggested), "File PDF (*.pdf)"
             )
             if dest:
                 import shutil
+
                 shutil.copy2(str(self._current_path), dest)
                 self._set_status(f"Copia salvata: {Path(dest).name}")
 
@@ -489,6 +503,7 @@ class MainWindow(QMainWindow):
 
     def _on_about(self) -> None:
         from ui.dialogs.about_dialog import AboutDialog
+
         AboutDialog(self).exec()
 
     def _set_status(self, msg: str) -> None:
@@ -509,12 +524,16 @@ class MainWindow(QMainWindow):
 
     def _on_open_path(self, p: Path) -> None:
         import fitz
+
         doc = fitz.open(str(p))
-        needs_pwd = doc.needs_pass
-        doc.close()
+        try:
+            needs_pwd = doc.needs_pass
+        finally:
+            doc.close()
         password = ""
         if needs_pwd:
             from ui.dialogs.password_dialog import ask_password
+
             password = ask_password(p.name, self) or ""
             if not password:
                 return
@@ -523,7 +542,7 @@ class MainWindow(QMainWindow):
     def _cleanup_preview(self) -> None:
         """Elimina il file temporaneo di anteprima corrente (solo quello attivo)."""
         if self._pending_preview:
-            deleted = not self._pending_preview.exists()   # già assente = ok
+            deleted = not self._pending_preview.exists()  # già assente = ok
             if not deleted:
                 try:
                     self._pending_preview.unlink()
@@ -555,14 +574,52 @@ class MainWindow(QMainWindow):
         self._temp_files.clear()
         self._pending_preview = None
 
+    def shutdown(self) -> None:
+        """
+        Esegue un cleanup completo di tutte le risorse.
+
+        Ordine critico:
+        1. Disconnetti segnali per prevenire callback durante cleanup
+        2. Chiudi i documenti PDF (viewer, thumbnails)
+        3. Ferma i worker thread dei pannelli
+        4. Cancella i file temporanei
+        5. Forza garbage collection
+        """
+        try:
+            logger.info("Avvio shutdown applicazione...")
+
+            # 1. Disconnetti tutti i segnali
+            logger.debug("Disconnessione segnali...")
+            try:
+                self.destroyed.disconnect()
+            except RuntimeError:
+                pass  # Non era connesso
+
+            # 2. Chiudi documenti
+            logger.debug("Chiusura documenti...")
+            self._viewer.close_document()
+            self._thumbnails.close_document()
+
+            # 3. Ferma worker thread nei pannelli
+            logger.debug("Arresto worker thread pannelli...")
+            for panel_id, panel in self._panels.items():
+                try:
+                    panel.cleanup_preview()
+                except Exception as e:
+                    logger.warning(f"Errore cleanup preview nel pannello {panel_id}: {e}")
+
+            # 4. Cancella temp file
+            logger.debug("Cancellazione file temporanei...")
+            self._cleanup_all_temps()
+
+            # 5. Forza garbage collection
+            logger.debug("Forzamento garbage collection...")
+            gc.collect()
+
+            logger.info("Shutdown completato con successo")
+        except Exception as e:
+            logger.error(f"Errore durante shutdown: {e}", exc_info=True)
+
     def closeEvent(self, event: QCloseEvent) -> None:
-        # Ordine critico su Windows:
-        # 1. rilascia gli handle fitz del viewer e delle thumbnail
-        # 2. elimina i temp in volo nei pannelli (worker di anteprima attivi)
-        # 3. elimina tutti i temp tracciati in _temp_files
-        self._viewer.close_document()
-        self._thumbnails.close_document()
-        for panel in self._panels.values():
-            panel._discard_preview_tmp()
-        self._cleanup_all_temps()
+        self.shutdown()
         event.accept()

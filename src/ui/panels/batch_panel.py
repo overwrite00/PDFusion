@@ -24,10 +24,11 @@ class BatchPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Batch", parent)
         self._files: list[Path] = []
-        self._supports_preview = False   # operazione multipla
+        self._file_passwords: dict[Path, str | None] = {}  # per-file passwords
+        self._supports_preview = False  # operazione multipla
         self._progress_dlg: ProgressDialog | None = None
         self._thread: QThread | None = None
-        self._batch_worker = None        # mantiene il riferimento vivo durante il thread
+        self._batch_worker = None  # mantiene il riferimento vivo durante il thread
         self._setup_content()
 
     def _setup_content(self) -> None:
@@ -82,9 +83,9 @@ class BatchPanel(BasePanelWidget):
         self._content_layout.addLayout(form)
         self._content_layout.addWidget(self._suffix_label)
 
-
     def _reset_state(self) -> None:
         self._files = []
+        self._file_passwords = {}
 
     def set_current_file(self, path, password="") -> None:
         super().set_current_file(path, password)
@@ -94,19 +95,61 @@ class BatchPanel(BasePanelWidget):
         for p in paths:
             if p not in self._files:
                 self._files.append(p)
-                self._list.addItem(QListWidgetItem(p.name))
+                # Controlla se il file è protetto
+                pwd = self._check_protected_file(p)
+                self._file_passwords[p] = pwd
+                # Mostra indicatore visual se file è protetto
+                display_name = f"{p.name}" + (" 🔒" if pwd is not None else "")
+                self._list.addItem(QListWidgetItem(display_name))
+
+    def _check_protected_file(self, path: Path) -> str | None:
+        """
+        Controlla se il file è protetto e chiede password se necessario.
+
+        Returns:
+            Password se il file è protetto, None altrimenti.
+        """
+        import pikepdf
+
+        try:
+            # Tenta di aprire senza password
+            with pikepdf.open(path) as _:
+                pass
+            return None  # File non protetto
+        except pikepdf.PasswordError:
+            # File protetto: chiedi password all'utente
+            from ui.dialogs.password_dialog import ask_password
+
+            pwd = ask_password(filename=path.name, parent=self)
+            if pwd is None:
+                # Utente ha annullato: aggiungiamo comunque il file con None
+                # L'errore sarà esplicito durante il batch
+                QMessageBox.warning(
+                    self,
+                    "File protetto",
+                    f"{path.name} è protetto ma nessuna password fornita. "
+                    "L'operazione batch fallirà per questo file.",
+                )
+                return None
+            return pwd
+        except Exception:
+            # Errore nel controllo (file non valido, etc.)
+            return None
 
     def _remove_selected(self) -> None:
         row = self._list.currentRow()
         if row >= 0:
+            removed_file = self._files[row]
             self._list.takeItem(row)
             self._files.pop(row)
+            self._file_passwords.pop(removed_file, None)
 
     def _clear(self) -> None:
         self._list.clear()
         self._files.clear()
+        self._file_passwords.clear()
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if not self._files:
             QMessageBox.information(self, "Nessun file", "Aggiungi almeno un PDF.")
             return None
@@ -117,9 +160,7 @@ class BatchPanel(BasePanelWidget):
         if not config:
             return
 
-        output_dir = QFileDialog.getExistingDirectory(
-            self, "Seleziona cartella di output", ""
-        )
+        output_dir = QFileDialog.getExistingDirectory(self, "Seleziona cartella di output", "")
         if not output_dir:
             return
 
@@ -128,6 +169,7 @@ class BatchPanel(BasePanelWidget):
             operation=operation,
             output_dir=Path(output_dir),
             output_suffix=f"_{operation.value}",
+            password_map=dict(self._file_passwords),  # Passa le password per-file
         )
 
         self._progress_dlg = ProgressDialog("Batch in corso…", self)
@@ -148,6 +190,7 @@ class BatchPanel(BasePanelWidget):
             def run(self_w):
                 def cb(done, total, name):
                     self_w.progress.emit(done, total, name)
+
                 results = run_batch(files, job, progress_callback=cb)
                 self_w.finished.emit(results)
 

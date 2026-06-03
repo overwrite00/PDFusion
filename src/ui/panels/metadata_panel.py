@@ -39,6 +39,7 @@ class MetadataPanel(BasePanelWidget):
             return
         try:
             from core.metadata import read_metadata
+
             meta = read_metadata(path, self._current_password or None)
             self._title.setText(meta.title or "")
             self._author.setText(meta.author or "")
@@ -48,7 +49,7 @@ class MetadataPanel(BasePanelWidget):
         except Exception:
             pass
 
-    def _collect_config(self) -> PDFMetadata:
+    def _collect_config_impl(self) -> PDFMetadata:
         def _val(edit: QLineEdit) -> str | None:
             t = edit.text()
             if not t:
@@ -65,5 +66,6 @@ class MetadataPanel(BasePanelWidget):
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
         from core.metadata import write_metadata
+
         write_metadata(input_path, config, output_path, password or None)
         return output_path

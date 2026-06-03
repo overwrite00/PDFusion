@@ -5,7 +5,8 @@ import pikepdf
 from reportlab.lib.pagesizes import A3, A4, LETTER
 from reportlab.pdfgen import canvas
 
-from utils.exceptions import PDFusionError, UnsupportedFormatError
+from core.pdf_opener import open_pdf_safe
+from utils.exceptions import PDFusionError
 from utils.page_range_parser import ranges_to_indices
 from utils.temp_manager import atomic_write
 
@@ -64,16 +65,9 @@ def insert_from_pdf(
         password: password del PDF di destinazione.
         source_password: password del PDF sorgente.
     """
+    source_pdf = open_pdf_safe(source_path, source_password)
     try:
-        src_kwargs = {"password": source_password} if source_password else {}
-        source_pdf = pikepdf.open(source_path, **src_kwargs)
         src_total = len(source_pdf.pages)
-    except pikepdf.PasswordError:
-        raise PDFusionError(f"Password errata per '{source_path.name}'.")
-    except pikepdf.PdfError as exc:
-        raise UnsupportedFormatError(f"File sorgente non valido: {source_path.name}") from exc
-
-    try:
         indices = ranges_to_indices(source_ranges) if source_ranges else list(range(src_total))
 
         # Crea un PDF temporaneo in memoria con solo le pagine selezionate
@@ -101,13 +95,7 @@ def _insert_pdf_bytes(
     """
     Inserisce le pagine da bytes nel PDF di destinazione alla posizione indicata.
     """
-    try:
-        dst_kwargs = {"password": password} if password else {}
-        dst_pdf = pikepdf.open(input_path, **dst_kwargs)
-    except pikepdf.PasswordError:
-        raise PDFusionError("Password errata o mancante per il PDF di destinazione.")
-    except pikepdf.PdfError as exc:
-        raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
+    dst_pdf = open_pdf_safe(input_path, password)
 
     try:
         total = len(dst_pdf.pages)

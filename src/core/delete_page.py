@@ -1,10 +1,15 @@
+import logging
 from pathlib import Path
 
 import pikepdf
 
-from utils.exceptions import PDFusionError, UnsupportedFormatError
+from core.pdf_opener import open_pdf_safe
+from utils.exceptions import PDFusionError
 from utils.page_range_parser import parse_page_ranges, ranges_to_indices
+from utils.page_validator import validate_page_indices, log_page_operations
 from utils.temp_manager import atomic_write
+
+logger = logging.getLogger(__name__)
 
 
 def delete_pages(
@@ -29,16 +34,15 @@ def delete_pages(
         PDFusionError: se tutti gli indici sono fuori range o il PDF
                        rimarrebbe senza pagine.
     """
-    try:
-        kwargs = {"password": password} if password else {}
-        pdf = pikepdf.open(input_path, **kwargs)
-    except pikepdf.PasswordError:
-        raise PDFusionError("Password errata o mancante per aprire il PDF.")
-    except pikepdf.PdfError as exc:
-        raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
+    pdf = open_pdf_safe(input_path, password)
 
     try:
         total = len(pdf.pages)
+
+        # Validate page indices before any modifications
+        if page_indices:
+            validate_page_indices(page_indices, total)
+
         valid = sorted({i for i in page_indices if 0 <= i < total}, reverse=True)
 
         if not valid:
@@ -48,8 +52,19 @@ def delete_pages(
                 "Non è possibile eliminare tutte le pagine: il PDF rimarrebbe vuoto."
             )
 
+        # Store deleted pages before deletion for logging
+        deleted_pages = sorted(valid)
+
         for i in valid:
             del pdf.pages[i]
+
+        # Log the operation
+        log_page_operations(
+            "delete",
+            total,
+            deleted_pages,
+            f"{len(deleted_pages)} pagine eliminate",
+        )
 
         with atomic_write(output_path) as tmp:
             pdf.save(tmp)
@@ -80,13 +95,11 @@ def delete_pages_by_range_string(
     """
     Elimina pagine indicate da stringa tipo "1-3, 5".
     """
+    tmp_pdf = open_pdf_safe(input_path, password)
     try:
-        kwargs = {"password": password} if password else {}
-        tmp_pdf = pikepdf.open(input_path, **kwargs)
         total = len(tmp_pdf.pages)
+    finally:
         tmp_pdf.close()
-    except pikepdf.PasswordError:
-        raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
     ranges = parse_page_ranges(range_string, total_pages=total)
     indices = ranges_to_indices(ranges)

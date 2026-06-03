@@ -84,6 +84,7 @@ class InsertPanel(BasePanelWidget):
     def _on_file_changed(self, path) -> None:
         if path:
             import fitz
+
             try:
                 doc = fitz.open(str(path))
                 self._total_pages = doc.page_count
@@ -98,10 +99,11 @@ class InsertPanel(BasePanelWidget):
             self._source_path = Path(path)
             self._src_label.setText(Path(path).name)
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         mode = "blank" if self._radio_blank.isChecked() else "from_pdf"
         if mode == "from_pdf" and not self._source_path:
             from PyQt6.QtWidgets import QMessageBox
+
             QMessageBox.information(self, "File mancante", "Seleziona il PDF sorgente.")
             return None
         return {
@@ -115,8 +117,12 @@ class InsertPanel(BasePanelWidget):
         pwd = password or None
         if config["mode"] == "blank":
             from core.insert_page import insert_blank_page
+
             insert_blank_page(input_path, config["position"], output_path, config["page_size"], pwd)
         else:
             from core.insert_page import insert_from_pdf
-            insert_from_pdf(input_path, config["source_path"], [], config["position"], output_path, pwd)
+
+            insert_from_pdf(
+                input_path, config["source_path"], [], config["position"], output_path, pwd
+            )
         return output_path

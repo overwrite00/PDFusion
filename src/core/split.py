@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pikepdf
 
-from utils.exceptions import PDFusionError, UnsupportedFormatError
+from core.pdf_opener import open_pdf_safe
+from utils.exceptions import PDFusionError
 from utils.page_range_parser import parse_page_ranges
 from utils.temp_manager import atomic_write
 
@@ -34,10 +35,7 @@ def split_every_n(
     output_dir.mkdir(parents=True, exist_ok=True)
     stem = input_path.stem
 
-    try:
-        pdf = _open_pdf(input_path, password)
-    except pikepdf.PasswordError:
-        raise PDFusionError("Password errata o mancante per aprire il PDF.")
+    pdf = open_pdf_safe(input_path, password)
 
     total = len(pdf.pages)
     if total == 0:
@@ -87,10 +85,7 @@ def split_ranges(
     output_dir.mkdir(parents=True, exist_ok=True)
     stem = input_path.stem
 
-    try:
-        pdf = _open_pdf(input_path, password)
-    except pikepdf.PasswordError:
-        raise PDFusionError("Password errata o mancante per aprire il PDF.")
+    pdf = open_pdf_safe(input_path, password)
 
     total = len(pdf.pages)
     output_paths: list[Path] = []
@@ -122,20 +117,11 @@ def split_by_range_string(
     """
     Convenience wrapper: accetta una stringa tipo "1-3, 5, 7-9".
     """
+    pdf_tmp = open_pdf_safe(input_path, password)
     try:
-        pdf_tmp = _open_pdf(input_path, password)
         total = len(pdf_tmp.pages)
+    finally:
         pdf_tmp.close()
-    except pikepdf.PasswordError:
-        raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
     ranges = parse_page_ranges(range_string, total_pages=total)
     return split_ranges(input_path, ranges, output_dir, password)
-
-
-def _open_pdf(path: Path, password: str | None) -> pikepdf.Pdf:
-    try:
-        kwargs = {"password": password} if password else {}
-        return pikepdf.open(path, **kwargs)
-    except pikepdf.PdfError as exc:
-        raise UnsupportedFormatError(f"File non valido o corrotto: {path.name}") from exc

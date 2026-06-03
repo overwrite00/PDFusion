@@ -18,7 +18,7 @@ from ui.widgets.page_range_input import PageRangeInput
 class SplitPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Dividi PDF", parent)
-        self._supports_preview = False   # produce file multipli
+        self._supports_preview = False  # produce file multipli
         self._setup_content()
 
     def _setup_content(self) -> None:
@@ -66,22 +66,23 @@ class SplitPanel(BasePanelWidget):
         self._radio_range.toggled.connect(lambda on: self._range_input.setEnabled(on))
         self._range_input.setEnabled(False)
 
-
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if self._radio_n.isChecked():
             return {"mode": "n", "n": self._n_spin.value()}
         else:
             if not self._range_input.is_valid():
                 from PyQt6.QtWidgets import QMessageBox
+
                 QMessageBox.warning(
-                    self, "Range non valido",
-                    "Il range di pagine inserito non è valido.\n"
-                    "Esempio corretto: 1-3, 5, 7-9",
+                    self,
+                    "Range non valido",
+                    "Il range di pagine inserito non è valido.\nEsempio corretto: 1-3, 5, 7-9",
                 )
                 return None
             ranges = self._range_input.get_ranges()
             if not ranges:
                 from PyQt6.QtWidgets import QMessageBox
+
                 QMessageBox.warning(self, "Range vuoto", "Nessuna pagina specificata nel range.")
                 return None
             return {"mode": "ranges", "ranges": ranges}
@@ -109,9 +110,11 @@ class SplitPanel(BasePanelWidget):
         def _do_split(input_path, out_path, pwd, cfg):
             if cfg["mode"] == "n":
                 from core.split import split_every_n
+
                 results = split_every_n(input_path, cfg["n"], Path(output_dir), pwd or None)
             else:
                 from core.split import split_ranges
+
                 results = split_ranges(input_path, cfg["ranges"], Path(output_dir), pwd or None)
             return results[0] if results else input_path
 

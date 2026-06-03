@@ -21,7 +21,7 @@ class ImportImagesPanel(BasePanelWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Immagini → PDF", parent)
         self._images: list[Path] = []
-        self._supports_preview = False   # input immagini, non PDF: preview non applicabile
+        self._supports_preview = False  # input immagini, non PDF: preview non applicabile
         self._setup_content()
 
     def _setup_content(self) -> None:
@@ -65,7 +65,6 @@ class ImportImagesPanel(BasePanelWidget):
         form.addRow("DPI presunto:", self._dpi_spin)
         self._content_layout.addLayout(form)
 
-
     def _add_images(self, paths: list[Path]) -> None:
         for p in paths:
             if p not in self._images:
@@ -89,9 +88,10 @@ class ImportImagesPanel(BasePanelWidget):
         super().set_current_file(path, password)
         self._apply_btn.setEnabled(True)
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if not self._images:
             from PyQt6.QtWidgets import QMessageBox
+
             QMessageBox.information(self, "Nessuna immagine", "Aggiungi almeno un'immagine.")
             return None
         return {
@@ -102,6 +102,7 @@ class ImportImagesPanel(BasePanelWidget):
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
         from core.images_to_pdf import ImagesToPDFConfig, images_to_pdf
+
         images_to_pdf(
             config["images"],
             output_path,

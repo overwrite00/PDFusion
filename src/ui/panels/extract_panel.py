@@ -22,6 +22,7 @@ class ExtractPanel(BasePanelWidget):
     def _on_file_changed(self, path) -> None:
         if path:
             import fitz
+
             try:
                 doc = fitz.open(str(path))
                 self._range_input.set_total_pages(doc.page_count)
@@ -29,17 +30,19 @@ class ExtractPanel(BasePanelWidget):
             except Exception:
                 pass
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if not self._range_input.is_valid():
             return None
         ranges = self._range_input.get_ranges()
         if not ranges:
             from PyQt6.QtWidgets import QMessageBox
+
             QMessageBox.information(self, "Range vuoto", "Inserisci almeno una pagina da estrarre.")
             return None
         return {"ranges": ranges}
 
     def _run_core(self, input_path, output_path, password, config) -> Path:
         from core.extract_pages import extract_pages
+
         extract_pages(input_path, config["ranges"], output_path, password or None)
         return output_path

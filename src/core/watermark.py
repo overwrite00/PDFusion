@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -9,9 +10,10 @@ import fitz  # PyMuPDF
 from PIL import Image
 from reportlab.pdfgen import canvas as rl_canvas
 
-from utils.config import BUNDLED_FONT_PATH
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 from utils.temp_manager import atomic_write
+
+logger = logging.getLogger(__name__)
 
 
 class WatermarkMode(Enum):
@@ -46,11 +48,11 @@ class WatermarkConfig:
     font_color: tuple[float, float, float] = (0.6, 0.6, 0.6)  # RGB 0-1
     # Immagine
     image_path: Path | None = None
-    image_scale: float = 0.5           # 0.1 – 2.0
+    image_scale: float = 0.5  # 0.1 – 2.0
     # Posizionamento
     position: WatermarkPosition = WatermarkPosition.CENTER_DIAGONAL
-    rotation: float = -45.0            # gradi, applicato solo a CENTER_DIAGONAL
-    opacity: float = 0.3               # 0.0 – 1.0
+    rotation: float = -45.0  # gradi, applicato solo a CENTER_DIAGONAL
+    opacity: float = 0.3  # 0.0 – 1.0
     # Applicazione
     page_selection: PageSelection = PageSelection.ALL
     custom_page_indices: list[int] = field(default_factory=list)  # 0-based, per CUSTOM
@@ -77,9 +79,7 @@ def apply_watermark(
     if config.mode == WatermarkMode.IMAGE and (
         config.image_path is None or not config.image_path.exists()
     ):
-        raise PDFusionError(
-            f"Immagine watermark non trovata: {config.image_path}"
-        )
+        raise PDFusionError(f"Immagine watermark non trovata: {config.image_path}")
 
     try:
         doc = fitz.open(str(input_path))
@@ -135,19 +135,22 @@ def _generate_overlay(
 ) -> bytes:
     """Genera un PDF overlay trasparente delle dimensioni della pagina."""
     buf = io.BytesIO()
-    c = rl_canvas.Canvas(buf, pagesize=(width, height))
-    c.setFillAlpha(config.opacity)
-    c.setStrokeAlpha(config.opacity)
+    try:
+        c = rl_canvas.Canvas(buf, pagesize=(width, height))
+        c.setFillAlpha(config.opacity)
+        c.setStrokeAlpha(config.opacity)
 
-    if config.mode == WatermarkMode.TEXT:
-        _draw_text_watermark(c, config, width, height)
-    else:
-        _draw_image_watermark(c, config, width, height)
+        if config.mode == WatermarkMode.TEXT:
+            _draw_text_watermark(c, config, width, height)
+        else:
+            _draw_image_watermark(c, config, width, height)
 
-    c.showPage()
-    c.save()
-    buf.seek(0)
-    return buf.read()
+        c.showPage()
+        c.save()
+        buf.seek(0)
+        return buf.getvalue()
+    finally:
+        buf.close()
 
 
 def _draw_text_watermark(
@@ -156,11 +159,14 @@ def _draw_text_watermark(
     width: float,
     height: float,
 ) -> None:
+    from utils.font_manager import get_font_manager
+
     r, g, b = config.font_color
     c.setFillColorRGB(r, g, b)
 
-    # Registra il font bundled se disponibile
-    font_name = _register_font()
+    # Registra il font bundled se disponibile (idempotent tramite FontManager)
+    font_manager = get_font_manager()
+    font_name = font_manager.register_bundled_font()
 
     c.setFont(font_name, config.font_size)
 
@@ -168,7 +174,9 @@ def _draw_text_watermark(
         c.saveState()
         c.translate(width / 2, height / 2)
         c.rotate(config.rotation)
-        c.drawCentredString(0, 0, config.text)
+        # Offset verticale per centrare il testo (ReportLab usa la baseline, non il centro)
+        vertical_offset = -config.font_size * 0.3
+        c.drawCentredString(0, vertical_offset, config.text)
         c.restoreState()
 
     elif config.position == WatermarkPosition.CENTER:
@@ -214,53 +222,42 @@ def _draw_image_watermark(
         return
 
     try:
-        img = Image.open(config.image_path)
-        img_w, img_h = img.size
+        with Image.open(config.image_path) as img:
+            img_w, img_h = img.size
 
-        scale = config.image_scale
-        draw_w = img_w * scale
-        draw_h = img_h * scale
+            scale = config.image_scale
+            draw_w = img_w * scale
+            draw_h = img_h * scale
 
-        if config.position == WatermarkPosition.CENTER_DIAGONAL or config.position == WatermarkPosition.CENTER:
-            x = (width - draw_w) / 2
-            y = (height - draw_h) / 2
-        elif config.position == WatermarkPosition.TOP_LEFT:
-            x, y = 20, height - draw_h - 20
-        elif config.position == WatermarkPosition.TOP_RIGHT:
-            x, y = width - draw_w - 20, height - draw_h - 20
-        elif config.position == WatermarkPosition.BOTTOM_LEFT:
-            x, y = 20, 20
-        elif config.position == WatermarkPosition.BOTTOM_RIGHT:
-            x, y = width - draw_w - 20, 20
-        else:
-            x = (width - draw_w) / 2
-            y = (height - draw_h) / 2
+            if (
+                config.position == WatermarkPosition.CENTER_DIAGONAL
+                or config.position == WatermarkPosition.CENTER
+            ):
+                x = (width - draw_w) / 2
+                y = (height - draw_h) / 2
+            elif config.position == WatermarkPosition.TOP_LEFT:
+                x, y = 20, height - draw_h - 20
+            elif config.position == WatermarkPosition.TOP_RIGHT:
+                x, y = width - draw_w - 20, height - draw_h - 20
+            elif config.position == WatermarkPosition.BOTTOM_LEFT:
+                x, y = 20, 20
+            elif config.position == WatermarkPosition.BOTTOM_RIGHT:
+                x, y = width - draw_w - 20, 20
+            else:
+                x = (width - draw_w) / 2
+                y = (height - draw_h) / 2
 
-        c.drawImage(
-            str(config.image_path),
-            x, y,
-            width=draw_w,
-            height=draw_h,
-            mask="auto",
-        )
-    except Exception:
-        pass
+            c.drawImage(
+                str(config.image_path),
+                x,
+                y,
+                width=draw_w,
+                height=draw_h,
+                mask="auto",
+            )
+    except Image.UnidentifiedImageError:
+        logger.warning(f"Immagine watermark non supportata: {config.image_path}")
+    except OSError:
+        logger.warning(f"Errore lettura immagine watermark: {config.image_path}")
 
 
-def _register_font() -> str:
-    """Registra il font bundled in reportlab. Ritorna il nome da usare."""
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-
-    font_name = "PDFusionFont"
-    if font_name not in pdfmetrics.getRegisteredFontNames():
-        if BUNDLED_FONT_PATH.exists():
-            try:
-                pdfmetrics.registerFont(TTFont(font_name, str(BUNDLED_FONT_PATH)))
-                return font_name
-            except Exception:
-                pass
-    elif font_name in pdfmetrics.getRegisteredFontNames():
-        return font_name
-
-    return "Helvetica"

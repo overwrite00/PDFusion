@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -12,13 +13,15 @@ from PIL import Image
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 from utils.temp_manager import atomic_write
 
+logger = logging.getLogger(__name__)
+
 
 class CompressPreset(Enum):
-    SCREEN = "screen"       # 72 dpi — solo schermo, dimensione minima
-    EBOOK = "ebook"         # 150 dpi — default consigliato
-    PRINTER = "printer"     # 300 dpi — stampa normale
-    PREPRESS = "prepress"   # 300 dpi — stampa professionale, qualità massima
-    CUSTOM = "custom"       # parametri manuali
+    SCREEN = "screen"  # 72 dpi — solo schermo, dimensione minima
+    EBOOK = "ebook"  # 150 dpi — default consigliato
+    PRINTER = "printer"  # 300 dpi — stampa normale
+    PREPRESS = "prepress"  # 300 dpi — stampa professionale, qualità massima
+    CUSTOM = "custom"  # parametri manuali
 
 
 _PRESET_DPI = {
@@ -78,14 +81,28 @@ def compress(
     if config is None:
         config = CompressConfig()
 
+    doc = None
+    pdf = None
     try:
-        doc = fitz.open(str(input_path))
-    except fitz.FileNotFoundError:
-        raise PDFusionError(f"File non trovato: {input_path}")
-    except Exception as exc:
-        raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
+        try:
+            doc = fitz.open(str(input_path))
+        except fitz.FileNotFoundError:
+            raise PDFusionError(f"File non trovato: {input_path}")
+        except Exception as exc:
+            raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
-    try:
+        # Se il documento è encrypted, autenticalo con la password
+        if doc.is_encrypted:
+            if not password:
+                raise PDFusionError(
+                    f"Il PDF {input_path.name} è protetto da password ma non è stata fornita alcuna password."
+                )
+            auth_result = doc.authenticate(password)
+            if auth_result < 1:  # 0 = fallimento, 1 = owner password, 2 = user password
+                raise PDFusionError(
+                    f"Password errata per il PDF {input_path.name}"
+                )
+
         _resample_images(doc, config)
 
         if config.flatten_annotations:
@@ -102,12 +119,11 @@ def compress(
             clean=True,
         )
         buf.seek(0)
-    finally:
         doc.close()
+        doc = None
 
-    # Secondo passaggio con pikepdf: garbage collect + strip metadati
-    pdf = pikepdf.Pdf.open(buf)
-    try:
+        # Secondo passaggio con pikepdf: garbage collect + strip metadati
+        pdf = pikepdf.Pdf.open(buf)
         if config.remove_metadata:
             _strip_metadata(pdf)
 
@@ -118,8 +134,23 @@ def compress(
                 object_stream_mode=pikepdf.ObjectStreamMode.generate,
                 recompress_flate=True,
             )
-    finally:
         pdf.close()
+        pdf = None
+
+    finally:
+        # Cleanup fitz document
+        if doc is not None:
+            try:
+                doc.close()
+            except Exception as exc:
+                logger.warning(f"Errore durante chiusura fitz Document: {exc}")
+
+        # Cleanup pikepdf document
+        if pdf is not None:
+            try:
+                pdf.close()
+            except Exception as exc:
+                logger.warning(f"Errore durante chiusura pikepdf Pdf: {exc}")
 
     return output_path
 
@@ -137,7 +168,8 @@ def _resample_images(doc: fitz.Document, config: CompressConfig) -> None:
             xref = img_info[0]
             try:
                 base_image = doc.extract_image(xref)
-            except Exception:
+            except (ValueError, KeyError, RuntimeError):
+                # Immagine corrotta o formato inaspettato nel PDF
                 continue
 
             img_bytes = base_image["image"]
@@ -149,7 +181,8 @@ def _resample_images(doc: fitz.Document, config: CompressConfig) -> None:
 
             try:
                 pil_img = Image.open(io.BytesIO(img_bytes))
-            except Exception:
+            except (OSError, Image.UnidentifiedImageError):
+                # Formato immagine non supportato o dati corrotti
                 continue
 
             orig_w, orig_h = pil_img.size
@@ -177,7 +210,9 @@ def _resample_images(doc: fitz.Document, config: CompressConfig) -> None:
                 out_buf.seek(0)
 
                 doc.replace_image(xref, stream=out_buf.read())
-            except Exception:
+            except (OSError, ValueError):
+                # Errore durante ridimensionamento, conversione o salvataggio
+                # Salta l'immagine e continua con il resto del documento
                 continue
 
 

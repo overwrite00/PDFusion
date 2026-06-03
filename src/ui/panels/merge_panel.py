@@ -130,6 +130,7 @@ class MergePanel(BasePanelWidget):
         if path:
             try:
                 import fitz
+
                 doc = fitz.open(str(path))
                 self._total_pages = doc.page_count
                 doc.close()
@@ -166,17 +167,19 @@ class MergePanel(BasePanelWidget):
     # Logica core
     # ------------------------------------------------------------------
 
-    def _collect_config(self):
+    def _collect_config_impl(self):
         if not self._insert_path:
             from PyQt6.QtWidgets import QMessageBox
+
             QMessageBox.information(
-                self, "File mancante",
+                self,
+                "File mancante",
                 "Seleziona il PDF da inserire nel file base.",
             )
             return None
 
         if self._radio_end.isChecked():
-            after_page = self._total_pages   # append in coda
+            after_page = self._total_pages  # append in coda
         else:
             after_page = self._page_spin.value()
 
@@ -187,6 +190,7 @@ class MergePanel(BasePanelWidget):
 
     def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.merge import insert_pdf_at
+
         insert_pdf_at(
             input_path,
             config["insert_path"],

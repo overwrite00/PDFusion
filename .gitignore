@@ -56,5 +56,10 @@ installer/windows/dist_staging/
 installer/linux/*.AppImage
 installer/macos/*.dmg
 
-# === Ruff cache ===
+# === Ruff & MyPy cache ===
 .ruff_cache/
+.mypy_cache/
+htmlcov/
+
+# Investigation/documentation files
+TEST_FLAKY_INVESTIGATION.md

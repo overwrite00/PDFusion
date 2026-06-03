@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import fitz
@@ -16,12 +17,15 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # Worker: renderizza una pagina su un thread separato
 # ---------------------------------------------------------------------------
 
+
 class _RenderWorker(QObject):
-    rendered = pyqtSignal(int, QPixmap)   # (page_index, pixmap)
+    rendered = pyqtSignal(int, QPixmap)  # (page_index, pixmap)
     error = pyqtSignal(str)
 
     def __init__(self, doc_path: str, password: str = "") -> None:
@@ -29,14 +33,14 @@ class _RenderWorker(QObject):
         self._path = doc_path
         self._password = password
         self._doc: fitz.Document | None = None
-        self._closed = False   # impedisce riapertura dopo close()
+        self._closed = False  # impedisce riapertura dopo close()
 
     @pyqtSlot(int, float)
     def render(self, page_idx: int, zoom: float) -> None:
         try:
             if self._doc is None:
                 if self._closed:
-                    return   # close() già chiamato: non riaprire
+                    return  # close() già chiamato: non riaprire
                 self._doc = fitz.open(self._path)
                 if self._password:
                     self._doc.authenticate(self._password)
@@ -163,7 +167,9 @@ class PDFViewer(QWidget):
 
         self._zoom_btn = QPushButton(ZOOM_LABELS[DEFAULT_ZOOM_INDEX] + " ▼", nav)
         self._zoom_btn.setObjectName("zoomValueButton")
-        self._zoom_btn.setToolTip("Clicca per scegliere uno zoom preset\nCtrl + Rotella per zoom continuo")
+        self._zoom_btn.setToolTip(
+            "Clicca per scegliere uno zoom preset\nCtrl + Rotella per zoom continuo"
+        )
         self._zoom_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._zoom_btn.setFixedSize(82, 28)
         self._zoom_btn.clicked.connect(self._show_zoom_menu)
@@ -193,14 +199,11 @@ class PDFViewer(QWidget):
 
         _title = QLabel("Nessun documento aperto", self._empty_widget)
         _title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        _title.setStyleSheet(
-            "font-size: 16px; font-weight: 600; color: #6B7280; margin-top: 12px;"
-        )
+        _title.setStyleSheet("font-size: 16px; font-weight: 600; color: #6B7280; margin-top: 12px;")
         empty_layout.addWidget(_title)
 
         _hint = QLabel(
-            "Apri un PDF dal menu File → Apri…\n"
-            "oppure trascinalo direttamente sulla finestra",
+            "Apri un PDF dal menu File → Apri…\noppure trascinalo direttamente sulla finestra",
             self._empty_widget,
         )
         _hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -212,7 +215,7 @@ class PDFViewer(QWidget):
 
         # Area scroll per la pagina (nascosta finché non si apre un PDF)
         self._scroll = QScrollArea(self)
-        self._scroll.setWidgetResizable(False)   # ← False: rispetta la dimensione nativa del pixmap
+        self._scroll.setWidgetResizable(False)  # ← False: rispetta la dimensione nativa del pixmap
         self._scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._scroll.setVisible(False)
 
@@ -327,17 +330,45 @@ class PDFViewer(QWidget):
         self._thread.start()
 
     def _close_worker(self) -> None:
-        if self._worker:
-            self._worker.close()          # imposta _closed = True (non tocca _doc)
-        if self._thread.isRunning():
-            self._thread.quit()
-            self._thread.wait(2000)       # aspetta che il thread finisca
-        # Solo ora chiudiamo il documento fitz: il thread è fermo,
-        # nessuna esecuzione di render() è più attiva e tutti i riferimenti
-        # interni a page/pixmap sono stati abbandonati → handle rilasciato.
-        if self._worker and self._worker._doc:
-            self._worker._doc.close()
-            self._worker._doc = None
+        try:
+            # CRITICAL FIX: Snapshot self._worker BEFORE any async operations
+            # to prevent use-after-free if signal callbacks delete it
+            worker_snapshot = self._worker
+            self._worker = None  # Clear immediately to prevent signal callbacks from accessing it
+
+            if not worker_snapshot:
+                logger.debug("Worker viewer già chiuso o non inizializzato")
+                return
+
+            # 1. Signal worker to stop accepting new render() calls
+            logger.debug("Chiusura worker (impostazione flag _closed)")
+            worker_snapshot.close()  # sets _closed = True (doesn't touch _doc)
+
+            # 2. Stop the thread and wait for it to exit
+            if self._thread.isRunning():
+                logger.debug("Arresto thread di rendering...")
+                self._thread.quit()
+                if not self._thread.wait(2000):
+                    logger.warning("Thread non ha risposto al quit(), forzamento terminazione")
+                    self._thread.terminate()
+                    self._thread.wait(1000)
+                logger.debug("Thread fermato")
+
+            # 3. Close fitz document: thread is now stopped,
+            # no render() calls are active, and worker_snapshot is safe to access
+            # (even if signal callbacks try to delete it, we have our own reference)
+            if worker_snapshot._doc:
+                logger.debug("Chiusura documento fitz nel viewer...")
+                try:
+                    worker_snapshot._doc.close()
+                except Exception as e:
+                    logger.warning(f"Errore chiusura documento fitz: {e}")
+                finally:
+                    worker_snapshot._doc = None
+
+            logger.debug("Worker viewer chiuso correttamente")
+        except Exception as e:
+            logger.error(f"Errore durante chiusura worker viewer: {e}", exc_info=True)
 
     def _render_current(self) -> None:
         if self._worker is None:
@@ -345,6 +376,7 @@ class PDFViewer(QWidget):
         zoom = ZOOM_LEVELS[self._zoom_idx]
         # Invoca il metodo sul thread worker tramite invokeMethod
         from PyQt6.QtCore import Q_ARG, QMetaObject
+
         QMetaObject.invokeMethod(
             self._worker,
             "render",
@@ -381,11 +413,7 @@ class PDFViewer(QWidget):
             action.setCheckable(True)
             action.setChecked(i == self._zoom_idx)
             action.setData(i)
-        chosen = menu.exec(
-            self._zoom_btn.mapToGlobal(
-                self._zoom_btn.rect().bottomLeft()
-            )
-        )
+        chosen = menu.exec(self._zoom_btn.mapToGlobal(self._zoom_btn.rect().bottomLeft()))
         if chosen is not None:
             self._set_zoom(chosen.data())
 

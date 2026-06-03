@@ -4,26 +4,66 @@ All notable changes to PDFusion are documented in this file.
 
 Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 
+For planned features, see [ROADMAP.md](ROADMAP.md).
+
 ---
 
 ## [Unreleased]
 
-_Prossime funzionalità pianificate:_
+### Security
 
-- Drag-and-drop dal file manager verso la sidebar strumenti
-- Anteprima watermark in tempo reale nel viewer
-- Esportazione report operazioni in CSV
-- Integrazione firma digitale (PKCS#7 / PAdES)
-- Supporto PDF/A (validazione e conversione)
-- Temi UI aggiuntivi (dark mode)
-- Localizzazione italiano/inglese (i18n)
-- Plugin architecture per estensioni di terze parti
+- Fixed race condition in main_window._on_operation_done() after _cleanup_all_temps() — added file existence guard
+- Fixed thread timeout vulnerability in base_panel worker cleanup — snapshot pattern + fallback terminate()
+- Fixed thread-unsafe document closure in viewer.py and thumbnail_panel.py using reference snapshot pattern
+- Fixed silent password failures in batch operations — explicit error raising instead of silent fallback
+
+### Fixed
+
+- **CRITICAL #1**: Resource leak in compress.py, pdf_to_images.py, headers_footers.py — nested try-finally
+- **CRITICAL #9**: Thread-unsafe worker cleanup (viewer, thumbnail_panel) — snapshot pattern for safe reference
+- **CRITICAL #11**: Per-file passwords in batch — added password_map for per-file password resolution
+- **HIGH #10**: Large PDF memory spike — binary tree chunked merge (O(sqrt(n)) instead of O(n))
+- **HIGH #12**: PIL Image and reportlab Canvas resource leaks — context managers and explicit cleanup
+- **HIGH #13**: Font registry pollution in batch operations — singleton FontManager with idempotent registration
+- **HIGH #14**: ThreadPoolExecutor hanging — timeout handling (30s) with exponential backoff retry
+- **HIGH #15**: Silent page range failures — validation before operations + detailed logging
+- **BUG #1**: Encrypted PDF handling in compress.py — added doc.authenticate() before saving protected documents
+- **BUG #2**: Batch watermark operations with None config — provide default WatermarkConfig when not specified
+- **BUG #3**: Test fixture password handling — corrected ProtectConfig usage in test_batch_passwords.py
+
+### Added
+
+- **New Utility**: `src/core/pdf_opener.py` — centralized PDF opening with password+format error handling
+- **New Utility**: `src/utils/font_manager.py` — singleton FontManager preventing duplicate registrations
+- **New Utility**: `src/utils/page_validator.py` — page range validation with helpful error messages
+- **New UI Components**: FileMonitorManager, PreviewRenderer for SOLID refactoring
+- **Testing**: 180+ new test cases across 12 test suites (Week 1-3 coverage)
+  - Resource cleanup tests (29 cases)
+  - Thread safety tests (35+ cases)
+  - Batch password tests (20+ cases)
+  - PDF opener tests (19 cases)
+  - Font manager tests (21 cases)
+  - Merge chunked tests (19 cases)
+  - Resource manager tests (18 cases)
+  - Executor timeout tests (21 cases)
+  - Page validation tests (56 cases)
+  - Base panel refactor tests (58 cases)
+- **Documentation**: CONTRIBUTING.md with dev setup, PR workflow, testing guidelines
+
+### Changed
+
+- **Refactor**: BasePanelWidget SOLID refactoring — extracted FileMonitorManager, PreviewRenderer (REFACTOR #17)
+- **DRY**: Consolidated 18 duplicate pikepdf.open() calls into pdf_opener.py helper (REFACTOR #16)
+- **Code Quality**: Enhanced exception handling across all core modules (specific > generic)
+- **Logging**: Comprehensive logging for batch operations, timeouts, retries
+- **API**: No breaking changes — all modifications are backward compatible
 
 ---
 
-## [0.1.0] — 2025-01-01
+## [0.1.0] — 2026-04-27
 
 ### Added
+
 - **Split PDF**: divisione ogni N pagine o per intervalli personalizzati (`1-3, 5, 7-9`)
 - **Merge PDF**: unione di più file PDF in uno, con ordine personalizzabile
 - **Delete pages**: eliminazione pagine singole o per intervallo, sia dal viewer che da input diretto
@@ -55,5 +95,5 @@ _Prossime funzionalità pianificate:_
 - **PyInstaller spec**: bundle ottimizzato, esclude Qt3D / QtWebEngine / QtMultimedia → target < 80 MB
 - **Test suite**: ~70 test su tutti i moduli core con fixture PDF autogenerati
 
-[Unreleased]: https://github.com/0verwrite/PDFusion/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/0verwrite/PDFusion/compare/v0.2.0...HEAD
 [0.1.0]: https://github.com/0verwrite/PDFusion/releases/tag/v0.1.0
