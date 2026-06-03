@@ -4,7 +4,7 @@ import concurrent.futures
 import logging
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -241,7 +241,6 @@ def _dispatch(input_path: Path, output_path: Path, job: BatchJob) -> None:
 
     Se il file è protetto ma non c'è password, raises PDFusionError (explicit, not silent).
     """
-    from utils.exceptions import PDFusionError
 
     cfg = job.operation_config
 
@@ -262,7 +261,7 @@ def _dispatch(input_path: Path, output_path: Path, job: BatchJob) -> None:
         protect(input_path, output_path, cfg, pwd)
 
     elif job.operation == BatchOperation.WATERMARK:
-        from core.watermark import apply_watermark, WatermarkConfig
+        from core.watermark import WatermarkConfig, apply_watermark
 
         watermark_cfg = cfg if isinstance(cfg, WatermarkConfig) else WatermarkConfig()
         apply_watermark(input_path, output_path, watermark_cfg, pwd)

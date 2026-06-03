@@ -31,9 +31,6 @@ import pytest
 
 from core.merge import (
     CHUNK_SIZE,
-    CHUNKED_MERGE_THRESHOLD,
-    _merge_chunked,
-    _merge_simple,
     merge,
 )
 from utils.exceptions import PDFusionError

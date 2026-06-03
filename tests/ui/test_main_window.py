@@ -1,7 +1,8 @@
 """Test per componenti UI principali (main_window, viewer, panels)."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from ui.main_window import MainWindow
 

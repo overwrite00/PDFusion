@@ -4,7 +4,7 @@ from pathlib import Path
 from core.pdf_opener import open_pdf_safe
 from core.split import split_ranges
 from utils.page_range_parser import parse_page_ranges
-from utils.page_validator import validate_page_ranges, log_page_operations
+from utils.page_validator import log_page_operations, validate_page_ranges
 
 logger = logging.getLogger(__name__)
 

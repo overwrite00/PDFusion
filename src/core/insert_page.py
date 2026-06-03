@@ -6,7 +6,6 @@ from reportlab.lib.pagesizes import A3, A4, LETTER
 from reportlab.pdfgen import canvas
 
 from core.pdf_opener import open_pdf_safe
-from utils.exceptions import PDFusionError
 from utils.page_range_parser import ranges_to_indices
 from utils.temp_manager import atomic_write
 

@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -30,14 +30,13 @@ def _create_minimal_ttf_file() -> Path:
     """
     Crea un file TTF minimalissimo.
     """
-    tmp = tempfile.NamedTemporaryFile(
+    with tempfile.NamedTemporaryFile(
         suffix=".ttf",
         delete=False,
         dir=tempfile.gettempdir()
-    )
-    tmp.write(b"PLACEHOLDER_TTF_FILE")
-    tmp.close()
-    return Path(tmp.name)
+    ) as tmp:
+        tmp.write(b"PLACEHOLDER_TTF_FILE")
+        return Path(tmp.name)
 
 
 @pytest.fixture(autouse=True)
@@ -121,9 +120,10 @@ def mock_bundled_font_for_tests(temp_bundled_font, monkeypatch, request):
         return
 
     # Font manager tests: apply full mocking
-    from utils import config
     from reportlab.pdfbase import pdfmetrics, ttfonts
-    from utils.font_manager import get_font_manager, FontManager
+
+    from utils import config
+    from utils.font_manager import FontManager, get_font_manager
 
     # Mock BUNDLED_FONT_PATH
     monkeypatch.setattr(config, "BUNDLED_FONT_PATH", temp_bundled_font)

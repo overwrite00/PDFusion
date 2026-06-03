@@ -12,24 +12,23 @@ Tests cover:
 from __future__ import annotations
 
 import logging
-import time
-import threading
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
-from typing import Callable
-
-import pytest
-from PyQt6.QtCore import QObject, QThread, pyqtSignal, QTimer, Qt
-from PyQt6.QtWidgets import QApplication, QWidget
-from PyQt6.QtGui import QPixmap
 
 # Import modules under test
 import sys
+import threading
+import time
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+from PyQt6.QtCore import QThread
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QApplication
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from ui.thumbnail_panel import ThumbnailPanel
 from ui.viewer import PDFViewer, _RenderWorker
-from ui.thumbnail_panel import ThumbnailPanel, _ThumbWorker
-
 
 logger = logging.getLogger(__name__)
 

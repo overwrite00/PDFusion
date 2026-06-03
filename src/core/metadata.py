@@ -4,7 +4,6 @@ from pathlib import Path
 import pikepdf
 
 from core.pdf_opener import open_pdf_safe
-from utils.exceptions import PDFusionError
 from utils.temp_manager import atomic_write
 
 

@@ -8,12 +8,11 @@ di eccezione, prevenendo resource leak durante batch operations e PDF grandi.
 from __future__ import annotations
 
 import gc
-import io
 import logging
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -25,11 +24,10 @@ except ImportError:
     PSUTIL_AVAILABLE = False
 
 import fitz
-import pikepdf
 
-from core.compress import compress, CompressConfig, CompressPreset
-from core.pdf_to_images import export_pages_as_images, ExportImagesConfig, ImageFormat
-from core.headers_footers import add_headers_footers, HeaderFooterConfig, HeaderFooterSection
+from core.compress import CompressConfig, CompressPreset, compress
+from core.headers_footers import HeaderFooterConfig, HeaderFooterSection, add_headers_footers
+from core.pdf_to_images import ExportImagesConfig, ImageFormat, export_pages_as_images
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 
 logger = logging.getLogger(__name__)
@@ -71,8 +69,9 @@ def pdf_with_image(temp_dir: Path) -> Path:
     page = doc.new_page()
     # Crea una semplice immagine di test con PIL e convertila
     try:
-        from PIL import Image
         import io
+
+        from PIL import Image
 
         # Crea un'immagine rossa 200x200 con PIL
         img = Image.new('RGB', (200, 200), color=(255, 0, 0))
@@ -271,7 +270,7 @@ class TestCompressResourceCleanup:
 
         handles_before = count_open_file_handles()
 
-        with patch('pikepdf.Pdf.save', side_effect=IOError("Mock save error")):
+        with patch('pikepdf.Pdf.save', side_effect=OSError("Mock save error")):
             with pytest.raises(IOError):
                 compress(valid_pdf, output_pdf, config=config)
 
@@ -365,7 +364,7 @@ class TestExportImagesResourceCleanup:
 
         handles_before = count_open_file_handles()
 
-        with patch('fitz.Pixmap.save', side_effect=IOError("Mock save error")):
+        with patch('fitz.Pixmap.save', side_effect=OSError("Mock save error")):
             with pytest.raises(IOError):
                 export_pages_as_images(valid_pdf, output_dir)
 

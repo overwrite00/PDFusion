@@ -4,16 +4,13 @@ import gc
 import io
 import logging
 import os
-import sys
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import psutil
 import pytest
 from PIL import Image
 
 from core.headers_footers import HeaderFooterConfig, HeaderFooterSection, add_headers_footers
-from core.images_to_pdf import ImagesToPDFConfig, FitMode, images_to_pdf
+from core.images_to_pdf import FitMode, ImagesToPDFConfig, images_to_pdf
 from core.watermark import WatermarkConfig, WatermarkMode, WatermarkPosition, apply_watermark
 from utils.exceptions import PDFusionError
 

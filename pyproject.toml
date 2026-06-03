@@ -23,8 +23,9 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 ignore = [
     "E501",               # Line too long
     "B904", "B905", "B007",  # Exception chaining, zip without strict, unused loop var (use _ instead)
+    "B017",               # Blind exception (assert) - test fixtures
     "F841",               # Unused variables (can be cleaned up later)
-    "SIM102", "SIM103", "SIM105", "SIM108", "SIM113",  # Simplification suggestions are too aggressive
+    "SIM102", "SIM103", "SIM105", "SIM108", "SIM113", "SIM117",  # Simplification suggestions too aggressive
 ]
 
 [tool.coverage.run]
