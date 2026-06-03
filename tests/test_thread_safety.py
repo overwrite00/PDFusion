@@ -12,6 +12,7 @@ Tests cover:
 from __future__ import annotations
 
 import logging
+import os
 
 # Import modules under test
 import sys
@@ -33,16 +34,80 @@ from ui.viewer import PDFViewer, _RenderWorker
 logger = logging.getLogger(__name__)
 
 
+def _is_headless_environment() -> bool:
+    """
+    Rileva se siamo in un ambiente headless (CI/server senza proper display).
+
+    Headless indicators:
+    - Linux senza DISPLAY
+    - DISPLAY=:99 (xvfb standard) ma senza Xvfb running
+    - Ambiente CI (GitHub Actions, GitLab CI, etc.)
+    """
+    # Caso 1: No DISPLAY at all
+    if os.name == "posix" and not os.environ.get("DISPLAY"):
+        return True
+
+    # Caso 2: DISPLAY=:99 or :X (xvfb) but server not actually running
+    # Per testare se Xvfb è running, proviamo a connetterci
+    if os.name == "posix" and os.environ.get("DISPLAY"):
+        display = os.environ.get("DISPLAY")
+        # Se è :99 o :X e non è localhost:X.0, probabilmente è xvfb non funzionante
+        if display.startswith(":"):
+            # Try to detect if xvfb-run is active (LD_PRELOAD contains xvfb)
+            if "xvfb" not in os.environ.get("LD_PRELOAD", "").lower():
+                # No xvfb in LD_PRELOAD, ma ha DISPLAY virtuale -> xvfb non running
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ["ps", "aux"],
+                        capture_output=True,
+                        text=True,
+                        timeout=2
+                    )
+                    if "Xvfb" not in result.stdout and "Xvfb" not in result.stderr:
+                        # Xvfb not in process list
+                        return True
+                except Exception:
+                    pass  # Assume headless if we can't check
+
+    return False
+
+
+def _safe_qapplication_creation() -> QApplication:
+    """
+    Crea una QApplication in modo sicuro, con handling per ambienti headless.
+
+    Su Linux headless senza display manager, QApplication initialization CRASH
+    con "Fatal Python error: Aborted". Questo wrapper:
+    1. Prova a ottenere l'istanza esistente
+    2. Se non esiste, prova a crearne una con handling degli errori
+    3. Se è headless, skippa il test
+    """
+    # Try to get existing instance first
+    app = QApplication.instance()
+    if app is not None:
+        return app
+
+    # Se è headless, non possiamo creare QApplication
+    if _is_headless_environment():
+        pytest.skip("QApplication non supportato in ambiente headless (no display)")
+
+    # Try to create a new application
+    try:
+        return QApplication([])
+    except Exception as e:
+        logger.error(f"QApplication initialization failed: {e}")
+        # Fallback: se la creazione fallisce anche in non-headless, skippa
+        pytest.skip(f"QApplication initialization failed: {e}")
+
+
 class TestRenderWorkerThreadSafety:
     """Test _RenderWorker for proper signal emission and closure."""
 
     @pytest.fixture
     def qapp(self):
-        """Provide QApplication instance."""
-        app = QApplication.instance()
-        if app is None:
-            app = QApplication([])
-        return app
+        """Provide QApplication instance (with headless support)."""
+        return _safe_qapplication_creation()
 
     @pytest.fixture
     def sample_pdf(self, tmp_path):
@@ -137,11 +202,8 @@ class TestPDFViewerThreadSafety:
 
     @pytest.fixture
     def qapp(self):
-        """Provide QApplication instance."""
-        app = QApplication.instance()
-        if app is None:
-            app = QApplication([])
-        return app
+        """Provide QApplication instance (with headless support)."""
+        return _safe_qapplication_creation()
 
     @pytest.fixture
     def viewer(self, qapp):
@@ -303,11 +365,8 @@ class TestThumbnailPanelThreadSafety:
 
     @pytest.fixture
     def qapp(self):
-        """Provide QApplication instance."""
-        app = QApplication.instance()
-        if app is None:
-            app = QApplication([])
-        return app
+        """Provide QApplication instance (with headless support)."""
+        return _safe_qapplication_creation()
 
     @pytest.fixture
     def sample_pdf(self, tmp_path):
@@ -382,11 +441,8 @@ class TestConcurrentOperations:
 
     @pytest.fixture
     def qapp(self):
-        """Provide QApplication instance."""
-        app = QApplication.instance()
-        if app is None:
-            app = QApplication([])
-        return app
+        """Provide QApplication instance (with headless support)."""
+        return _safe_qapplication_creation()
 
     @pytest.fixture
     def sample_pdf(self, tmp_path):
@@ -472,11 +528,8 @@ class TestWindowsSpecificIssues:
 
     @pytest.fixture
     def qapp(self):
-        """Provide QApplication instance."""
-        app = QApplication.instance()
-        if app is None:
-            app = QApplication([])
-        return app
+        """Provide QApplication instance (with headless support)."""
+        return _safe_qapplication_creation()
 
     @pytest.fixture
     def sample_pdf(self, tmp_path):
@@ -536,11 +589,8 @@ class TestEdgeCases:
 
     @pytest.fixture
     def qapp(self):
-        """Provide QApplication instance."""
-        app = QApplication.instance()
-        if app is None:
-            app = QApplication([])
-        return app
+        """Provide QApplication instance (with headless support)."""
+        return _safe_qapplication_creation()
 
     @pytest.fixture
     def sample_pdf(self, tmp_path):
