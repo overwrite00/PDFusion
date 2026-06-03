@@ -28,6 +28,11 @@ ignore = [
     "SIM102", "SIM103", "SIM105", "SIM108", "SIM113", "SIM117",  # Simplification suggestions too aggressive
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Test files have specific import patterns for fixtures and mocking (from conftest, PyQt6)
+# I001: Import block is un-sorted or un-formatted - test fixtures have different import priorities
+"tests/**/*.py" = ["I001"]
+
 [tool.coverage.run]
 branch = true
 source = ["src"]
