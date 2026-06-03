@@ -70,13 +70,8 @@ def _is_headless_environment() -> bool:
         "CI",  # Generic CI marker
         "CONTINUOUS_INTEGRATION",
     ]
-    for marker in ci_markers:
-        if os.environ.get(marker):
-            # On CI, we're likely in xvfb or similar, treat as headless
-            # for memory measurement purposes
-            return True
-
-    return False
+    # On CI, we're likely in xvfb or similar, treat as headless for memory measurement
+    return any(os.environ.get(marker) for marker in ci_markers)
 
 
 def _can_measure_memory_reliably() -> bool:
