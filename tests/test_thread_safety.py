@@ -228,12 +228,12 @@ def _flush_qt_deletions():
     except Exception:
         pass
 
-    # 3. Forza il GC mentre i thread sono fermi: ora la distruzione dei
-    #    widget orfani è sicura.
-    try:
-        gc.collect()
-    except Exception:
-        pass
+    # 3. Skip GC here - it was triggering background finalization of fitz resources
+    #    that corrupted Python's condition variable state on Linux.
+    #    With the BlockingQueuedConnection fitz.close() fix in viewer.py and
+    #    thumbnail_panel.py, documents are now closed on the worker thread before
+    #    it stops, eliminating cross-thread finalization. Let Python's normal GC
+    #    handle orphaned widgets at its own pace - no more explicit gc.collect().
 
 
 class TestRenderWorkerThreadSafety:

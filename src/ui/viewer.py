@@ -68,6 +68,22 @@ class _RenderWorker(QObject):
         interni, rendendo impossibile unlink() se si chiude qui)."""
         self._closed = True
 
+    @pyqtSlot()
+    def _close_doc(self) -> None:
+        """CRITICAL FIX (Ubuntu SIGABRT): Close the fitz document on the
+        worker thread BEFORE stopping the thread. This prevents cross-thread
+        finalization of fitz C-level resources that corrupts Python's
+        condition variable state on Linux's offscreen plugin. Called via
+        invokeMethod(BlockingQueuedConnection) from the main thread in
+        _close_worker(), ensuring it runs synchronously on the worker thread."""
+        if self._doc is not None:
+            try:
+                self._doc.close()
+            except Exception:
+                pass  # Best effort; we'll set _doc = None anyway
+            finally:
+                self._doc = None
+
 
 # ---------------------------------------------------------------------------
 # PDFViewer widget
@@ -359,23 +375,42 @@ class PDFViewer(QWidget):
         except Exception as e:
             logger.error(f"Errore durante chiusura worker viewer: {e}", exc_info=True)
         finally:
+            # CRITICAL FIX (Ubuntu SIGABRT): Close the fitz document ON the worker
+            # thread BEFORE stopping it. This prevents cross-thread finalization of
+            # fitz resources that corrupts Python's condition variable state on Linux.
+            # Use BlockingQueuedConnection to ensure _close_doc runs synchronously on
+            # the worker thread before we proceed to quit() + wait().
+            if worker_snapshot is not None and thread_snapshot is not None:
+                try:
+                    if thread_snapshot.isRunning():
+                        from PyQt6.QtCore import Qt, QMetaObject
+                        logger.debug("Chiusura documento fitz sul worker thread...")
+                        QMetaObject.invokeMethod(
+                            worker_snapshot,
+                            "_close_doc",
+                            Qt.ConnectionType.BlockingQueuedConnection,
+                        )
+                except Exception as e:
+                    logger.warning(f"Errore chiusura documento fitz via invokeMethod: {e}")
+                    # Fallback: close on main thread if invokeMethod fails
+                    try:
+                        if worker_snapshot._doc:
+                            worker_snapshot._doc.close()
+                            worker_snapshot._doc = None
+                    except Exception as e2:
+                        logger.warning(f"Errore fallback chiusura documento: {e2}")
+
             # Garantisce SEMPRE l'arresto del thread e la distruzione di worker
             # e thread, anche se uno step precedente ha sollevato un'eccezione.
             # Un QThread lasciato in esecuzione e poi raccolto dal GC fa abortire
             # Qt ("QThread: Destroyed while thread is still running").
             self._shutdown_thread(thread_snapshot)
 
-            # Chiudi il documento fitz: il thread è ormai fermo.
-            if worker_snapshot._doc:
-                logger.debug("Chiusura documento fitz nel viewer...")
-                try:
-                    worker_snapshot._doc.close()
-                except Exception as e:
-                    logger.warning(f"Errore chiusura documento fitz: {e}")
-                finally:
-                    worker_snapshot._doc = None
-
             # Distruggi worker e thread in modo sicuro tramite il loop Qt.
+            # deleteLater() è l'approccio corretto in produzione: il worker vive
+            # sul thread worker (thread-affinity) e va distrutto dal suo stesso
+            # loop eventi, non sincronicamente dal main thread. Nell'app reale il
+            # loop eventi elabora DeferredDelete a thread ormai fermo -> sicuro.
             worker_snapshot.deleteLater()
             if thread_snapshot is not None:
                 thread_snapshot.deleteLater()
@@ -411,16 +446,24 @@ class PDFViewer(QWidget):
         except Exception as e:
             logger.warning(f"quit() del thread fallito: {e}")
         try:
-            # Polling wait with brief timeout to prevent indefinite blocks
-            for _ in range(20):  # 20 * 100ms = 2 secondi
-                if thread.wait(100):
-                    logger.debug("Thread fermato da quit()")
+            # ROOT-CAUSE FIX (SIGABRT Ubuntu): usare UN SINGOLO wait() bloccante,
+            # NON un polling a 100ms in loop. Sul plugin offscreen di Linux un
+            # poll breve riporta spesso "still running" anche se quit() sta per
+            # atterrare: il loop si esauriva senza confermare l'arresto, il ramo
+            # Linux qui sotto si limitava a loggare, e il thread NON realmente
+            # joinato veniva poi distrutto da deleteLater()/~QThread() mentre Qt
+            # lo considerava ancora running -> qFatal() -> abort() -> SIGABRT.
+            # Un wait() bloccante unico joina davvero il thread (è ciò che ha
+            # sempre reso Windows affidabile) e azzera d->running sotto mutex
+            # prima del ritorno, rendendo ~QThread() sicuro in ogni piattaforma.
+            if thread.wait(5000):
+                logger.debug("Thread fermato da quit()")
+                return
+            try:
+                if not thread.isRunning():
                     return
-                try:
-                    if not thread.isRunning():
-                        return
-                except RuntimeError:
-                    return
+            except RuntimeError:
+                return
         except Exception as e:
             logger.warning(f"wait() del thread fallito: {e}")
 
