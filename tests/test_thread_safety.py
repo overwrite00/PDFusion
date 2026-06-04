@@ -63,8 +63,6 @@ def _flush_qt_deletions():
     """
     yield
 
-    import gc
-
     from PyQt6.QtCore import QCoreApplication, QEvent, QEventLoop, QThread
     from PyQt6.QtWidgets import QApplication
 

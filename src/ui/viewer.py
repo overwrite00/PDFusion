@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 import fitz
-from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QMetaObject, QObject, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QImage, QKeyEvent, QPixmap, QWheelEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -383,7 +383,6 @@ class PDFViewer(QWidget):
             if worker_snapshot is not None and thread_snapshot is not None:
                 try:
                     if thread_snapshot.isRunning():
-                        from PyQt6.QtCore import Qt, QMetaObject
                         logger.debug("Chiusura documento fitz sul worker thread...")
                         QMetaObject.invokeMethod(
                             worker_snapshot,
