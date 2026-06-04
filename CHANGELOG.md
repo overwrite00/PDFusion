@@ -10,6 +10,25 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- **CRITICAL**: Persistent Ubuntu CI SIGABRT during `_flush_qt_deletions` teardown after
+  `test_worker_error_signal_on_invalid_page`
+  - Root cause: `TestRenderWorkerThreadSafety` tests created bare, unparented `QThread()` +
+    `_RenderWorker` as local variables. Being neither `QWidget` nor parented, they were
+    invisible to the `_flush_qt_deletions` safety net (`app.allWidgets()` /
+    `app.findChildren(QThread)`), so cleanup never touched them. When Python GC later destroyed
+    the orphaned `QThread`, Qt aborted with "QThread: Destroyed while thread is still running"
+    (`qFatal` -> `abort()` -> SIGABRT) — a hard C signal that no Python try/except can catch.
+  - `test_worker_error_signal_on_invalid_page` triggered it specifically because `render(9999)`
+    opens the fitz doc, hits the bounds check, and returns WITHOUT emitting a signal or closing
+    the doc, leaving an open-doc + idle-but-not-confirmed-stopped thread as orphaned locals.
+  - Fix: new `make_worker_thread` fixture owns the worker/thread lifecycle and tears them down
+    deterministically — `quit()` + blocking `wait()` until genuinely finished, close the fitz
+    doc, then destroy both C++ objects directly via `sip.delete` (never deferred to
+    `deleteLater`/GC). This removes any window where `~QThread()` can run on a live thread,
+    independent of platform/event-loop timing.
+
 ### Added
 
 - Planned features and improvements for future releases.
