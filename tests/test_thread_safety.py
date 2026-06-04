@@ -77,65 +77,90 @@ def _flush_qt_deletions():
     #    che mockano thread.quit() per sollevare). Un QThread distrutto dal GC
     #    mentre è ancora running fa abortire Qt ("QThread: Destroyed while
     #    thread is still running" -> SIGABRT), contaminando i test successivi.
-    def _stop_thread(thread: QThread | None) -> None:
+    def _stop_thread(thread: QThread | None) -> bool:
         """Stop a QThread safely without risking deadlock on Linux.
+
+        Returns ``True`` if the thread is confirmed STOPPED (or was never
+        running / already gone), ``False`` if it is still running and could
+        not be stopped. The caller uses this to decide whether it is safe to
+        process DeferredDelete events / GC: destroying a ``~QThread()`` while
+        Qt still considers it running calls ``qFatal()`` -> ``abort()`` ->
+        SIGABRT, a hard C signal no try/except can catch.
 
         CRITICAL: Never use terminate() (pthread_cancel) on Linux when thread
         may be blocked in C code like fitz.get_pixmap(). The cancel remains
         pending inside non-cancel-safe code, causing permanent deadlock.
 
-        On Linux: use only quit() + polling wait(). If it times out, the job
+        On Linux: use only quit() + a real blocking wait(). If it times out,
+        report ``False`` so the caller skips the unsafe deletion path; the job
         timeout-minutes=20 will eventually kill the entire process.
 
         On Windows/macOS: terminate() is safe as a fallback.
         """
         if thread is None:
-            return
+            return True
         try:
             if not thread.isRunning():
-                return
+                return True
         except RuntimeError:
-            return  # Thread was already garbage collected or invalid
+            return True  # Thread was already garbage collected or invalid
 
         try:
             thread.quit()
         except Exception:
             # quit() failed - thread is probably corrupted. Don't try to wait.
-            return
-
-        # Polling wait with 100ms intervals instead of unbounded wait
-        for _ in range(20):  # 20 * 100ms = 2 seconds
+            # Report not-stopped so the caller avoids the deletion path.
             try:
-                if thread.wait(100):
-                    return
-                if not thread.isRunning():
-                    return
+                return not thread.isRunning()
             except RuntimeError:
-                # Thread object became invalid while waiting
-                return
-            except Exception:
-                # Unexpected error - give up
-                return
+                return True
 
-        # CRITICAL: Do NOT use terminate() on Linux - causes permanent deadlock
-        if sys.platform == "linux":
-            # On Linux headless: quit() is the only safe option.
-            # If thread is still running, we can't safely kill it without
-            # risking deadlock from pthread_cancel on fitz-blocked code.
-            # The fixture will continue and the job timeout will eventually
-            # clean up the entire process.
-            return
+        # Real blocking wait: give quit() a genuine chance to drain the event
+        # loop. On the Linux offscreen plugin a racy 100ms poll often reports
+        # "still running" even though quit() will land shortly; a single longer
+        # blocking wait removes that window (this is what made Windows reliable).
+        try:
+            if thread.wait(5000):
+                return True
+            if not thread.isRunning():
+                return True
+        except RuntimeError:
+            return True  # Thread object became invalid while waiting
+        except Exception:
+            try:
+                return not thread.isRunning()
+            except RuntimeError:
+                return True
 
-        # On Windows/macOS: terminate() is safe as fallback
+        # CRITICAL: Do NOT use terminate() on Linux/macOS - causes permanent
+        # deadlock via pthread_cancel on fitz-blocked code.
+        if sys.platform in ("linux", "darwin"):
+            # Cannot safely kill it. Report NOT stopped so the caller skips the
+            # DeferredDelete/GC path that would destroy a live ~QThread().
+            try:
+                return not thread.isRunning()
+            except RuntimeError:
+                return True
+
+        # On Windows: terminate() is safe as fallback
         try:
             if thread.isRunning():
                 thread.terminate()
-                for _ in range(10):  # 10 * 100ms = 1 second
-                    if thread.wait(100):
-                        return
+                if thread.wait(2000):
+                    return True
+                return not thread.isRunning()
         except Exception:
-            # terminate() or wait() failed - give up gracefully
-            return
+            try:
+                return not thread.isRunning()
+            except RuntimeError:
+                return True
+        return True
+
+    # Track whether EVERY thread is confirmed stopped. If even one running
+    # thread remains (Linux can't safely kill it), we must NOT process
+    # DeferredDelete events or run GC over it -> that destruction is what
+    # triggers SIGABRT. Leaking the orphan is strictly safer than aborting.
+    all_threads_stopped = True
 
     try:
         for widget in app.allWidgets():
@@ -144,7 +169,8 @@ def _flush_qt_deletions():
                     # Ferma direttamente il thread del widget: _close_worker() esce
                     # subito se _worker è già None (es. dopo una chiusura fallita),
                     # lasciando però il thread ancora in esecuzione.
-                    _stop_thread(getattr(widget, "_thread", None))
+                    if not _stop_thread(getattr(widget, "_thread", None)):
+                        all_threads_stopped = False
                     try:
                         widget._close_worker()
                     except Exception:
@@ -157,19 +183,36 @@ def _flush_qt_deletions():
         pass
 
     # Backstop: qualsiasi altro QThread ancora vivo nell'albero degli oggetti.
+    # Include thread orfani lasciati da test che mockano quit()/wait() (es.
+    # test_close_worker_exception_logging): il mock è ormai rimosso, quindi qui
+    # quit() reale può finalmente fermarli.
     try:
         for thread in app.findChildren(QThread):
             try:
-                _stop_thread(thread)
+                if not _stop_thread(thread):
+                    all_threads_stopped = False
             except Exception:
                 pass
     except Exception:
         # If we can't find children, continue anyway
         pass
 
-    # 2. Elabora gli eventi normali e poi forza gli eventi DeferredDelete
-    #    (generati da deleteLater()), che processEvents da solo non elabora
-    #    finché il loop non torna al livello di creazione dell'oggetto.
+    # 2. SE e solo se tutti i thread sono confermati fermi, è sicuro processare
+    #    gli eventi DeferredDelete (generati da deleteLater()) e forzare il GC.
+    #    Distruggere un QThread mentre Qt lo considera ancora running fa abortire
+    #    il processo (SIGABRT) — un crash C che nessun try/except intercetta.
+    #    Su Linux, se un thread non si è fermato, SALTIAMO tutta la fase di
+    #    distruzione: meglio "leakare" l'oggetto (il job ha un timeout) che far
+    #    crashare l'intera suite. Vedi crash Ubuntu in _flush_qt_deletions.
+    if not all_threads_stopped:
+        logger.warning(
+            "Un QThread non si è fermato in modo confermato durante il teardown "
+            "(%s). Salto DeferredDelete/GC per evitare ~QThread() su thread vivo "
+            "(SIGABRT). L'oggetto verrà ripulito dalla terminazione del processo.",
+            sys.platform,
+        )
+        return
+
     try:
         app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
     except Exception:
