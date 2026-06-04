@@ -234,9 +234,26 @@ class TestRenderWorkerThreadSafety:
         assert isinstance(pixmap, QPixmap)
 
         thread.quit()
-        if not thread.wait(2000):
+        # Use polling wait with platform-aware terminate fallback (Windows only)
+        stopped = False
+        for _ in range(20):  # 20 * 100ms = 2 seconds
+            if thread.wait(100):
+                stopped = True
+                break
+            try:
+                if not thread.isRunning():
+                    stopped = True
+                    break
+            except RuntimeError:
+                stopped = True
+                break
+
+        # On Windows: terminate() is safe fallback; on Linux/macOS: never use it
+        if not stopped and sys.platform == "win32":
             thread.terminate()
-            thread.wait(1000)
+            for _ in range(10):  # 10 * 100ms = 1 second
+                if thread.wait(100):
+                    break
 
     def test_worker_error_signal_on_invalid_page(self, qapp, sample_pdf):
         """Verify worker emits error signal for invalid page indices."""
@@ -264,9 +281,26 @@ class TestRenderWorkerThreadSafety:
             time.sleep(0.01)
 
         thread.quit()
-        if not thread.wait(2000):
+        # Use polling wait with platform-aware terminate fallback (Windows only)
+        stopped = False
+        for _ in range(20):  # 20 * 100ms = 2 seconds
+            if thread.wait(100):
+                stopped = True
+                break
+            try:
+                if not thread.isRunning():
+                    stopped = True
+                    break
+            except RuntimeError:
+                stopped = True
+                break
+
+        # On Windows: terminate() is safe fallback; on Linux/macOS: never use it
+        if not stopped and sys.platform == "win32":
             thread.terminate()
-            thread.wait(1000)
+            for _ in range(10):  # 10 * 100ms = 1 second
+                if thread.wait(100):
+                    break
 
 
 class TestPDFViewerThreadSafety:
@@ -481,7 +515,15 @@ class TestPDFViewerThreadSafety:
         # suo loop eventi è ancora vivo. Fermalo davvero ora, prima del GC, per
         # evitare il SIGABRT "QThread: Destroyed while thread is still running".
         real_quit()
-        thread.wait(2000)
+        # Use polling wait instead of unbounded wait to avoid access violations on Windows
+        for _ in range(20):  # 20 * 100ms = 2 seconds
+            if thread.wait(100):
+                break
+            try:
+                if not thread.isRunning():
+                    break
+            except RuntimeError:
+                break
         assert not thread.isRunning()
 
 
