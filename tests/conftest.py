@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from PyQt6.QtWidgets import QDialog, QMessageBox
 
 # ---------------------------------------------------------------------------
 # Qt headless setup (CRITICAL — must run before any PyQt6 import)
@@ -96,6 +97,38 @@ def cleanup_resources_between_tests():
     gc.collect()  # Cleanup prima del test
     yield
     gc.collect()  # Cleanup dopo il test
+
+
+@pytest.fixture(autouse=True)
+def _neutralize_modal_dialogs(monkeypatch):
+    """Rende non bloccanti tutti i dialog modali durante i test.
+
+    On headless CI runners (e.g., GitHub Actions with QT_QPA_PLATFORM=offscreen),
+    any QMessageBox.exec() or QDialog.exec() modal call blocks forever because
+    there is no user to dismiss the dialog. This fixture neutralizes all modal
+    dialogs globally so no test can hang indefinitely on a modal interaction.
+
+    Tests can still override this locally with targeted monkeypatch if they need
+    to assert on specific dialog behavior.
+    """
+    monkeypatch.setattr(
+        QMessageBox, "critical", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Ok)
+    )
+    monkeypatch.setattr(
+        QMessageBox, "warning", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Ok)
+    )
+    monkeypatch.setattr(
+        QMessageBox, "information", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Ok)
+    )
+    monkeypatch.setattr(
+        QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.No)
+    )
+    monkeypatch.setattr(
+        QMessageBox, "about", staticmethod(lambda *a, **k: None)
+    )
+    monkeypatch.setattr(QMessageBox, "exec", lambda self, *a, **k: QMessageBox.StandardButton.Ok)
+    monkeypatch.setattr(QDialog, "exec", lambda self, *a, **k: QDialog.DialogCode.Accepted.value)
+    yield
 
 
 @pytest.fixture(scope="session", autouse=True)

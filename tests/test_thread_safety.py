@@ -79,11 +79,43 @@ def _flush_qt_deletions():
     #    mentre è ancora running fa abortire Qt ("QThread: Destroyed while
     #    thread is still running" -> SIGABRT), contaminando i test successivi.
     def _stop_thread(thread: QThread | None) -> None:
-        if thread is not None and thread.isRunning():
+        """Stop a QThread with robust polling (mirrors viewer._shutdown_thread).
+
+        Avoids unbounded wait() which can deadlock on headless Linux
+        or hang when thread is stuck in C code (e.g., fitz.get_pixmap()).
+        Uses polling with 100ms intervals instead.
+        """
+        if thread is None:
+            return
+        try:
+            if not thread.isRunning():
+                return
+        except RuntimeError:
+            return  # Thread was already garbage collected
+
+        try:
             thread.quit()
-            if not thread.wait(2000):
+            # Polling wait with 100ms intervals instead of unbounded wait(2000)
+            for _ in range(20):  # 20 * 100ms = 2 seconds
+                if thread.wait(100):
+                    return
+                try:
+                    if not thread.isRunning():
+                        return
+                except RuntimeError:
+                    return
+        except Exception:
+            pass
+
+        # Fallback: terminate if quit() failed (but avoid terminate() on stuck threads)
+        try:
+            if thread.isRunning():
                 thread.terminate()
-                thread.wait(1000)
+                for _ in range(10):  # 10 * 100ms = 1 second
+                    if thread.wait(100):
+                        return
+        except Exception:
+            pass
 
     for widget in app.allWidgets():
         if isinstance(widget, PDFViewer | ThumbnailPanel):
@@ -151,10 +183,12 @@ class TestRenderWorkerThreadSafety:
         assert worker._doc is None, "Document should not reopen after close() call"
 
         thread.quit()
-        # Wait bounded: thread was never started (quit() is a no-op), so this
-        # returns immediately. Never block unbounded — a stuck wait() would hang
-        # the entire test session on a headless CI runner.
-        thread.wait(2000)
+        # Polling wait: thread was never started, so quit() is a no-op and
+        # wait(100) returns immediately. Use polling instead of unbounded wait()
+        # to prevent hanging on a headless CI runner.
+        for _ in range(20):
+            if thread.wait(100):
+                break
 
     def test_worker_signal_emission_on_render(self, qapp, sample_pdf):
         """Verify worker emits rendered signal with correct data."""

@@ -15,10 +15,11 @@ testpaths = ["tests"]
 # Hard per-test timeout: converts any hang (e.g. a Qt thread that never quits on
 # a headless Linux runner) into a normal test failure WITH a full traceback of
 # every thread, instead of silently blocking the whole CI job for 30+ minutes.
-# pytest-timeout automatically selects:
-#   - "signal" (SIGALRM) on Unix/Linux — reliable for terminating blocked threads
-#   - "thread" on Windows — portable method that doesn't require signals
 timeout = 120
+timeout_method = "thread"
+# Use "thread" method on all platforms (not "signal" on Linux).
+# Reason: SIGALRM cannot interrupt main thread blocked in Qt C code (e.g. fitz.get_pixmap()).
+# The thread-based watchdog is more robust and works reliably on Linux+headless+Qt.
 # Dump all thread stacks if the whole session stalls past this many seconds —
 # a backstop independent of pytest-timeout.
 faulthandler_timeout = 300
