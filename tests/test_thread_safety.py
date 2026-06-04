@@ -12,6 +12,7 @@ Tests cover:
 from __future__ import annotations
 
 import logging
+import os
 
 # Import modules under test
 import sys
@@ -189,6 +190,10 @@ class TestRenderWorkerThreadSafety:
             if thread.wait(100):
                 break
 
+    @pytest.mark.skipif(
+        os.environ.get("QT_QPA_PLATFORM") == "offscreen",
+        reason="Real fitz render thread + terminate() deadlocks under offscreen Qt on Linux"
+    )
     def test_worker_signal_emission_on_render(self, qapp, sample_pdf):
         """Verify worker emits rendered signal with correct data."""
         from PyQt6.QtCore import QThread
@@ -224,6 +229,10 @@ class TestRenderWorkerThreadSafety:
             thread.terminate()
             thread.wait(1000)
 
+    @pytest.mark.skipif(
+        os.environ.get("QT_QPA_PLATFORM") == "offscreen",
+        reason="Real fitz render thread + terminate() deadlocks under offscreen Qt on Linux"
+    )
     def test_worker_error_signal_on_invalid_page(self, qapp, sample_pdf):
         """Verify worker emits error signal for invalid page indices."""
         from PyQt6.QtCore import QThread
