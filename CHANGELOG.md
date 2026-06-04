@@ -16,6 +16,26 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
+## [0.2.1] — 2026-06-04
+
+### Fixed
+
+- **CRITICAL**: pthread_cancel deadlock on Linux/macOS when closing viewer/thumbnail threads blocked in fitz.get_pixmap()
+  - Never use terminate() on Linux/macOS (pthread_cancel remains pending in non-cancel-safe C code, causing permanent deadlock)
+  - Changed to quit() + polling wait(100ms) pattern on Unix, with Windows fallback to terminate()
+- **CRITICAL**: Test-production contract misalignment causing SIGABRT in _flush_qt_deletions fixture
+  - Thread-safety tests now platform-aware: assert no terminate() on Linux/macOS, terminate() fallback on Windows
+  - Production _shutdown_thread hardened with separate try blocks for quit() and wait() — ensures wait() runs even if quit() fails
+- Ubuntu CI now passes all 370 tests reliably without hangs
+
+### Changed
+
+- Thread lifecycle management in src/ui/viewer.py, src/ui/thumbnail_panel.py, src/ui/panels/preview_renderer.py
+  - Production: split quit()/wait() into separate exception handlers
+  - Tests: capture and reuse real wait() implementation before mocking, ensuring threads are genuinely stopped
+
+---
+
 ## [0.2.0] — 2026-06-03
 
 ### Security
