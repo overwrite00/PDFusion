@@ -95,21 +95,27 @@ def _flush_qt_deletions():
             if not thread.isRunning():
                 return
         except RuntimeError:
-            return  # Thread was already garbage collected
+            return  # Thread was already garbage collected or invalid
 
         try:
             thread.quit()
-            # Polling wait with 100ms intervals instead of unbounded wait
-            for _ in range(20):  # 20 * 100ms = 2 seconds
+        except Exception:
+            # quit() failed - thread is probably corrupted. Don't try to wait.
+            return
+
+        # Polling wait with 100ms intervals instead of unbounded wait
+        for _ in range(20):  # 20 * 100ms = 2 seconds
+            try:
                 if thread.wait(100):
                     return
-                try:
-                    if not thread.isRunning():
-                        return
-                except RuntimeError:
+                if not thread.isRunning():
                     return
-        except Exception:
-            pass
+            except RuntimeError:
+                # Thread object became invalid while waiting
+                return
+            except Exception:
+                # Unexpected error - give up
+                return
 
         # CRITICAL: Do NOT use terminate() on Linux - causes permanent deadlock
         if sys.platform == "linux":
@@ -128,7 +134,8 @@ def _flush_qt_deletions():
                     if thread.wait(100):
                         return
         except Exception:
-            pass
+            # terminate() or wait() failed - give up gracefully
+            return
 
     for widget in app.allWidgets():
         if isinstance(widget, PDFViewer | ThumbnailPanel):
