@@ -13,6 +13,13 @@ APP_DIR = Path(SPECPATH)
 SRC_DIR = APP_DIR / "src"
 ASSETS_DIR = APP_DIR / "assets"
 
+# Read VERSION from src/utils/config.py
+sys.path.insert(0, str(SRC_DIR))
+try:
+    from utils.config import VERSION
+except ImportError:
+    VERSION = "0.2.0"  # fallback
+
 a = Analysis(
     [str(SRC_DIR / "main.py")],
     pathex=[str(SRC_DIR)],
@@ -116,8 +123,8 @@ if sys.platform == "darwin":
         bundle_identifier="com.pdfusion.app",
         info_plist={
             "CFBundleDisplayName": "PDFusion",
-            "CFBundleVersion": "0.2.0",
-            "CFBundleShortVersionString": "0.2.0",
+            "CFBundleVersion": VERSION,
+            "CFBundleShortVersionString": VERSION,
             "NSHighResolutionCapable": True,
         },
     )
