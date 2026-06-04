@@ -336,19 +336,49 @@ class TestPDFViewerThreadSafety:
         assert viewer._worker is None
 
     def test_close_worker_with_thread_timeout(self, viewer, sample_pdf):
-        """Test fallback to thread.terminate() on quit timeout."""
+        """Test the quit-timeout fallback path of _shutdown_thread.
+
+        Platform contract (see PDFViewer._shutdown_thread):
+        - Windows: when quit()+wait() times out, terminate() is called as a
+          forced fallback.
+        - Linux/macOS: terminate() is DELIBERATELY never called — pthread_cancel
+          on a thread blocked inside fitz C code causes a permanent deadlock.
+          On these platforms the code logs and relies on cooperative quit().
+
+        We mock wait() to force the timeout branch, but we keep a reference to
+        the real wait so we can genuinely stop the thread afterwards. Leaving a
+        QThread running and then letting it be deleted (deleteLater/GC) makes Qt
+        abort with "QThread: Destroyed while thread is still running" (SIGABRT),
+        which is exactly the teardown crash this test must not produce.
+        """
         viewer.load_document(Path(sample_pdf))
         worker = viewer._worker
+        thread = viewer._thread
         assert worker is not None
+        assert thread is not None
 
-        # Mock thread.wait to simulate timeout
-        with patch.object(viewer._thread, 'wait', return_value=False):
-            with patch.object(viewer._thread, 'terminate') as mock_terminate:
+        real_wait = thread.wait  # capture the genuine wait for real shutdown
+
+        # Mock thread.wait to simulate a quit() timeout (never reports stopped).
+        with patch.object(thread, 'wait', return_value=False):
+            with patch.object(thread, 'terminate') as mock_terminate:
                 viewer._close_worker()
-                # terminate should have been called
-                mock_terminate.assert_called_once()
+
+                if sys.platform == "win32":
+                    # Windows: terminate() is the forced fallback on timeout.
+                    mock_terminate.assert_called_once()
+                else:
+                    # Linux/macOS: terminate() must NOT be used (deadlock risk).
+                    mock_terminate.assert_not_called()
 
         assert viewer._worker is None
+
+        # The mocked wait() prevented a real shutdown: the worker's idle event
+        # loop is still running. Stop it genuinely now (mocks are gone) so the
+        # thread is finished before it is destroyed — otherwise Qt aborts at GC.
+        thread.quit()
+        real_wait(2000)
+        assert not thread.isRunning()
 
     def test_signal_callback_during_close_is_safe(self, viewer, sample_pdf):
         """
@@ -428,11 +458,12 @@ class TestPDFViewerThreadSafety:
         """Verify exceptions during thread shutdown are handled gracefully.
 
         Anche se ``quit()`` solleva, _close_worker() non deve propagare
-        l'eccezione, deve loggare l'errore e — punto critico — deve comunque
-        terminare il thread (un thread lasciato running fa abortire Qt al GC).
+        l'eccezione: deve loggarla e proseguire comunque con l'arresto
+        cooperativo (wait()), senza far crashare il processo.
         """
         viewer.load_document(Path(sample_pdf))
         thread = viewer._thread
+        real_quit = thread.quit  # genuine quit, for real shutdown afterwards
 
         # Mock _thread.quit to raise an exception
         with patch.object(thread, 'quit', side_effect=RuntimeError("Mock error")):
@@ -440,11 +471,17 @@ class TestPDFViewerThreadSafety:
                 # Non deve sollevare
                 viewer._close_worker()
 
-            # L'errore di quit() deve essere loggato (fallback a terminate()).
-            assert "forzamento terminazione" in caplog.text
+            # L'eccezione di quit() deve essere loggata, non propagata.
+            assert "quit() del thread fallito" in caplog.text
 
-        # Il worker è azzerato e il thread è stato fermato, non lasciato running.
+        # Il worker è azzerato (snapshot pattern), il thread non è più tracciato.
         assert viewer._worker is None
+
+        # quit() era mockato: il thread non ha mai ricevuto il quit reale e il
+        # suo loop eventi è ancora vivo. Fermalo davvero ora, prima del GC, per
+        # evitare il SIGABRT "QThread: Destroyed while thread is still running".
+        real_quit()
+        thread.wait(2000)
         assert not thread.isRunning()
 
 
@@ -649,28 +686,36 @@ class TestWindowsSpecificIssues:
         assert success, "fitz document not properly closed, file handle locked"
 
     def test_thread_termination_on_wait_timeout(self, qapp, sample_pdf):
-        """Test that thread.terminate() is called if quit() timeout is exceeded.
+        """Test the platform-specific fallback when quit() timeout is exceeded.
 
-        ``terminate()`` viene mockato (non eseguito davvero): terminare con la
-        forza un QThread che sta renderizzando con fitz corrompe lo stato e fa
-        crashare il processo. Qui verifichiamo solo che il fallback venga
-        invocato; la chiusura reale del thread avviene nel ramo non-mockato.
+        Windows: ``terminate()`` is the forced fallback (mocked here so we don't
+        actually kill a thread mid-fitz-render, which would corrupt state).
+        Linux/macOS: ``terminate()`` is deliberately NOT used (pthread_cancel
+        on fitz-blocked threads deadlocks); the contract is that it is never
+        invoked. We verify the correct branch per platform.
         """
         viewer = PDFViewer()
         viewer.load_document(Path(sample_pdf))
         thread = viewer._thread
+        real_wait = thread.wait  # genuine wait, for real shutdown afterwards
 
         # Mock the wait to fail e terminate per evitare di uccidere davvero il
         # thread mentre renderizza.
         with patch.object(thread, 'wait', return_value=False):
             with patch.object(thread, 'terminate') as mock_term:
                 viewer._close_worker()
-                mock_term.assert_called()
+                if sys.platform == "win32":
+                    mock_term.assert_called()
+                else:
+                    mock_term.assert_not_called()
 
-        # Cleanup reale del thread (wait/terminate non sono più mockati).
-        viewer._close_worker()
+        # Cleanup reale del thread (wait/terminate non sono più mockati):
+        # il mock di wait() ha impedito l'arresto reale, quindi il loop eventi
+        # del worker è ancora vivo. Fermarlo davvero prima del GC evita il
+        # SIGABRT "QThread: Destroyed while thread is still running".
         thread.quit()
-        thread.wait(2000)
+        real_wait(2000)
+        assert not thread.isRunning()
 
 
 class TestEdgeCases:

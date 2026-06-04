@@ -403,8 +403,14 @@ class PDFViewer(QWidget):
             # Thread è stato garbage collected
             return
         logger.debug("Arresto thread di rendering...")
+        # quit() può sollevare (es. mockato nei test, o stato Qt anomalo): se
+        # accade dobbiamo comunque tentare l'arresto cooperativo, mai lasciare
+        # il thread running (verrebbe distrutto running -> SIGABRT).
         try:
             thread.quit()
+        except Exception as e:
+            logger.warning(f"quit() del thread fallito: {e}")
+        try:
             # Polling wait with brief timeout to prevent indefinite blocks
             for _ in range(20):  # 20 * 100ms = 2 secondi
                 if thread.wait(100):
@@ -416,27 +422,27 @@ class PDFViewer(QWidget):
                 except RuntimeError:
                     return
         except Exception as e:
-            logger.warning(f"quit() del thread fallito: {e}")
+            logger.warning(f"wait() del thread fallito: {e}")
 
-        # CRITICAL: Do NOT use terminate() on Linux - causes permanent deadlock
-        # when thread is blocked in fitz C code. On Windows/macOS, terminate()
-        # is safer, but on Linux we must avoid pthread_cancel entirely.
-        if sys.platform == "linux":
-            # On Linux headless: quit() is the only safe option.
+        # CRITICAL: Do NOT use terminate() on Linux/macOS - causes permanent deadlock
+        # when thread is blocked in fitz C code. Both use pthread_cancel which
+        # causes the same deadlock. On Windows, terminate() is safer.
+        if sys.platform in ("linux", "darwin"):
+            # On Linux/macOS headless: quit() is the only safe option.
             # If it didn't work, we accept the thread won't die cleanly.
             # The job timeout-minutes=20 will eventually kill the entire
             # process, preventing infinite hangs.
             logger.warning(
-                "Thread did not stop via quit() on Linux. "
+                f"Thread did not stop via quit() on {sys.platform}. "
                 "Not using terminate() due to pthread_cancel deadlock risk with fitz. "
                 "Relying on job timeout to clean up."
             )
             return
 
-        # On Windows/macOS: safe to use terminate() as fallback
+        # On Windows: safe to use terminate() as fallback
         try:
             if thread.isRunning():
-                logger.warning("Thread non fermato dal quit(), forzamento terminazione (Windows/macOS)")
+                logger.warning("Thread non fermato dal quit(), forzamento terminazione (Windows)")
                 thread.terminate()
                 # wait() con timeout breve (100ms polling)
                 for _ in range(10):  # 10 * 100ms = 1 secondo
