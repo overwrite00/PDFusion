@@ -37,6 +37,7 @@ jobs:
     name: Test (${{ matrix.os }})
     needs: lint
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -75,8 +76,8 @@ jobs:
         if: runner.os == 'Linux'
         env:
           QT_QPA_PLATFORM: offscreen
-        run: pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short --timeout=300 --timeout-method=thread
 
       - name: Run tests (Windows)
         if: runner.os == 'Windows'
-        run: pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short --timeout=300 --timeout-method=thread
