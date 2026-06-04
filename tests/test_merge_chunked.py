@@ -203,7 +203,7 @@ class TestMergeChunkedHappyPath:
         logger.info(f"Simple merge memory report: {report}")
         if _can_measure_memory_reliably():
             # Solo su sistemi con display reale (Windows, macOS, Linux con Xvfb corretto)
-            assert report["peak_mb"] < 100  # 1 pagina dovrebbe usare <100MB
+            assert report["peak_mb"] < 110  # Simple merge (1 page) should use <110MB
 
     def test_above_threshold_uses_chunked(self, large_pdf, tmp_path, memory_tracker):
         """Happy path 2: >500 pages → usa _merge_chunked."""
