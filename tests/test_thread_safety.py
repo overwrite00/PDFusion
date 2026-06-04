@@ -494,10 +494,14 @@ class TestPDFViewerThreadSafety:
         Anche se ``quit()`` solleva, _close_worker() non deve propagare
         l'eccezione: deve loggarla e proseguire comunque con l'arresto
         cooperativo (wait()), senza far crashare il processo.
+
+        NOTE: This test mocks quit() to raise, creating a "broken" thread that
+        _close_worker() must handle gracefully. The fixture's _flush_qt_deletions
+        cleanup will stop and destroy the thread after test completes, avoiding
+        crashes from accessing a corrupted QThread object after the mock.
         """
         viewer.load_document(Path(sample_pdf))
         thread = viewer._thread
-        real_quit = thread.quit  # genuine quit, for real shutdown afterwards
 
         # Mock _thread.quit to raise an exception
         with patch.object(thread, 'quit', side_effect=RuntimeError("Mock error")):
@@ -508,23 +512,12 @@ class TestPDFViewerThreadSafety:
             # L'eccezione di quit() deve essere loggata, non propagata.
             assert "quit() del thread fallito" in caplog.text
 
-        # Il worker è azzerato (snapshot pattern), il thread non è più tracciato.
+        # Il worker è azzerato (snapshot pattern), il thread non è più tracciato
+        # in viewer, ma il thread è ancora vivo (quit was never called via mock).
+        # DO NOT attempt to manually quit/wait on this thread - that risks
+        # access violations when the thread object is corrupted by the mock.
+        # Let the fixture _flush_qt_deletions handle cleanup safely.
         assert viewer._worker is None
-
-        # quit() era mockato: il thread non ha mai ricevuto il quit reale e il
-        # suo loop eventi è ancora vivo. Fermalo davvero ora, prima del GC, per
-        # evitare il SIGABRT "QThread: Destroyed while thread is still running".
-        real_quit()
-        # Use polling wait instead of unbounded wait to avoid access violations on Windows
-        for _ in range(20):  # 20 * 100ms = 2 seconds
-            if thread.wait(100):
-                break
-            try:
-                if not thread.isRunning():
-                    break
-            except RuntimeError:
-                break
-        assert not thread.isRunning()
 
 
 class TestThumbnailPanelThreadSafety:
