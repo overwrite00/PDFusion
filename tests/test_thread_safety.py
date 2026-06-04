@@ -137,30 +137,60 @@ def _flush_qt_deletions():
             # terminate() or wait() failed - give up gracefully
             return
 
-    for widget in app.allWidgets():
-        if isinstance(widget, PDFViewer | ThumbnailPanel):
-            # Ferma direttamente il thread del widget: _close_worker() esce
-            # subito se _worker è già None (es. dopo una chiusura fallita),
-            # lasciando però il thread ancora in esecuzione.
-            _stop_thread(getattr(widget, "_thread", None))
+    try:
+        for widget in app.allWidgets():
             try:
-                widget._close_worker()
+                if isinstance(widget, PDFViewer | ThumbnailPanel):
+                    # Ferma direttamente il thread del widget: _close_worker() esce
+                    # subito se _worker è già None (es. dopo una chiusura fallita),
+                    # lasciando però il thread ancora in esecuzione.
+                    _stop_thread(getattr(widget, "_thread", None))
+                    try:
+                        widget._close_worker()
+                    except Exception:
+                        pass
+            except Exception:
+                # If we can't process this widget, continue with others
+                pass
+    except Exception:
+        # If we can't get widgets, continue anyway
+        pass
+
+    # Backstop: qualsiasi altro QThread ancora vivo nell'albero degli oggetti.
+    try:
+        for thread in app.findChildren(QThread):
+            try:
+                _stop_thread(thread)
             except Exception:
                 pass
-    # Backstop: qualsiasi altro QThread ancora vivo nell'albero degli oggetti.
-    for thread in app.findChildren(QThread):
-        _stop_thread(thread)
+    except Exception:
+        # If we can't find children, continue anyway
+        pass
 
     # 2. Elabora gli eventi normali e poi forza gli eventi DeferredDelete
     #    (generati da deleteLater()), che processEvents da solo non elabora
     #    finché il loop non torna al livello di creazione dell'oggetto.
-    app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
-    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete.value)
-    app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
+    try:
+        app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
+    except Exception:
+        pass
+
+    try:
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete.value)
+    except Exception:
+        pass
+
+    try:
+        app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
+    except Exception:
+        pass
 
     # 3. Forza il GC mentre i thread sono fermi: ora la distruzione dei
     #    widget orfani è sicura.
-    gc.collect()
+    try:
+        gc.collect()
+    except Exception:
+        pass
 
 
 class TestRenderWorkerThreadSafety:
