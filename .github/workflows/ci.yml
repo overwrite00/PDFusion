@@ -55,13 +55,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.11", "3.12", "3.13"]
-        # TODO: Re-enable ubuntu-latest once the fixture _flush_qt_deletions
-        # SIGABRT crash at 72% is definitively resolved. The crash occurs during
-        # test_close_worker_exception_logging cleanup and is caused by Qt C++
-        # internal state (d->running) diverging from Python-side state (isRunning())
-        # on the headless offscreen plugin. See CLAUDE.md for details.
 
     steps:
       - uses: actions/checkout@v4
