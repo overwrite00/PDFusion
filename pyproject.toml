@@ -4,7 +4,7 @@ build-backend = "setuptools.backends.legacy:build"
 
 [project]
 name = "pdfusion"
-version = "0.2.1"
+version = "0.2.2"
 description = "Cross-platform PDF management desktop application"
 license = { text = "MIT" }
 requires-python = ">=3.11,<3.14"
@@ -68,7 +68,7 @@ precision = 2
 directory = "htmlcov"
 
 [tool.mypy]
-python_version = "0.2.1"
+python_version = "0.2.2"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
