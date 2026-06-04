@@ -25,7 +25,6 @@ create-dmg \
   --icon "PDFusion.app" 175 190 \
   --hide-extension "PDFusion.app" \
   --app-drop-link 425 190 \
-  --background "$APP_DIR/assets/icons/dmg_background.png" \
   --no-internet-enable \
   "$OUTPUT" \
   "$APP_BUNDLE"

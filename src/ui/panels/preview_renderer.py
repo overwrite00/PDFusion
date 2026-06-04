@@ -157,15 +157,33 @@ class PreviewRenderer(QObject):
         self._cleanup_temp_file()
 
     def cancel_render(self) -> None:
-        """Cancel the current preview render and clean up."""
+        """Cancel the current preview render and clean up.
+
+        CRITICAL FIX: Never use terminate() on Linux/macOS (pthread_cancel
+        on fitz-blocked threads causes permanent deadlock). Use only quit().
+        """
+        import sys
+
         if self._thread and self._thread.isRunning():
             logger.debug("PreviewRenderer: cancelling render")
             self._thread.quit()
-            # Wait up to 3 seconds for graceful shutdown
-            if not self._thread.wait(3000):
-                logger.warning("PreviewRenderer: render thread did not respond to quit, forcing termination")
-                self._thread.terminate()
-                self._thread.wait(1000)
+            # Wait up to 3 seconds for graceful shutdown (polling every 100ms)
+            for _ in range(30):  # 30 * 100ms = 3 seconds
+                if self._thread.wait(100):
+                    logger.debug("PreviewRenderer: render thread stopped via quit")
+                    break
+            else:
+                # Timeout on Linux/macOS: don't use terminate()
+                if sys.platform in ("linux", "darwin"):
+                    logger.warning(
+                        "PreviewRenderer: render thread did not stop. "
+                        "Not using terminate() on Linux/macOS (deadlock risk)."
+                    )
+                else:
+                    # Windows: safe to terminate as fallback
+                    logger.warning("PreviewRenderer: render thread did not respond to quit, forcing termination")
+                    self._thread.terminate()
+                    self._thread.wait(1000)
             logger.debug("PreviewRenderer: render thread stopped")
 
         self._is_rendering = False

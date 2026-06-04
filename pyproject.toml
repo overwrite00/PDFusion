@@ -4,7 +4,7 @@ build-backend = "setuptools.backends.legacy:build"
 
 [project]
 name = "pdfusion"
-version = "0.2.0"
+version = "0.2.1"
 description = "Cross-platform PDF management desktop application"
 license = { text = "MIT" }
 requires-python = ">=3.11,<3.14"
@@ -12,6 +12,17 @@ requires-python = ">=3.11,<3.14"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+# Hard per-test timeout: converts any hang (e.g. a Qt thread that never quits on
+# a headless Linux runner) into a normal test failure WITH a full traceback of
+# every thread, instead of silently blocking the whole CI job for 30+ minutes.
+timeout = 120
+timeout_method = "thread"
+# Use "thread" method on all platforms (not "signal" on Linux).
+# Reason: SIGALRM cannot interrupt main thread blocked in Qt C code (e.g. fitz.get_pixmap()).
+# The thread-based watchdog is more robust and works reliably on Linux+headless+Qt.
+# Dump all thread stacks if the whole session stalls past this many seconds —
+# a backstop independent of pytest-timeout.
+faulthandler_timeout = 300
 
 [tool.ruff]
 src = ["src"]
@@ -27,6 +38,11 @@ ignore = [
     "F841",               # Unused variables (can be cleaned up later)
     "SIM102", "SIM103", "SIM105", "SIM108", "SIM113", "SIM117",  # Simplification suggestions too aggressive
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Test files have specific import patterns for fixtures and mocking (from conftest, PyQt6)
+# I001: Import block is un-sorted or un-formatted - test fixtures have different import priorities
+"tests/**/*.py" = ["I001"]
 
 [tool.coverage.run]
 branch = true
@@ -52,7 +68,7 @@ precision = 2
 directory = "htmlcov"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "0.2.1"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

@@ -33,10 +33,10 @@ jobs:
         shell: pwsh
         run: |
           $staging = "installer\windows\dist_staging"
-          if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
-          Copy-Item "dist\PDFusion" -Destination $staging -Recurse
+          if (Test-Path "$staging") { Remove-Item "$staging" -Recurse -Force }
+          Copy-Item "dist\PDFusion" -Destination "$staging" -Recurse
           Write-Host "✓ Staged files:"
-          Get-ChildItem $staging | Select-Object -ExpandProperty Name
+          Get-ChildItem "$staging" | Select-Object -ExpandProperty Name
 
       - name: Build NSIS installer
         shell: pwsh
@@ -48,6 +48,16 @@ jobs:
           Write-Host "NSI file resolved to: $nsiAbsolute"
           & "C:\Program Files (x86)\NSIS\makensis.exe" "/DDIST_DIR=$distAbsolute" "/DVERSION=$version" "$nsiAbsolute"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify Windows installer exists
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem "installer\windows\PDFusion-*-windows-setup.exe" -ErrorAction SilentlyContinue
+          if (-not $file) {
+            Write-Error "❌ Windows installer not found"
+            exit 1
+          }
+          Write-Host "✓ Found: $($file.Name) ($([math]::Round($file.Length/1MB, 2)) MB)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -87,9 +97,7 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1024x768x24 &
-          pyinstaller PDFusion.spec --noconfirm
+          xvfb-run --auto-servernum pyinstaller PDFusion.spec --noconfirm
 
       - name: Download AppImageTool
         run: |
@@ -99,6 +107,14 @@ jobs:
 
       - name: Build AppImage
         run: bash installer/linux/build_appimage.sh "${{ github.ref_name }}"
+
+      - name: Verify Linux AppImage exists
+        run: |
+          if ! ls installer/linux/PDFusion-*-linux.AppImage 1>/dev/null 2>&1; then
+            echo "❌ Linux AppImage not found"
+            exit 1
+          fi
+          ls -lh installer/linux/PDFusion-*-linux.AppImage
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -113,6 +129,9 @@ jobs:
   build-macos:
     name: Build macOS DMG
     runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -132,13 +151,18 @@ jobs:
 
       - name: Sign app (conditional)
         if: ${{ env.APPLE_CERTIFICATE != '' }}
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
         run: bash installer/macos/sign.sh
 
       - name: Build DMG
         run: bash installer/macos/create_dmg.sh "${{ github.ref_name }}"
+
+      - name: Verify macOS DMG exists
+        run: |
+          if ! ls installer/macos/PDFusion-*-macos.dmg 1>/dev/null 2>&1; then
+            echo "❌ macOS DMG not found"
+            exit 1
+          fi
+          ls -lh installer/macos/PDFusion-*-macos.dmg
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

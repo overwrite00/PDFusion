@@ -105,7 +105,11 @@ class ThumbnailPanel(QWidget):
         super().__init__(parent)
         self._total_pages = 0
         self._rendered: set[int] = set()
-        self._thread = QThread(self)
+        # Un QThread nuovo per ogni documento, distrutto in _close_worker():
+        # riusare lo stesso QThread tra cicli load/close ripetuti causa crash
+        # nativi (worker con thread-affinity stantia accumulati sullo stesso
+        # thread riavviato).
+        self._thread: QThread | None = None
         self._worker: _ThumbWorker | None = None
         self._setup_ui()
 
@@ -158,6 +162,7 @@ class ThumbnailPanel(QWidget):
             )
             self._list.addItem(item)
 
+        self._thread = QThread(self)
         self._worker = _ThumbWorker(str(path), password)
         self._worker.moveToThread(self._thread)
         self._worker.thumbnail_ready.connect(self._on_thumbnail_ready)
@@ -217,33 +222,32 @@ class ThumbnailPanel(QWidget):
         self.order_changed.emit(new_order)
 
     def _close_worker(self) -> None:
+        # CRITICAL FIX: Snapshot self._worker e self._thread PRIMA di qualsiasi
+        # operazione asincrona, per evitare use-after-free se un callback di
+        # signal li azzera durante la chiusura.
+        worker_snapshot = self._worker
+        thread_snapshot = self._thread
+        self._worker = None
+        self._thread = None
+
+        if worker_snapshot is None:
+            logger.debug("Worker thumbnail già chiuso o non inizializzato")
+            return
+
         try:
-            # CRITICAL FIX: Snapshot self._worker BEFORE any async operations
-            # to prevent use-after-free if signal callbacks delete it
-            worker_snapshot = self._worker
-            self._worker = None  # Clear immediately to prevent signal callbacks from accessing it
-
-            if not worker_snapshot:
-                logger.debug("Worker thumbnail già chiuso o non inizializzato")
-                return
-
-            # 1. Signal worker to stop accepting new render() calls
+            # 1. Impedisci nuove chiamate render() sul worker.
             logger.debug("Chiusura worker thumbnail (impostazione flag _closed)")
             worker_snapshot.close()  # sets _closed = True (doesn't touch _doc)
+            logger.debug("Worker thumbnail in chiusura...")
+        except Exception as e:
+            logger.error(f"Errore durante chiusura worker thumbnail: {e}", exc_info=True)
+        finally:
+            # Garantisce SEMPRE l'arresto del thread e la distruzione di worker
+            # e thread, anche se uno step precedente ha sollevato. Un QThread
+            # lasciato running e raccolto dal GC fa abortire Qt.
+            self._shutdown_thread(thread_snapshot)
 
-            # 2. Stop the thread and wait for it to exit
-            if self._thread.isRunning():
-                logger.debug("Arresto thread thumbnail...")
-                self._thread.quit()
-                if not self._thread.wait(2000):
-                    logger.warning("Thread thumbnail non ha risposto al quit(), forzamento terminazione")
-                    self._thread.terminate()
-                    self._thread.wait(1000)
-                logger.debug("Thread thumbnail fermato")
-
-            # 3. Close fitz document: thread is now stopped,
-            # no render() calls are active, and worker_snapshot is safe to access
-            # (even if signal callbacks try to delete it, we have our own reference)
+            # Chiudi il documento fitz: il thread è ormai fermo.
             if worker_snapshot._doc:
                 logger.debug("Chiusura documento fitz in thumbnail...")
                 try:
@@ -253,6 +257,73 @@ class ThumbnailPanel(QWidget):
                 finally:
                     worker_snapshot._doc = None
 
+            # Distruggi worker e thread in modo sicuro tramite il loop Qt.
+            worker_snapshot.deleteLater()
+            if thread_snapshot is not None:
+                thread_snapshot.deleteLater()
             logger.debug("Worker thumbnail chiuso correttamente")
+
+    @staticmethod
+    def _shutdown_thread(thread: QThread | None) -> None:
+        """Ferma un QThread con timeout robusto e niente deadlock.
+
+        CRITICAL FIX: Never use pthread_cancel (terminate()) on Linux/macOS
+        when thread may be blocked in fitz.get_pixmap(). The cancel remains
+        pending inside non-cancel-safe C code, causing permanent deadlock.
+        On Linux/macOS: use only quit() + polling wait().
+        On Windows: terminate() is safe as fallback.
+        """
+        import sys
+
+        if thread is None:
+            return
+        try:
+            if not thread.isRunning():
+                return
+        except RuntimeError:
+            # Thread è stato garbage collected
+            return
+        logger.debug("Arresto thread thumbnail...")
+        # quit() può sollevare (es. mockato nei test, o stato Qt anomalo): se
+        # accade dobbiamo comunque tentare l'arresto cooperativo, mai lasciare
+        # il thread running (verrebbe distrutto running -> SIGABRT).
+        try:
+            thread.quit()
         except Exception as e:
-            logger.error(f"Errore durante chiusura worker thumbnail: {e}", exc_info=True)
+            logger.warning(f"quit() del thread thumbnail fallito: {e}")
+        try:
+            # wait() con timeout breve (100ms polling) in caso di deadlock
+            for _ in range(20):  # 20 * 100ms = 2 secondi
+                if thread.wait(100):
+                    logger.debug("Thread thumbnail fermato da quit()")
+                    return
+                try:
+                    if not thread.isRunning():
+                        return
+                except RuntimeError:
+                    return
+        except Exception as e:
+            logger.warning(f"wait() del thread thumbnail fallito: {e}")
+
+        # CRITICAL: Do NOT use terminate() on Linux/macOS - causes permanent deadlock
+        if sys.platform in ("linux", "darwin"):
+            logger.warning(
+                "Thread did not stop via quit() on Linux/macOS. "
+                "Not using terminate() due to pthread_cancel deadlock risk with fitz. "
+                "Relying on job timeout to clean up."
+            )
+            return
+
+        # On Windows: terminate() is safe as fallback
+        try:
+            if thread.isRunning():
+                logger.warning("Thread thumbnail non fermato dal quit(), forzamento terminazione (Windows)")
+                thread.terminate()
+                # wait() con timeout breve (100ms polling)
+                for _ in range(10):  # 10 * 100ms = 1 secondo
+                    if thread.wait(100):
+                        logger.debug("Thread thumbnail terminato da terminate()")
+                        return
+        except Exception as e:
+            logger.warning(f"Errore durante terminate() del thread thumbnail: {e}")
+        logger.debug("Thread thumbnail fermato")

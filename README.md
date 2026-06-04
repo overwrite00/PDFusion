@@ -4,12 +4,12 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 
 ![PDFusion Interface](assets/hero.png)
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue)]()
+[![Version](https://img.shields.io/badge/version-0.2.1-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
 [![Platform](https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
-[![Last Updated](https://img.shields.io/badge/last%20updated-2026--05--28-blue)]()
+[![Last Updated](https://img.shields.io/badge/last%20updated-2026--06--04-blue)]()
 
 ---
 
@@ -127,9 +127,9 @@ Pre-built executables available in [Releases](https://github.com/overwrite00/PDF
 
 | Platform | Installer | Type |
 |---|---|---|
-| **Windows** | `PDFusion-0.1.11-windows-setup.exe` | NSIS installer |
-| **macOS** | `PDFusion-0.1.11-macos.dmg` | Disk image |
-| **Linux** | `PDFusion-0.1.11-linux.AppImage` | Portable executable |
+| **Windows** | `PDFusion-0.2.1-windows-setup.exe` | NSIS installer |
+| **macOS** | `PDFusion-0.2.1-macos.dmg` | Disk image |
+| **Linux** | `PDFusion-0.2.1-linux.AppImage` | Portable executable |
 
 [⬆ Back to Top](#table-of-contents)
 
