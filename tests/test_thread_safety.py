@@ -12,7 +12,6 @@ Tests cover:
 from __future__ import annotations
 
 import logging
-import os
 
 # Import modules under test
 import sys
