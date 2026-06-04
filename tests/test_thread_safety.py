@@ -79,11 +79,16 @@ def _flush_qt_deletions():
     #    mentre è ancora running fa abortire Qt ("QThread: Destroyed while
     #    thread is still running" -> SIGABRT), contaminando i test successivi.
     def _stop_thread(thread: QThread | None) -> None:
-        """Stop a QThread with robust polling (mirrors viewer._shutdown_thread).
+        """Stop a QThread safely without risking deadlock on Linux.
 
-        Avoids unbounded wait() which can deadlock on headless Linux
-        or hang when thread is stuck in C code (e.g., fitz.get_pixmap()).
-        Uses polling with 100ms intervals instead.
+        CRITICAL: Never use terminate() (pthread_cancel) on Linux when thread
+        may be blocked in C code like fitz.get_pixmap(). The cancel remains
+        pending inside non-cancel-safe code, causing permanent deadlock.
+
+        On Linux: use only quit() + polling wait(). If it times out, the job
+        timeout-minutes=20 will eventually kill the entire process.
+
+        On Windows/macOS: terminate() is safe as a fallback.
         """
         if thread is None:
             return
@@ -95,7 +100,7 @@ def _flush_qt_deletions():
 
         try:
             thread.quit()
-            # Polling wait with 100ms intervals instead of unbounded wait(2000)
+            # Polling wait with 100ms intervals instead of unbounded wait
             for _ in range(20):  # 20 * 100ms = 2 seconds
                 if thread.wait(100):
                     return
@@ -107,7 +112,16 @@ def _flush_qt_deletions():
         except Exception:
             pass
 
-        # Fallback: terminate if quit() failed (but avoid terminate() on stuck threads)
+        # CRITICAL: Do NOT use terminate() on Linux - causes permanent deadlock
+        if sys.platform == "linux":
+            # On Linux headless: quit() is the only safe option.
+            # If thread is still running, we can't safely kill it without
+            # risking deadlock from pthread_cancel on fitz-blocked code.
+            # The fixture will continue and the job timeout will eventually
+            # clean up the entire process.
+            return
+
+        # On Windows/macOS: terminate() is safe as fallback
         try:
             if thread.isRunning():
                 thread.terminate()
@@ -190,10 +204,6 @@ class TestRenderWorkerThreadSafety:
             if thread.wait(100):
                 break
 
-    @pytest.mark.skipif(
-        os.environ.get("QT_QPA_PLATFORM") == "offscreen",
-        reason="Real fitz render thread + terminate() deadlocks under offscreen Qt on Linux"
-    )
     def test_worker_signal_emission_on_render(self, qapp, sample_pdf):
         """Verify worker emits rendered signal with correct data."""
         from PyQt6.QtCore import QThread
@@ -229,10 +239,6 @@ class TestRenderWorkerThreadSafety:
             thread.terminate()
             thread.wait(1000)
 
-    @pytest.mark.skipif(
-        os.environ.get("QT_QPA_PLATFORM") == "offscreen",
-        reason="Real fitz render thread + terminate() deadlocks under offscreen Qt on Linux"
-    )
     def test_worker_error_signal_on_invalid_page(self, qapp, sample_pdf):
         """Verify worker emits error signal for invalid page indices."""
         from PyQt6.QtCore import QThread

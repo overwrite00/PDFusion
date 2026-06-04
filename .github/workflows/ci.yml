@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]  # TODO: ubuntu-latest disabled due to persistent test_thread_safety deadlock with terminate() on offscreen Qt
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.12"]
 
     steps:
