@@ -154,6 +154,15 @@ def _flush_qt_deletions():
                 return True
         return True
 
+    # Import sip for deterministic C++ object deletion
+    try:
+        import sip  # type: ignore
+    except ImportError:
+        try:
+            from PyQt6 import sip  # type: ignore
+        except ImportError:
+            sip = None  # type: ignore
+
     # Track whether EVERY thread is confirmed stopped. If even one running
     # thread remains (Linux can't safely kill it), we must NOT process
     # DeferredDelete events or run GC over it -> that destruction is what
@@ -167,8 +176,20 @@ def _flush_qt_deletions():
                     # Ferma direttamente il thread del widget: _close_worker() esce
                     # subito se _worker è già None (es. dopo una chiusura fallita),
                     # lasciando però il thread ancora in esecuzione.
-                    if not _stop_thread(getattr(widget, "_thread", None)):
-                        all_threads_stopped = False
+                    thread = getattr(widget, "_thread", None)
+                    if thread is not None:
+                        if _stop_thread(thread):
+                            # CRITICAL: Delete the C++ thread object immediately while
+                            # confirmed stopped. This prevents ~QThread() from running
+                            # later during GC on a live thread (which causes SIGABRT).
+                            if sip is not None:
+                                try:
+                                    if not sip.isdeleted(thread):
+                                        sip.delete(thread)
+                                except (RuntimeError, TypeError, ValueError):
+                                    pass
+                        else:
+                            all_threads_stopped = False
                     try:
                         widget._close_worker()
                     except Exception:
@@ -187,7 +208,16 @@ def _flush_qt_deletions():
     try:
         for thread in app.findChildren(QThread):
             try:
-                if not _stop_thread(thread):
+                if _stop_thread(thread):
+                    # CRITICAL: Delete the C++ thread object immediately while
+                    # confirmed stopped (same as above). Prevents SIGABRT on GC.
+                    if sip is not None:
+                        try:
+                            if not sip.isdeleted(thread):
+                                sip.delete(thread)
+                        except (RuntimeError, TypeError, ValueError):
+                            pass
+                else:
                     all_threads_stopped = False
             except Exception:
                 pass
@@ -622,9 +652,10 @@ class TestPDFViewerThreadSafety:
         cooperativo (wait()), senza far crashare il processo.
 
         NOTE: This test mocks quit() to raise, creating a "broken" thread that
-        _close_worker() must handle gracefully. The fixture's _flush_qt_deletions
-        cleanup will stop and destroy the thread after test completes, avoiding
-        crashes from accessing a corrupted QThread object after the mock.
+        _close_worker() must handle gracefully. After the test body, we must
+        deterministically stop the orphan thread before the fixture teardowns;
+        otherwise the timing-racy offscreen plugin on Linux leaves the thread
+        looking "running" when gc.collect() finalizes it -> SIGABRT.
         """
         viewer.load_document(Path(sample_pdf))
         thread = viewer._thread
@@ -640,10 +671,28 @@ class TestPDFViewerThreadSafety:
 
         # Il worker è azzerato (snapshot pattern), il thread non è più tracciato
         # in viewer, ma il thread è ancora vivo (quit was never called via mock).
-        # DO NOT attempt to manually quit/wait on this thread - that risks
-        # access violations when the thread object is corrupted by the mock.
-        # Let the fixture _flush_qt_deletions handle cleanup safely.
+        # CRITICAL: Now that the mock is gone, stop the orphan thread
+        # deterministically so _flush_qt_deletions can delete it immediately
+        # via sip.delete() instead of deferring to a racy GC pass.
         assert viewer._worker is None
+
+        # Capture the real quit() now that the mock is removed
+        try:
+            if thread.isRunning():
+                thread.quit()
+                # Block until it is genuinely finished - offscreen plugin needs
+                # this real blocking wait to clear d->running under the mutex
+                if thread.wait(5000):
+                    # Confirmed stopped - good for _flush_qt_deletions to delete
+                    pass
+                else:
+                    # Still running after 5s - unusual but don't crash; the fixture
+                    # will handle the orphan (either delete if possible or leak safely)
+                    pass
+        except RuntimeError:
+            # Thread object became invalid - that's ok, cleanup will find it via
+            # app.findChildren(QThread) backstop
+            pass
 
 
 class TestThumbnailPanelThreadSafety:
