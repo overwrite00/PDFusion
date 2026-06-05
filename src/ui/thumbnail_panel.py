@@ -79,6 +79,20 @@ class _ThumbWorker(QObject):
         con render() in esecuzione sul thread worker."""
         self._closed = True
 
+    @pyqtSlot()
+    def _close_doc(self) -> None:
+        """CRITICAL FIX (Ubuntu SIGABRT): Close the fitz document on the
+        worker thread BEFORE stopping the thread. This prevents cross-thread
+        finalization of fitz C-level resources that corrupts Python's
+        condition variable state on Linux's offscreen plugin."""
+        if self._doc is not None:
+            try:
+                self._doc.close()
+            except Exception:
+                pass  # Best effort
+            finally:
+                self._doc = None
+
 
 # ---------------------------------------------------------------------------
 # ThumbnailPanel
@@ -242,47 +256,76 @@ class ThumbnailPanel(QWidget):
         except Exception as e:
             logger.error(f"Errore durante chiusura worker thumbnail: {e}", exc_info=True)
         finally:
-            # Garantisce SEMPRE l'arresto del thread e la distruzione di worker
-            # e thread, anche se uno step precedente ha sollevato. Un QThread
-            # lasciato running e raccolto dal GC fa abortire Qt.
-            self._shutdown_thread(thread_snapshot)
-
-            # Chiudi il documento fitz: il thread è ormai fermo.
-            if worker_snapshot._doc:
-                logger.debug("Chiusura documento fitz in thumbnail...")
+            # CRITICAL FIX (Ubuntu SIGABRT): Close the fitz document ON the worker
+            # thread BEFORE stopping it. This prevents cross-thread finalization of
+            # fitz resources that corrupts Python's condition variable state on Linux.
+            if worker_snapshot is not None and thread_snapshot is not None:
                 try:
-                    worker_snapshot._doc.close()
+                    if thread_snapshot.isRunning():
+                        logger.debug("Chiusura documento fitz sul worker thread (thumbnail)...")
+                        QMetaObject.invokeMethod(
+                            worker_snapshot,
+                            "_close_doc",
+                            Qt.ConnectionType.BlockingQueuedConnection,
+                        )
                 except Exception as e:
-                    logger.warning(f"Errore chiusura documento fitz thumbnail: {e}")
-                finally:
-                    worker_snapshot._doc = None
+                    logger.warning(f"Errore chiusura documento fitz via invokeMethod (thumbnail): {e}")
+                    # Fallback: close on main thread if invokeMethod fails
+                    try:
+                        if worker_snapshot._doc:
+                            worker_snapshot._doc.close()
+                            worker_snapshot._doc = None
+                    except Exception as e2:
+                        logger.warning(f"Errore fallback chiusura documento thumbnail: {e2}")
 
-            # Distruggi worker e thread in modo sicuro tramite il loop Qt.
+            # Ferma il thread. _shutdown_thread ritorna True SOLO se il thread è
+            # confermato fermo. Un QThread lasciato running e poi distrutto fa
+            # abortire Qt ("QThread: Destroyed while thread is still running" ->
+            # SIGABRT), crash C che nessun try/except intercetta.
+            thread_stopped = self._shutdown_thread(thread_snapshot)
+
+            # CRITICAL (Ubuntu SIGABRT): pianifica deleteLater() SOLO se il thread
+            # è confermato fermo. Se NON è stato fermato (quit() fallito/mockato,
+            # o thread bloccato in fitz su Linux dove terminate() è proibito), NON
+            # distruggere mai il thread: ~QThread() su thread vivo aborta. Meglio
+            # leakare l'orfano (ripulito dal processo / safety net test) che crashare.
             worker_snapshot.deleteLater()
             if thread_snapshot is not None:
-                thread_snapshot.deleteLater()
+                if thread_stopped:
+                    thread_snapshot.deleteLater()
+                else:
+                    logger.warning(
+                        "Thread thumbnail NON fermato in modo confermato: salto "
+                        "deleteLater() per evitare ~QThread() su thread vivo (SIGABRT)."
+                    )
             logger.debug("Worker thumbnail chiuso correttamente")
 
     @staticmethod
-    def _shutdown_thread(thread: QThread | None) -> None:
+    def _shutdown_thread(thread: QThread | None) -> bool:
         """Ferma un QThread con timeout robusto e niente deadlock.
+
+        Ritorna ``True`` SOLO se il thread è confermato fermo (o non era mai
+        running / già distrutto). Ritorna ``False`` se è ancora in esecuzione e
+        non è stato possibile fermarlo. Il chiamante usa questo valore per
+        decidere se sia sicuro pianificare ``deleteLater()``: distruggere un
+        ``~QThread()`` running chiama ``qFatal()`` -> ``abort()`` -> SIGABRT.
 
         CRITICAL FIX: Never use pthread_cancel (terminate()) on Linux/macOS
         when thread may be blocked in fitz.get_pixmap(). The cancel remains
         pending inside non-cancel-safe C code, causing permanent deadlock.
-        On Linux/macOS: use only quit() + polling wait().
+        On Linux/macOS: use only quit() + a real blocking wait().
         On Windows: terminate() is safe as fallback.
         """
         import sys
 
         if thread is None:
-            return
+            return True
         try:
             if not thread.isRunning():
-                return
+                return True
         except RuntimeError:
             # Thread è stato garbage collected
-            return
+            return True
         logger.debug("Arresto thread thumbnail...")
         # quit() può sollevare (es. mockato nei test, o stato Qt anomalo): se
         # accade dobbiamo comunque tentare l'arresto cooperativo, mai lasciare
@@ -292,16 +335,20 @@ class ThumbnailPanel(QWidget):
         except Exception as e:
             logger.warning(f"quit() del thread thumbnail fallito: {e}")
         try:
-            # wait() con timeout breve (100ms polling) in caso di deadlock
-            for _ in range(20):  # 20 * 100ms = 2 secondi
-                if thread.wait(100):
-                    logger.debug("Thread thumbnail fermato da quit()")
-                    return
-                try:
-                    if not thread.isRunning():
-                        return
-                except RuntimeError:
-                    return
+            # ROOT-CAUSE FIX (SIGABRT Ubuntu): un SINGOLO wait() bloccante, non un
+            # polling a 100ms. Sul plugin offscreen di Linux il poll breve riporta
+            # spesso "still running" anche se quit() sta per atterrare. Il wait()
+            # bloccante unico joina davvero il thread e azzera d->running sotto
+            # mutex prima del ritorno (è ciò che rende Windows affidabile),
+            # rendendo ~QThread() sicuro ovunque.
+            if thread.wait(5000):
+                logger.debug("Thread thumbnail fermato da quit()")
+                return True
+            try:
+                if not thread.isRunning():
+                    return True
+            except RuntimeError:
+                return True
         except Exception as e:
             logger.warning(f"wait() del thread thumbnail fallito: {e}")
 
@@ -310,9 +357,12 @@ class ThumbnailPanel(QWidget):
             logger.warning(
                 "Thread did not stop via quit() on Linux/macOS. "
                 "Not using terminate() due to pthread_cancel deadlock risk with fitz. "
-                "Relying on job timeout to clean up."
+                "Reporting not-stopped so deletion is skipped."
             )
-            return
+            try:
+                return not thread.isRunning()
+            except RuntimeError:
+                return True
 
         # On Windows: terminate() is safe as fallback
         try:
@@ -323,7 +373,16 @@ class ThumbnailPanel(QWidget):
                 for _ in range(10):  # 10 * 100ms = 1 secondo
                     if thread.wait(100):
                         logger.debug("Thread thumbnail terminato da terminate()")
-                        return
+                        return True
+                try:
+                    return not thread.isRunning()
+                except RuntimeError:
+                    return True
         except Exception as e:
             logger.warning(f"Errore durante terminate() del thread thumbnail: {e}")
+            try:
+                return not thread.isRunning()
+            except RuntimeError:
+                return True
         logger.debug("Thread thumbnail fermato")
+        return True

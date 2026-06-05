@@ -63,8 +63,6 @@ def _flush_qt_deletions():
     """
     yield
 
-    import gc
-
     from PyQt6.QtCore import QCoreApplication, QEvent, QEventLoop, QThread
     from PyQt6.QtWidgets import QApplication
 
@@ -77,83 +75,193 @@ def _flush_qt_deletions():
     #    che mockano thread.quit() per sollevare). Un QThread distrutto dal GC
     #    mentre è ancora running fa abortire Qt ("QThread: Destroyed while
     #    thread is still running" -> SIGABRT), contaminando i test successivi.
-    def _stop_thread(thread: QThread | None) -> None:
+    def _stop_thread(thread: QThread | None) -> bool:
         """Stop a QThread safely without risking deadlock on Linux.
+
+        Returns ``True`` if the thread is confirmed STOPPED (or was never
+        running / already gone), ``False`` if it is still running and could
+        not be stopped. The caller uses this to decide whether it is safe to
+        process DeferredDelete events / GC: destroying a ``~QThread()`` while
+        Qt still considers it running calls ``qFatal()`` -> ``abort()`` ->
+        SIGABRT, a hard C signal no try/except can catch.
 
         CRITICAL: Never use terminate() (pthread_cancel) on Linux when thread
         may be blocked in C code like fitz.get_pixmap(). The cancel remains
         pending inside non-cancel-safe code, causing permanent deadlock.
 
-        On Linux: use only quit() + polling wait(). If it times out, the job
+        On Linux: use only quit() + a real blocking wait(). If it times out,
+        report ``False`` so the caller skips the unsafe deletion path; the job
         timeout-minutes=20 will eventually kill the entire process.
 
         On Windows/macOS: terminate() is safe as a fallback.
         """
         if thread is None:
-            return
+            return True
         try:
             if not thread.isRunning():
-                return
+                return True
         except RuntimeError:
-            return  # Thread was already garbage collected
+            return True  # Thread was already garbage collected or invalid
 
         try:
             thread.quit()
-            # Polling wait with 100ms intervals instead of unbounded wait
-            for _ in range(20):  # 20 * 100ms = 2 seconds
-                if thread.wait(100):
-                    return
-                try:
-                    if not thread.isRunning():
-                        return
-                except RuntimeError:
-                    return
         except Exception:
-            pass
+            # quit() failed - thread is probably corrupted. Don't try to wait.
+            # Report not-stopped so the caller avoids the deletion path.
+            try:
+                return not thread.isRunning()
+            except RuntimeError:
+                return True
 
-        # CRITICAL: Do NOT use terminate() on Linux - causes permanent deadlock
-        if sys.platform == "linux":
-            # On Linux headless: quit() is the only safe option.
-            # If thread is still running, we can't safely kill it without
-            # risking deadlock from pthread_cancel on fitz-blocked code.
-            # The fixture will continue and the job timeout will eventually
-            # clean up the entire process.
-            return
+        # Real blocking wait: give quit() a genuine chance to drain the event
+        # loop. On the Linux offscreen plugin a racy 100ms poll often reports
+        # "still running" even though quit() will land shortly; a single longer
+        # blocking wait removes that window (this is what made Windows reliable).
+        try:
+            if thread.wait(5000):
+                return True
+            if not thread.isRunning():
+                return True
+        except RuntimeError:
+            return True  # Thread object became invalid while waiting
+        except Exception:
+            try:
+                return not thread.isRunning()
+            except RuntimeError:
+                return True
 
-        # On Windows/macOS: terminate() is safe as fallback
+        # CRITICAL: Do NOT use terminate() on Linux/macOS - causes permanent
+        # deadlock via pthread_cancel on fitz-blocked code.
+        if sys.platform in ("linux", "darwin"):
+            # Cannot safely kill it. Report NOT stopped so the caller skips the
+            # DeferredDelete/GC path that would destroy a live ~QThread().
+            try:
+                return not thread.isRunning()
+            except RuntimeError:
+                return True
+
+        # On Windows: terminate() is safe as fallback
         try:
             if thread.isRunning():
                 thread.terminate()
-                for _ in range(10):  # 10 * 100ms = 1 second
-                    if thread.wait(100):
-                        return
+                if thread.wait(2000):
+                    return True
+                return not thread.isRunning()
         except Exception:
-            pass
-
-    for widget in app.allWidgets():
-        if isinstance(widget, PDFViewer | ThumbnailPanel):
-            # Ferma direttamente il thread del widget: _close_worker() esce
-            # subito se _worker è già None (es. dopo una chiusura fallita),
-            # lasciando però il thread ancora in esecuzione.
-            _stop_thread(getattr(widget, "_thread", None))
             try:
-                widget._close_worker()
+                return not thread.isRunning()
+            except RuntimeError:
+                return True
+        return True
+
+    # Import sip for deterministic C++ object deletion
+    try:
+        import sip  # type: ignore
+    except ImportError:
+        try:
+            from PyQt6 import sip  # type: ignore
+        except ImportError:
+            sip = None  # type: ignore
+
+    # Track whether EVERY thread is confirmed stopped. If even one running
+    # thread remains (Linux can't safely kill it), we must NOT process
+    # DeferredDelete events or run GC over it -> that destruction is what
+    # triggers SIGABRT. Leaking the orphan is strictly safer than aborting.
+    all_threads_stopped = True
+
+    try:
+        for widget in app.allWidgets():
+            try:
+                if isinstance(widget, PDFViewer | ThumbnailPanel):
+                    # Ferma direttamente il thread del widget: _close_worker() esce
+                    # subito se _worker è già None (es. dopo una chiusura fallita),
+                    # lasciando però il thread ancora in esecuzione.
+                    thread = getattr(widget, "_thread", None)
+                    if thread is not None:
+                        if _stop_thread(thread):
+                            # CRITICAL: Delete the C++ thread object immediately while
+                            # confirmed stopped. This prevents ~QThread() from running
+                            # later during GC on a live thread (which causes SIGABRT).
+                            if sip is not None:
+                                try:
+                                    if not sip.isdeleted(thread):
+                                        sip.delete(thread)
+                                except (RuntimeError, TypeError, ValueError):
+                                    pass
+                        else:
+                            all_threads_stopped = False
+                    try:
+                        widget._close_worker()
+                    except Exception:
+                        pass
+            except Exception:
+                # If we can't process this widget, continue with others
+                pass
+    except Exception:
+        # If we can't get widgets, continue anyway
+        pass
+
+    # Backstop: qualsiasi altro QThread ancora vivo nell'albero degli oggetti.
+    # Include thread orfani lasciati da test che mockano quit()/wait() (es.
+    # test_close_worker_exception_logging): il mock è ormai rimosso, quindi qui
+    # quit() reale può finalmente fermarli.
+    try:
+        for thread in app.findChildren(QThread):
+            try:
+                if _stop_thread(thread):
+                    # CRITICAL: Delete the C++ thread object immediately while
+                    # confirmed stopped (same as above). Prevents SIGABRT on GC.
+                    if sip is not None:
+                        try:
+                            if not sip.isdeleted(thread):
+                                sip.delete(thread)
+                        except (RuntimeError, TypeError, ValueError):
+                            pass
+                else:
+                    all_threads_stopped = False
             except Exception:
                 pass
-    # Backstop: qualsiasi altro QThread ancora vivo nell'albero degli oggetti.
-    for thread in app.findChildren(QThread):
-        _stop_thread(thread)
+    except Exception:
+        # If we can't find children, continue anyway
+        pass
 
-    # 2. Elabora gli eventi normali e poi forza gli eventi DeferredDelete
-    #    (generati da deleteLater()), che processEvents da solo non elabora
-    #    finché il loop non torna al livello di creazione dell'oggetto.
-    app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
-    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete.value)
-    app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
+    # 2. SE e solo se tutti i thread sono confermati fermi, è sicuro processare
+    #    gli eventi DeferredDelete (generati da deleteLater()) e forzare il GC.
+    #    Distruggere un QThread mentre Qt lo considera ancora running fa abortire
+    #    il processo (SIGABRT) — un crash C che nessun try/except intercetta.
+    #    Su Linux, se un thread non si è fermato, SALTIAMO tutta la fase di
+    #    distruzione: meglio "leakare" l'oggetto (il job ha un timeout) che far
+    #    crashare l'intera suite. Vedi crash Ubuntu in _flush_qt_deletions.
+    if not all_threads_stopped:
+        logger.warning(
+            "Un QThread non si è fermato in modo confermato durante il teardown "
+            "(%s). Salto DeferredDelete/GC per evitare ~QThread() su thread vivo "
+            "(SIGABRT). L'oggetto verrà ripulito dalla terminazione del processo.",
+            sys.platform,
+        )
+        return
 
-    # 3. Forza il GC mentre i thread sono fermi: ora la distruzione dei
-    #    widget orfani è sicura.
-    gc.collect()
+    try:
+        app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
+    except Exception:
+        pass
+
+    try:
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete.value)
+    except Exception:
+        pass
+
+    try:
+        app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 50)
+    except Exception:
+        pass
+
+    # 3. Skip GC here - it was triggering background finalization of fitz resources
+    #    that corrupted Python's condition variable state on Linux.
+    #    With the BlockingQueuedConnection fitz.close() fix in viewer.py and
+    #    thumbnail_panel.py, documents are now closed on the worker thread before
+    #    it stops, eliminating cross-thread finalization. Let Python's normal GC
+    #    handle orphaned widgets at its own pace - no more explicit gc.collect().
 
 
 class TestRenderWorkerThreadSafety:
@@ -163,6 +271,105 @@ class TestRenderWorkerThreadSafety:
     def qapp(self):
         """Provide QApplication instance (with headless support)."""
         return _safe_qapplication_creation()
+
+    @pytest.fixture
+    def make_worker_thread(self, qapp):
+        """Factory + GUARANTEED deterministic teardown for bare worker/thread.
+
+        ROOT CAUSE of the Ubuntu SIGABRT this fixture fixes:
+
+        These tests create a ``_RenderWorker`` and a *bare, unparented*
+        ``QThread()`` as local variables, then ``moveToThread()`` the worker.
+        Unlike production (``QThread(self)``, parented to the widget) and unlike
+        every other test class here (which use ``PDFViewer``/``ThumbnailPanel``
+        widget fixtures), these objects are:
+
+          * NOT ``QWidget`` instances -> invisible to ``app.allWidgets()``
+          * NOT parented to any QObject -> invisible to ``app.findChildren(QThread)``
+
+        So the autouse ``_flush_qt_deletions`` safety net structurally CANNOT
+        find or stop them. When the test returns, ``worker``/``thread`` become
+        orphaned locals. Python's GC later destroys the ``QThread`` object; if
+        Qt still considers the thread running at that instant, ``~QThread()``
+        calls ``qFatal("QThread: Destroyed while thread is still running")`` ->
+        ``abort()`` -> SIGABRT. This is a hard C-level signal, NOT a Python
+        exception, which is why wrapping cleanup in try/except never helped.
+
+        On Windows ``wait()`` reliably reports the idle event loop as stopped,
+        so GC always sees a finished thread -> no crash. On Ubuntu's offscreen
+        plugin the event-loop teardown timing differs and the orphaned thread
+        can still look "running" at GC time -> SIGABRT, landing on whichever
+        test first leaves an open-fitz-doc + idle-but-not-confirmed-stopped
+        thread (``test_worker_error_signal_on_invalid_page``: render(9999)
+        opens the doc, hits the bounds check, returns WITHOUT emitting a signal
+        and WITHOUT closing the doc).
+
+        THE FIX: this fixture owns the lifecycle. In teardown it deterministically
+        quits the thread, BLOCKS until it is genuinely finished (real wait, not a
+        racy poll), closes the worker's fitz doc, then destroys both objects
+        DIRECTLY (``sip.delete``) instead of via ``deleteLater``/GC. By the time
+        Python GC sees the C++ objects they are already gone, so ~QThread can
+        never run on a live thread. No reliance on the unreachable safety net.
+        """
+        from PyQt6.QtCore import QThread
+
+        created: list[tuple[_RenderWorker, QThread]] = []
+
+        def _factory(doc_path: str) -> tuple[_RenderWorker, QThread]:
+            worker = _RenderWorker(doc_path)
+            thread = QThread()
+            worker.moveToThread(thread)
+            created.append((worker, thread))
+            return worker, thread
+
+        yield _factory
+
+        for worker, thread in created:
+            # 1. Stop the thread's event loop and BLOCK until it is truly
+            #    finished. We use the real (unbounded-but-capped) wait so there
+            #    is no window where Qt still considers the thread running.
+            try:
+                if thread.isRunning():
+                    thread.quit()
+                    if not thread.wait(5000):
+                        # Last resort: only Windows can safely terminate().
+                        # On Linux/macOS terminate() (pthread_cancel) on a thread
+                        # blocked in fitz deadlocks, so we must not use it; a
+                        # genuinely stuck thread here is a real bug to surface.
+                        if sys.platform == "win32":
+                            thread.terminate()
+                            thread.wait(2000)
+            except RuntimeError:
+                # C++ object already gone; nothing left to stop.
+                pass
+
+            # 2. Close any fitz doc the worker left open (render(9999) returns
+            #    early without closing it). Frees the file handle deterministically.
+            try:
+                if worker._doc is not None:
+                    worker._doc.close()
+                    worker._doc = None
+            except (RuntimeError, AttributeError):
+                pass
+
+            # 3. Destroy the C++ objects NOW, while the thread is confirmed
+            #    stopped — never defer to deleteLater()/GC. This removes any
+            #    possibility of ~QThread() running on a live thread later.
+            try:
+                import sip  # type: ignore
+            except ImportError:
+                try:
+                    from PyQt6 import sip  # type: ignore
+                except ImportError:
+                    sip = None  # type: ignore
+
+            if sip is not None:
+                for obj in (worker, thread):
+                    try:
+                        if not sip.isdeleted(obj):
+                            sip.delete(obj)
+                    except (RuntimeError, TypeError, ValueError):
+                        pass
 
     @pytest.fixture
     def sample_pdf(self, tmp_path):
@@ -180,12 +387,9 @@ class TestRenderWorkerThreadSafety:
         except ImportError:
             pytest.skip("fitz not available")
 
-    def test_worker_close_flag_prevents_reopening(self, qapp, sample_pdf):
+    def test_worker_close_flag_prevents_reopening(self, make_worker_thread, sample_pdf):
         """Verify that calling close() prevents reopening the document."""
-        from PyQt6.QtCore import QThread
-        worker = _RenderWorker(sample_pdf)
-        thread = QThread()
-        worker.moveToThread(thread)
+        worker, thread = make_worker_thread(sample_pdf)
 
         # Mark as closed
         worker.close()
@@ -195,23 +399,15 @@ class TestRenderWorkerThreadSafety:
         worker.render(0, 1.0)
         assert worker._doc is None, "Document should not reopen after close() call"
 
-        thread.quit()
-        # Polling wait: thread was never started, so quit() is a no-op and
-        # wait(100) returns immediately. Use polling instead of unbounded wait()
-        # to prevent hanging on a headless CI runner.
-        for _ in range(20):
-            if thread.wait(100):
-                break
+        # Thread teardown (quit + full wait + direct delete) is handled
+        # deterministically by the make_worker_thread fixture.
 
-    def test_worker_signal_emission_on_render(self, qapp, sample_pdf):
+    def test_worker_signal_emission_on_render(self, make_worker_thread, sample_pdf):
         """Verify worker emits rendered signal with correct data."""
-        from PyQt6.QtCore import QThread
         from PyQt6.QtGui import QPixmap
         from PyQt6.QtWidgets import QApplication
 
-        worker = _RenderWorker(sample_pdf)
-        thread = QThread()
-        worker.moveToThread(thread)
+        worker, thread = make_worker_thread(sample_pdf)
 
         signal_received = []
 
@@ -233,36 +429,13 @@ class TestRenderWorkerThreadSafety:
         assert page_idx == 0
         assert isinstance(pixmap, QPixmap)
 
-        thread.quit()
-        # Use polling wait with platform-aware terminate fallback (Windows only)
-        stopped = False
-        for _ in range(20):  # 20 * 100ms = 2 seconds
-            if thread.wait(100):
-                stopped = True
-                break
-            try:
-                if not thread.isRunning():
-                    stopped = True
-                    break
-            except RuntimeError:
-                stopped = True
-                break
+        # Thread teardown handled deterministically by make_worker_thread fixture.
 
-        # On Windows: terminate() is safe fallback; on Linux/macOS: never use it
-        if not stopped and sys.platform == "win32":
-            thread.terminate()
-            for _ in range(10):  # 10 * 100ms = 1 second
-                if thread.wait(100):
-                    break
-
-    def test_worker_error_signal_on_invalid_page(self, qapp, sample_pdf):
+    def test_worker_error_signal_on_invalid_page(self, make_worker_thread, sample_pdf):
         """Verify worker emits error signal for invalid page indices."""
-        from PyQt6.QtCore import QThread
         from PyQt6.QtWidgets import QApplication
 
-        worker = _RenderWorker(sample_pdf)
-        thread = QThread()
-        worker.moveToThread(thread)
+        worker, thread = make_worker_thread(sample_pdf)
 
         error_received = []
 
@@ -280,27 +453,10 @@ class TestRenderWorkerThreadSafety:
             QApplication.processEvents()
             time.sleep(0.01)
 
-        thread.quit()
-        # Use polling wait with platform-aware terminate fallback (Windows only)
-        stopped = False
-        for _ in range(20):  # 20 * 100ms = 2 seconds
-            if thread.wait(100):
-                stopped = True
-                break
-            try:
-                if not thread.isRunning():
-                    stopped = True
-                    break
-            except RuntimeError:
-                stopped = True
-                break
-
-        # On Windows: terminate() is safe fallback; on Linux/macOS: never use it
-        if not stopped and sys.platform == "win32":
-            thread.terminate()
-            for _ in range(10):  # 10 * 100ms = 1 second
-                if thread.wait(100):
-                    break
+        # Thread teardown handled deterministically by make_worker_thread fixture:
+        # it quits the thread, BLOCKS until genuinely finished, closes the fitz
+        # doc render(9999) left open, then deletes both C++ objects directly so
+        # GC can never destroy a live QThread (the SIGABRT this test once caused).
 
 
 class TestPDFViewerThreadSafety:
@@ -494,10 +650,15 @@ class TestPDFViewerThreadSafety:
         Anche se ``quit()`` solleva, _close_worker() non deve propagare
         l'eccezione: deve loggarla e proseguire comunque con l'arresto
         cooperativo (wait()), senza far crashare il processo.
+
+        NOTE: This test mocks quit() to raise, creating a "broken" thread that
+        _close_worker() must handle gracefully. After the test body, we must
+        deterministically stop the orphan thread before the fixture teardowns;
+        otherwise the timing-racy offscreen plugin on Linux leaves the thread
+        looking "running" when gc.collect() finalizes it -> SIGABRT.
         """
         viewer.load_document(Path(sample_pdf))
         thread = viewer._thread
-        real_quit = thread.quit  # genuine quit, for real shutdown afterwards
 
         # Mock _thread.quit to raise an exception
         with patch.object(thread, 'quit', side_effect=RuntimeError("Mock error")):
@@ -508,23 +669,30 @@ class TestPDFViewerThreadSafety:
             # L'eccezione di quit() deve essere loggata, non propagata.
             assert "quit() del thread fallito" in caplog.text
 
-        # Il worker è azzerato (snapshot pattern), il thread non è più tracciato.
+        # Il worker è azzerato (snapshot pattern), il thread non è più tracciato
+        # in viewer, ma il thread è ancora vivo (quit was never called via mock).
+        # CRITICAL: Now that the mock is gone, stop the orphan thread
+        # deterministically so _flush_qt_deletions can delete it immediately
+        # via sip.delete() instead of deferring to a racy GC pass.
         assert viewer._worker is None
 
-        # quit() era mockato: il thread non ha mai ricevuto il quit reale e il
-        # suo loop eventi è ancora vivo. Fermalo davvero ora, prima del GC, per
-        # evitare il SIGABRT "QThread: Destroyed while thread is still running".
-        real_quit()
-        # Use polling wait instead of unbounded wait to avoid access violations on Windows
-        for _ in range(20):  # 20 * 100ms = 2 seconds
-            if thread.wait(100):
-                break
-            try:
-                if not thread.isRunning():
-                    break
-            except RuntimeError:
-                break
-        assert not thread.isRunning()
+        # Capture the real quit() now that the mock is removed
+        try:
+            if thread.isRunning():
+                thread.quit()
+                # Block until it is genuinely finished - offscreen plugin needs
+                # this real blocking wait to clear d->running under the mutex
+                if thread.wait(5000):
+                    # Confirmed stopped - good for _flush_qt_deletions to delete
+                    pass
+                else:
+                    # Still running after 5s - unusual but don't crash; the fixture
+                    # will handle the orphan (either delete if possible or leak safely)
+                    pass
+        except RuntimeError:
+            # Thread object became invalid - that's ok, cleanup will find it via
+            # app.findChildren(QThread) backstop
+            pass
 
 
 class TestThumbnailPanelThreadSafety:

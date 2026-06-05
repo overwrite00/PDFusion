@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-import threading
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -39,6 +38,48 @@ def _clear_layout(layout) -> None:
                 _clear_layout(child)
 
 
+class _Worker(QObject):
+    """
+    Worker QObject che esegue un'operazione PDF su un QThread.
+
+    Usato al posto di un raw ``threading.Thread`` per garantire che i risultati
+    vengano consegnati alla GUI tramite segnali Qt (queued connection), evitando
+    accessi cross-thread illegali al toolkit (causa di SIGABRT sul plugin
+    offscreen di Ubuntu) e rendendo il thread visibile al safety net
+    ``app.findChildren(QThread)``.
+
+    Segnali:
+        finished(Path): emesso con il percorso di output al termine con successo.
+        error(str): emesso con il messaggio d'errore in caso di fallimento.
+    """
+
+    finished = pyqtSignal(Path)
+    error = pyqtSignal(str)
+
+    def __init__(self, fn, input_path: Path, output_path: Path, password: str, config) -> None:
+        super().__init__()
+        self._fn = fn
+        self._input_path = input_path
+        self._output_path = output_path
+        self._password = password
+        self._config = config
+
+    @pyqtSlot()
+    def run(self) -> None:
+        try:
+            result = self._fn(
+                self._input_path, self._output_path, self._password, self._config
+            )
+            if isinstance(result, Path):
+                self.finished.emit(result)
+            elif isinstance(result, list) and result and isinstance(result[0], Path):
+                self.finished.emit(result[0])
+            else:
+                self.finished.emit(self._output_path)
+        except PDFusionError as exc:
+            self.error.emit(str(exc))
+        except Exception as exc:
+            self.error.emit(f"Errore inatteso: {exc}")
 
 
 class BasePanelWidget(QWidget, ConfigCollector):
@@ -304,23 +345,28 @@ class BasePanelWidget(QWidget, ConfigCollector):
         self._run_operation(source_path, output_path, source_password, config)
 
     def _run_operation(self, source_path: Path, output_path: Path, password: str, config) -> None:
-        """Run the main PDF operation in a background thread."""
-        def _worker_run():
-            try:
-                result = self._run_core(source_path, output_path, password, config)
-                if isinstance(result, Path):
-                    self._on_done(result)
-                elif isinstance(result, list) and result and isinstance(result[0], Path):
-                    self._on_done(result[0])
-                else:
-                    self._on_done(output_path)
-            except PDFusionError as exc:
-                self._on_error(str(exc))
-            except Exception as exc:
-                self._on_error(f"Errore inatteso: {exc}")
+        """Run the main PDF operation in a background QThread.
 
-        thread = threading.Thread(target=_worker_run, daemon=True)
-        thread.start()
+        Usa un worker QObject su un QThread parentato al pannello: i risultati
+        sono consegnati alla GUI esclusivamente via segnali Qt (queued), mai con
+        chiamate dirette cross-thread. Il thread è parentato a ``self`` così da
+        essere visibile al safety net di cleanup (``app.findChildren(QThread)``).
+        """
+        self._thread = QThread(self)
+        self._worker = _Worker(
+            self._run_core, source_path, output_path, password, config
+        )
+        self._worker.moveToThread(self._thread)
+        self._thread.started.connect(self._worker.run)
+        self._worker.finished.connect(self._on_done)
+        self._worker.error.connect(self._on_error)
+        # Ferma il thread e pulisci worker/thread al termine.
+        self._worker.finished.connect(self._thread.quit)
+        self._worker.error.connect(self._thread.quit)
+        self._worker.finished.connect(self._worker.deleteLater)
+        self._worker.error.connect(self._worker.deleteLater)
+        self._thread.finished.connect(self._thread.deleteLater)
+        self._thread.start()
 
     @pyqtSlot(Path)
     def _on_done(self, output_path: Path) -> None:
