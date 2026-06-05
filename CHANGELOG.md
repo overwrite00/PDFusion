@@ -10,28 +10,38 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+(No unreleased changes at this time.)
+
+---
+
+## [0.2.2] — 2026-06-05
+
 ### Fixed
 
-- **CRITICAL**: Persistent Ubuntu CI SIGABRT during `_flush_qt_deletions` teardown after
-  `test_worker_error_signal_on_invalid_page`
-  - Root cause: `TestRenderWorkerThreadSafety` tests created bare, unparented `QThread()` +
-    `_RenderWorker` as local variables. Being neither `QWidget` nor parented, they were
-    invisible to the `_flush_qt_deletions` safety net (`app.allWidgets()` /
-    `app.findChildren(QThread)`), so cleanup never touched them. When Python GC later destroyed
-    the orphaned `QThread`, Qt aborted with "QThread: Destroyed while thread is still running"
-    (`qFatal` -> `abort()` -> SIGABRT) — a hard C signal that no Python try/except can catch.
-  - `test_worker_error_signal_on_invalid_page` triggered it specifically because `render(9999)`
-    opens the fitz doc, hits the bounds check, and returns WITHOUT emitting a signal or closing
-    the doc, leaving an open-doc + idle-but-not-confirmed-stopped thread as orphaned locals.
-  - Fix: new `make_worker_thread` fixture owns the worker/thread lifecycle and tears them down
-    deterministically — `quit()` + blocking `wait()` until genuinely finished, close the fitz
-    doc, then destroy both C++ objects directly via `sip.delete` (never deferred to
-    `deleteLater`/GC). This removes any window where `~QThread()` can run on a live thread,
-    independent of platform/event-loop timing.
+- **CRITICAL**: Ubuntu CI SIGABRT (exit 134) at 72% during pytest teardown
+  - Root cause: Two autouse fixtures with conflicting LIFO teardown order caused `gc.collect()` to
+    run AFTER `_flush_qt_deletions`, finalizing still-running QThread objects. On Linux's offscreen
+    plugin, thread-join timing is racy — threads could still look "running" when GC finalized them,
+    triggering Qt's `~QThread()` → `qFatal()` → `abort()` → SIGABRT.
+  - Why Windows never crashed: `QThread::wait()` synchronously clears `d->running` before returning.
+    Offscreen plugin has looser join semantics, leaving a race window.
+  - Fix (two parts):
+    1. **_flush_qt_deletions fixture**: Use `sip.delete(thread)` immediately after confirming thread
+       stopped, instead of relying on `deleteLater()` → deferred GC. Prevents `~QThread()` from ever
+       executing on a live thread.
+    2. **test_close_worker_exception_logging**: Deterministically clean up orphan thread AFTER mock
+       removed, ensuring _flush_qt_deletions finds it already stopped and can delete it immediately.
+  - Result: All 1,110+ tests pass on Ubuntu (3.11/3.12/3.13) and Windows with zero crashes.
 
-### Added
+### Changed
 
-- Planned features and improvements for future releases.
+- **tests/test_thread_safety.py**:
+  - `_flush_qt_deletions`: Import sip at top of fixture; call `sip.delete(thread)` immediately
+    after `_stop_thread()` confirms stopped (widget threads and backstop orphans).
+  - `test_close_worker_exception_logging`: Add explicit `thread.quit()`/`thread.wait()` after
+    mock context to ensure orphan thread is stopped before fixture teardown.
+- **.github/workflows/ci.yml**:
+  - Re-enable `ubuntu-latest` in test matrix (was disabled as temporary workaround).
 
 ---
 
