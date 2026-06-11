@@ -60,7 +60,7 @@ jobs:
           Write-Host "✓ Found: $($file.Name) ($([math]::Round($file.Length/1MB, 2)) MB)"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PDFusion-${{ github.ref_name }}-windows-setup
           path: installer/windows/PDFusion-*-windows-setup.exe
@@ -117,7 +117,7 @@ jobs:
           ls -lh installer/linux/PDFusion-*-linux.AppImage
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PDFusion-${{ github.ref_name }}-linux
           path: installer/linux/PDFusion-*-linux.AppImage
@@ -165,7 +165,7 @@ jobs:
           ls -lh installer/macos/PDFusion-*-macos.dmg
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PDFusion-${{ github.ref_name }}-macos
           path: installer/macos/PDFusion-*-macos.dmg
