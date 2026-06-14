@@ -28,6 +28,10 @@ updates:
           - "minor"
           - "patch"
     ignore:
+      # PyQt6 6.11.0+ has GUI test incompatibility (test_open_file_updates_window_title hangs).
+      # Block until resolution. See PR #29 and CLAUDE.md for details.
+      - dependency-name: "PyQt6"
+        versions: [">=6.11.0"]
       # Dev-only deps: block majors, keep production deps fully updated.
       # `ignore` does not support `dependency-type`, so dev deps are named explicitly.
       - dependency-name: "pytest"
