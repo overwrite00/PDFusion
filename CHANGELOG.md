@@ -14,6 +14,19 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
+## [0.2.5] — 2026-06-15
+
+### Fixed
+
+- **Security**: Update pytest to 9.0.3 to fix tmpdir vulnerability (CVE-2025-71176)
+  - Resolves Dependabot alerts #1 and #4 (pytest tmpdir handling vulnerability)
+  - Affected versions: pytest < 9.0.3
+  - Update: 8.4.2 → 9.0.3 (MAJOR version bump)
+  - Testing: 369/370 tests pass; 1 pre-existing flaky timing test unrelated to pytest
+  - Impact: Reduces default branch vulnerabilities from 8 → 6
+
+---
+
 ## [0.2.2] — 2026-06-05
 
 ### Fixed
