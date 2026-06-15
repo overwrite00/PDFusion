@@ -2,19 +2,19 @@
 # Python 3.11–3.13
 
 # GUI
-PyQt6==6.9.0
+PyQt6==6.10.2
 
 # PDF rendering + overlay stamping
 PyMuPDF==1.27.2.3
 
 # PDF mutazioni strutturali (split, merge, protect, metadata)
-pikepdf==9.11.0
+pikepdf==10.8.0
 
 # PDF generazione contenuti (watermark, licenze, intestazioni)
 reportlab==4.5.1
 
 # Elaborazione immagini
-Pillow==11.3.0
+Pillow==12.2.0
 
 # Template testi licenze
 Jinja2==3.1.6
