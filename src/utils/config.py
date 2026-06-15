@@ -1,7 +1,7 @@
 from pathlib import Path
 
 APP_NAME = "PDFusion"
-VERSION = "0.2.2"
+VERSION = "0.2.4"
 
 # Percorsi strutturali
 APP_DIR = Path(__file__).resolve().parent.parent.parent
