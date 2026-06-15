@@ -2,7 +2,7 @@
 # Python 3.11–3.13
 
 # GUI
-PyQt6==6.9.0
+PyQt6==6.10.2
 
 # PDF rendering + overlay stamping
 PyMuPDF==1.27.2.3
