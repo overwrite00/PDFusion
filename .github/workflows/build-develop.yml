@@ -5,6 +5,9 @@ on:
     tags:
       - "v*-beta*"   # es. v0.1.0-beta1
 
+permissions:
+  contents: read
+
 jobs:
   # -----------------------------------------------------------------------
   # Windows — NSIS installer .exe

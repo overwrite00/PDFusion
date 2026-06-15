@@ -5,6 +5,9 @@ on:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"   # solo tag stabili: v0.1.0, v1.2.3, ecc.
 
+permissions:
+  contents: read
+
 jobs:
   # -----------------------------------------------------------------------
   # Windows — NSIS installer .exe
