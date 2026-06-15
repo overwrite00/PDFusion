@@ -5,6 +5,9 @@ on:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"   # solo tag stabili: v0.1.0, v1.2.3, ecc.
 
+permissions:
+  contents: read
+
 jobs:
   # -----------------------------------------------------------------------
   # Windows — NSIS installer .exe
@@ -13,9 +16,9 @@ jobs:
     name: Build Windows installer
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -60,7 +63,7 @@ jobs:
           Write-Host "✓ Found: $($file.Name) ($([math]::Round($file.Length/1MB, 2)) MB)"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PDFusion-${{ github.ref_name }}-windows-setup
           path: installer/windows/PDFusion-*-windows-setup.exe
@@ -73,9 +76,9 @@ jobs:
     name: Build Linux AppImage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -117,7 +120,7 @@ jobs:
           ls -lh installer/linux/PDFusion-*-linux.AppImage
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PDFusion-${{ github.ref_name }}-linux
           path: installer/linux/PDFusion-*-linux.AppImage
@@ -133,9 +136,9 @@ jobs:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
       APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -165,7 +168,7 @@ jobs:
           ls -lh installer/macos/PDFusion-*-macos.dmg
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PDFusion-${{ github.ref_name }}-macos
           path: installer/macos/PDFusion-*-macos.dmg
@@ -181,10 +184,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist/
 
@@ -217,7 +220,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           prerelease: false
           tag_name: ${{ github.ref_name }}
