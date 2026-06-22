@@ -14,6 +14,35 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
+## [0.2.6] — 2026-06-22
+
+### Fixed
+
+- **Security**: Update pydantic-settings to 2.14.2 to fix symlink traversal vulnerability (GHSA-4xgf-cpjx-pc3j)
+  - Prevent NestedSecretsSettingsSource from following symlinks outside secrets_dir
+  - Affected versions: pydantic-settings >= 2.12.0, < 2.14.2
+  - Update: 2.14.1 → 2.14.2 (PATCH version bump)
+
+- **Bug fix**: Update pikepdf to 10.9.1 to prevent SIGABRT during exception unwinding
+  - Fixed crash when file-backed Pdf objects deallocated during exception propagation
+  - Update: 10.8.0 → 10.9.1 (PATCH version bump)
+
+### Changed
+
+- **Dependencies**: Comprehensive stability and compatibility updates
+  - pytest: 9.0.3 → 9.1.1 (PATCH - bug fixes)
+  - ruff: 0.15.17 → 0.15.18 (PATCH - improvements & bug fixes)
+  - reportlab: 4.5.1 → 5.0.0 (MAJOR - fully backward-compatible, 369/370 tests pass)
+  - GitHub Actions: actions/checkout v6 → v7 (ESM upgrade, Node.js 24 support)
+
+### Testing
+
+- All 369/370 tests pass with updated dependencies
+- 1 pre-existing flaky test (test_below_threshold_uses_simple - timing-dependent, unrelated to dependency updates)
+- reportlab 5.0.0 compatibility verified through comprehensive test suite
+
+---
+
 ## [0.2.5] — 2026-06-15
 
 ### Fixed

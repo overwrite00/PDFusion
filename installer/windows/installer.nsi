@@ -2,7 +2,7 @@
 ; Uso: makensis /DVERSION=0.1.0 installer.nsi
 
 !ifndef VERSION
-  !define VERSION "0.2.5"
+  !define VERSION "0.2.6"
 !endif
 
 !define APP_NAME     "PDFusion"
