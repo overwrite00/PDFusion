@@ -18,7 +18,7 @@ sys.path.insert(0, str(SRC_DIR))
 try:
     from utils.config import VERSION
 except ImportError:
-    VERSION = "0.2.0"  # fallback
+    VERSION = "0.2.6"  # fallback
 
 a = Analysis(
     [str(SRC_DIR / "main.py")],
