@@ -10,6 +10,7 @@
 !define OUTPUT_FILE  "${__FILEDIR__}\PDFusion-${VERSION}-windows-setup.exe"
 !define INSTALL_DIR  "$PROGRAMFILES64\PDFusion"
 !define REG_KEY      "Software\Microsoft\Windows\CurrentVersion\Uninstall\PDFusion"
+!define APP_ICON     "$INSTDIR\assets\icons\app.ico"
 
 ; DIST_DIR is provided via /DDIST_DIR=<absolute_path> from GitHub Actions build script
 ; For local builds without the parameter, fallback to relative path
@@ -34,9 +35,8 @@ SetCompressor   /SOLID lzma
 ; UI
 ; -----------------------------------------------------------------------
 !define MUI_ABORTWARNING
-; TODO: Replace with valid Windows .ico file (currently PNG placeholder)
-; !define MUI_ICON          "..\..\assets\icons\app.ico"
-; !define MUI_UNICON        "..\..\assets\icons\app.ico"
+!define MUI_ICON          "..\..\assets\icons\app.ico"
+!define MUI_UNICON        "..\..\assets\icons\app.ico"
 !define MUI_WELCOMEFINISHPAGE_BITMAP_NOSTRETCH
 
 !insertmacro MUI_PAGE_WELCOME
@@ -64,12 +64,12 @@ Section "PDFusion (obbligatorio)" SecMain
 
   ; Shortcut menu Start
   CreateDirectory "$SMPROGRAMS\PDFusion"
-  CreateShortcut  "$SMPROGRAMS\PDFusion\PDFusion.lnk" "$INSTDIR\${APP_EXE}"
+  CreateShortcut  "$SMPROGRAMS\PDFusion\PDFusion.lnk" "$INSTDIR\${APP_EXE}" "" "${APP_ICON}" 0
   CreateShortcut  "$SMPROGRAMS\PDFusion\Disinstalla PDFusion.lnk" "$INSTDIR\Uninstall.exe"
 
   ; Shortcut Desktop (opzionale — chiedi all'utente)
   MessageBox MB_YESNO "Creare un collegamento sul Desktop?" IDNO skip_desktop
-    CreateShortcut "$DESKTOP\PDFusion.lnk" "$INSTDIR\${APP_EXE}"
+    CreateShortcut "$DESKTOP\PDFusion.lnk" "$INSTDIR\${APP_EXE}" "" "${APP_ICON}" 0
   skip_desktop:
 
   ; Registrazione uninstaller
