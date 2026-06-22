@@ -11,7 +11,7 @@ PyMuPDF==1.27.2.3
 pikepdf==10.9.1
 
 # PDF generazione contenuti (watermark, licenze, intestazioni)
-reportlab==4.5.1
+reportlab==5.0.0
 
 # Elaborazione immagini
 Pillow==12.2.0
