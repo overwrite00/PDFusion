@@ -31,7 +31,7 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 - **Dependencies**: Comprehensive stability and compatibility updates
   - pytest: 9.0.3 → 9.1.1 (PATCH - bug fixes)
-  - ruff: 0.15.17 → 0.15.18 (PATCH - improvements & bug fixes)
+  - ruff: 0.15.17 → 0.15.20 (PATCH - improvements & bug fixes via #68)
   - reportlab: 4.5.1 → 5.0.0 (MAJOR - fully backward-compatible, 369/370 tests pass)
   - GitHub Actions: actions/checkout v6 → v7 (ESM upgrade, Node.js 24 support)
 
