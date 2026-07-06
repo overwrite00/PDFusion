@@ -5,7 +5,7 @@
 PyQt6==6.10.2
 
 # PDF rendering + overlay stamping
-PyMuPDF==1.27.2.3
+PyMuPDF==1.28.0
 
 # PDF mutazioni strutturali (split, merge, protect, metadata)
 pikepdf==10.9.1
@@ -14,7 +14,7 @@ pikepdf==10.9.1
 reportlab==5.0.0
 
 # Elaborazione immagini
-Pillow==12.2.0
+Pillow==12.3.0
 
 # Template testi licenze
 Jinja2==3.1.6
