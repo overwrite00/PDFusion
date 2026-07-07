@@ -24,12 +24,16 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   - Benefit: More robust — does not depend on PyInstaller's internal path layout, and icon is guaranteed to always exist
   - Files: `installer/windows/installer.nsi` (define APP_ICON as `$INSTDIR\${APP_EXE}`, update CreateShortcut calls for Start menu and Desktop)
 
-- **CRITICAL**: Fix test hang on Windows + Python 3.11 (`test_preview_file_deleted` timeout at 120s)
-  - Root cause: `BlockingQueuedConnection` in `_close_worker` caused indefinite main thread block when worker thread's event loop had not yet entered (timing-dependent race specific to Windows+py3.11 under system load)
-  - Solution: Replace `BlockingQueuedConnection` with `QueuedConnection` in viewer.py and thumbnail_panel.py. Non-blocking queuing ensures _close_doc runs before quit(); join is bounded by wait(5000)
-  - Benefit: Removes unbounded wait from shutdown path while preserving Ubuntu SIGABRT fix (fitz document still closed on worker thread)
-  - Manifested: After ~370 tests (system load accumulation); only Windows+py3.11 affected
-  - Files: `src/ui/viewer.py:390`, `src/ui/thumbnail_panel.py:269`
+- **CRITICAL**: Fix threading deadlock on Windows + Python 3.11 AND SIGABRT on Ubuntu + Python 3.13
+  - Dual-constraint problem: Windows deadlock required non-blocking + timeout, Ubuntu SIGABRT required guaranteed fitz-close-on-worker-thread
+  - Root cause: Previous `BlockingQueuedConnection` blocked main thread indefinitely (Windows race); `QueuedConnection` failed to guarantee fitz closes before thread exits (Ubuntu SIGABRT)
+  - Definitive solution: Use `QWaitCondition` with bounded timeout (2s) and predicate guard to guarantee both fitz-on-worker AND bounded main-thread wait
+  - Implementation:
+    * `_close_doc_sync()` closes fitz on worker thread, sets flag, calls wakeAll() on condition variable (all under mutex)
+    * `_close_worker()` resets flag, queues `_close_doc_sync` via `QueuedConnection`, acquires mutex, waits with 2s timeout and predicate check
+    * Predicate guard prevents lost-wakeup race if worker closes before main reaches wait()
+  - Benefit: Eliminates unbounded wait while guaranteeing fitz closed on worker (prevents both deadlock and SIGABRT)
+  - Files: `src/ui/viewer.py`, `src/ui/thumbnail_panel.py` (_close_worker and worker class methods)
 
 ---
 
