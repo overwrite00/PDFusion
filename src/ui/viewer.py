@@ -378,8 +378,10 @@ class PDFViewer(QWidget):
             # CRITICAL FIX (Ubuntu SIGABRT): Close the fitz document ON the worker
             # thread BEFORE stopping it. This prevents cross-thread finalization of
             # fitz resources that corrupts Python's condition variable state on Linux.
-            # Use BlockingQueuedConnection to ensure _close_doc runs synchronously on
-            # the worker thread before we proceed to quit() + wait().
+            # Use QueuedConnection (non-blocking) to ensure _close_doc is queued BEFORE
+            # quit() so worker processes close on its own thread; join is bounded by
+            # wait(5000) in _shutdown_thread. BlockingQueuedConnection caused deadlock
+            # on Windows+py3.11 when thread event loop had not yet entered (timing race).
             if worker_snapshot is not None and thread_snapshot is not None:
                 try:
                     if thread_snapshot.isRunning():
@@ -387,7 +389,7 @@ class PDFViewer(QWidget):
                         QMetaObject.invokeMethod(
                             worker_snapshot,
                             "_close_doc",
-                            Qt.ConnectionType.BlockingQueuedConnection,
+                            Qt.ConnectionType.QueuedConnection,
                         )
                 except Exception as e:
                     logger.warning(f"Errore chiusura documento fitz via invokeMethod: {e}")
