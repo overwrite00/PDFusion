@@ -14,6 +14,18 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
+## [0.2.7] — 2026-07-07
+
+### Fixed
+
+- **Bug fix**: Windows installer shortcuts now display correct icon instead of blank white square
+  - Root cause: PyInstaller 6.x places bundled datas under `_internal/` subdirectory. Previous attempt to reference icon file at `$INSTDIR\assets\icons\app.ico` failed because actual path was `$INSTDIR\_internal\assets\icons\app.ico`
+  - Solution: Use icon embedded in PDFusion.exe itself (incorporated by PyInstaller via icon= in spec) instead of separate file reference
+  - Benefit: More robust — does not depend on PyInstaller's internal path layout, and icon is guaranteed to always exist
+  - Files: `installer/windows/installer.nsi` (define APP_ICON as `$INSTDIR\${APP_EXE}`, update CreateShortcut calls for Start menu and Desktop)
+
+---
+
 ## [0.2.6] — 2026-06-22
 
 ### Fixed
