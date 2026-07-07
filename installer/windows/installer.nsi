@@ -10,7 +10,12 @@
 !define OUTPUT_FILE  "${__FILEDIR__}\PDFusion-${VERSION}-windows-setup.exe"
 !define INSTALL_DIR  "$PROGRAMFILES64\PDFusion"
 !define REG_KEY      "Software\Microsoft\Windows\CurrentVersion\Uninstall\PDFusion"
-!define APP_ICON     "$INSTDIR\assets\icons\app.ico"
+; Use the icon embedded in the EXE. PyInstaller 6.x places bundled datas under
+; $INSTDIR\_internal\..., so the old "$INSTDIR\assets\icons\app.ico" path did
+; not exist at install time and shortcuts fell back to a blank white icon.
+; The EXE has the icon embedded by PyInstaller (icon= in PDFusion.spec), so we
+; reference it directly with icon index 0 in the CreateShortcut calls below.
+!define APP_ICON     "$INSTDIR\${APP_EXE}"
 
 ; DIST_DIR is provided via /DDIST_DIR=<absolute_path> from GitHub Actions build script
 ; For local builds without the parameter, fallback to relative path
