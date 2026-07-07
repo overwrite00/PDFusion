@@ -14,6 +14,29 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
+## [0.2.7] — 2026-07-07
+
+### Fixed
+
+- **Bug fix**: Windows installer shortcuts now display correct icon instead of blank white square
+  - Root cause: PyInstaller 6.x places bundled datas under `_internal/` subdirectory. Previous attempt to reference icon file at `$INSTDIR\assets\icons\app.ico` failed because actual path was `$INSTDIR\_internal\assets\icons\app.ico`
+  - Solution: Use icon embedded in PDFusion.exe itself (incorporated by PyInstaller via icon= in spec) instead of separate file reference
+  - Benefit: More robust — does not depend on PyInstaller's internal path layout, and icon is guaranteed to always exist
+  - Files: `installer/windows/installer.nsi` (define APP_ICON as `$INSTDIR\${APP_EXE}`, update CreateShortcut calls for Start menu and Desktop)
+
+- **CRITICAL**: Fix threading deadlock on Windows + Python 3.11 AND SIGABRT on Ubuntu + Python 3.13
+  - Dual-constraint problem: Windows deadlock required non-blocking + timeout, Ubuntu SIGABRT required guaranteed fitz-close-on-worker-thread
+  - Root cause: Previous `BlockingQueuedConnection` blocked main thread indefinitely (Windows race); `QueuedConnection` failed to guarantee fitz closes before thread exits (Ubuntu SIGABRT)
+  - Definitive solution: Use `QWaitCondition` with bounded timeout (2s) and predicate guard to guarantee both fitz-on-worker AND bounded main-thread wait
+  - Implementation:
+    * `_close_doc_sync()` closes fitz on worker thread, sets flag, calls wakeAll() on condition variable (all under mutex)
+    * `_close_worker()` resets flag, queues `_close_doc_sync` via `QueuedConnection`, acquires mutex, waits with 2s timeout and predicate check
+    * Predicate guard prevents lost-wakeup race if worker closes before main reaches wait()
+  - Benefit: Eliminates unbounded wait while guaranteeing fitz closed on worker (prevents both deadlock and SIGABRT)
+  - Files: `src/ui/viewer.py`, `src/ui/thumbnail_panel.py` (_close_worker and worker class methods)
+
+---
+
 ## [0.2.6] — 2026-06-22
 
 ### Fixed

@@ -7,9 +7,11 @@ import fitz
 from PyQt6.QtCore import (
     Q_ARG,
     QMetaObject,
+    QMutex,
     QObject,
     Qt,
     QThread,
+    QWaitCondition,
     pyqtSignal,
     pyqtSlot,
 )
@@ -40,6 +42,11 @@ class _ThumbWorker(QObject):
         self._password = password
         self._doc: fitz.Document | None = None
         self._closed = False  # impedisce riapertura dopo close()
+        # Sincronizzazione della chiusura documento tra main thread e worker
+        # (vedi _close_doc_sync e _close_worker).
+        self._close_mutex = QMutex()
+        self._close_cond = QWaitCondition()
+        self._doc_closed = False
 
     @pyqtSlot(int)
     def render(self, page_idx: int) -> None:
@@ -80,18 +87,30 @@ class _ThumbWorker(QObject):
         self._closed = True
 
     @pyqtSlot()
-    def _close_doc(self) -> None:
-        """CRITICAL FIX (Ubuntu SIGABRT): Close the fitz document on the
-        worker thread BEFORE stopping the thread. This prevents cross-thread
-        finalization of fitz C-level resources that corrupts Python's
-        condition variable state on Linux's offscreen plugin."""
-        if self._doc is not None:
-            try:
-                self._doc.close()
-            except Exception:
-                pass  # Best effort
-            finally:
-                self._doc = None
+    def _close_doc_sync(self) -> None:
+        """Chiude il documento fitz SUL worker thread e notifica il main thread.
+
+        CRITICAL FIX (Ubuntu SIGABRT): fitz va chiuso sul worker thread, mai sul
+        main — la finalizzazione cross-thread corrompe lo stato della condition
+        variable di Python su Linux (offscreen plugin) e aborta il processo.
+
+        CRITICAL FIX (Windows/py3.11 deadlock): il main thread attende l'ACK con
+        timeout limitato tramite QWaitCondition (vedi _close_worker), evitando il
+        blocco indefinito di BlockingQueuedConnection quando il worker non è
+        ancora entrato in exec(). Il flag _doc_closed evita la lost-wakeup race."""
+        self._close_mutex.lock()
+        try:
+            if self._doc is not None:
+                try:
+                    self._doc.close()
+                except Exception:
+                    pass  # Best effort
+                finally:
+                    self._doc = None
+            self._doc_closed = True
+            self._close_cond.wakeAll()
+        finally:
+            self._close_mutex.unlock()
 
 
 # ---------------------------------------------------------------------------
@@ -256,21 +275,42 @@ class ThumbnailPanel(QWidget):
         except Exception as e:
             logger.error(f"Errore durante chiusura worker thumbnail: {e}", exc_info=True)
         finally:
-            # CRITICAL FIX (Ubuntu SIGABRT): Close the fitz document ON the worker
-            # thread BEFORE stopping it. This prevents cross-thread finalization of
-            # fitz resources that corrupts Python's condition variable state on Linux.
+            # CRITICAL FIX (Ubuntu SIGABRT + Windows/py3.11 deadlock): chiudi il
+            # documento fitz SUL worker thread (mai sul main), attendendo un ACK
+            # con timeout LIMITATO (2s). QueuedConnection accoda la chiusura senza
+            # bloccare; la QWaitCondition (predicate-guarded) garantisce fitz
+            # chiuso prima di fermare il thread, senza il blocco indefinito di
+            # BlockingQueuedConnection quando l'event loop del worker non è ancora
+            # entrato in exec().
             if worker_snapshot is not None and thread_snapshot is not None:
                 try:
                     if thread_snapshot.isRunning():
                         logger.debug("Chiusura documento fitz sul worker thread (thumbnail)...")
-                        QMetaObject.invokeMethod(
+                        worker_snapshot._doc_closed = False
+                        invoked = QMetaObject.invokeMethod(
                             worker_snapshot,
-                            "_close_doc",
-                            Qt.ConnectionType.BlockingQueuedConnection,
+                            "_close_doc_sync",
+                            Qt.ConnectionType.QueuedConnection,
                         )
+                        if not invoked:
+                            raise RuntimeError("invokeMethod(_close_doc_sync) ha restituito False")
+                        worker_snapshot._close_mutex.lock()
+                        try:
+                            if not worker_snapshot._doc_closed:
+                                acked = worker_snapshot._close_cond.wait(
+                                    worker_snapshot._close_mutex, 2000
+                                )
+                                if not acked:
+                                    logger.warning(
+                                        "Timeout (2s) in attesa della chiusura del "
+                                        "documento fitz sul worker thread (thumbnail); "
+                                        "proseguo."
+                                    )
+                        finally:
+                            worker_snapshot._close_mutex.unlock()
                 except Exception as e:
                     logger.warning(f"Errore chiusura documento fitz via invokeMethod (thumbnail): {e}")
-                    # Fallback: close on main thread if invokeMethod fails
+                    # Fallback: close on main thread if the worker hand-off failed.
                     try:
                         if worker_snapshot._doc:
                             worker_snapshot._doc.close()

@@ -4,7 +4,16 @@ import logging
 from pathlib import Path
 
 import fitz
-from PyQt6.QtCore import QMetaObject, QObject, Qt, QThread, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import (
+    QMetaObject,
+    QMutex,
+    QObject,
+    Qt,
+    QThread,
+    QWaitCondition,
+    pyqtSignal,
+    pyqtSlot,
+)
 from PyQt6.QtGui import QImage, QKeyEvent, QPixmap, QWheelEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -34,6 +43,12 @@ class _RenderWorker(QObject):
         self._password = password
         self._doc: fitz.Document | None = None
         self._closed = False  # impedisce riapertura dopo close()
+        # Sincronizzazione della chiusura documento tra main thread e worker.
+        # _close_doc_sync() chiude il doc SUL worker thread e sveglia il main
+        # thread, che attende con timeout limitato (vedi _close_worker()).
+        self._close_mutex = QMutex()
+        self._close_cond = QWaitCondition()
+        self._doc_closed = False
 
     @pyqtSlot(int, float)
     def render(self, page_idx: int, zoom: float) -> None:
@@ -69,20 +84,37 @@ class _RenderWorker(QObject):
         self._closed = True
 
     @pyqtSlot()
-    def _close_doc(self) -> None:
-        """CRITICAL FIX (Ubuntu SIGABRT): Close the fitz document on the
-        worker thread BEFORE stopping the thread. This prevents cross-thread
-        finalization of fitz C-level resources that corrupts Python's
-        condition variable state on Linux's offscreen plugin. Called via
-        invokeMethod(BlockingQueuedConnection) from the main thread in
-        _close_worker(), ensuring it runs synchronously on the worker thread."""
-        if self._doc is not None:
-            try:
-                self._doc.close()
-            except Exception:
-                pass  # Best effort; we'll set _doc = None anyway
-            finally:
-                self._doc = None
+    def _close_doc_sync(self) -> None:
+        """Chiude il documento fitz SUL worker thread e notifica il main thread.
+
+        CRITICAL FIX (Ubuntu SIGABRT): il documento fitz deve essere chiuso sul
+        worker thread — MAI sul main thread. La finalizzazione cross-thread delle
+        risorse C-level di fitz corrompe lo stato della condition variable di
+        Python sul plugin offscreen di Linux e aborta il processo (SIGABRT).
+
+        CRITICAL FIX (Windows/py3.11 deadlock): invece di forzare l'ordinamento
+        con BlockingQueuedConnection (che blocca il main thread indefinitamente
+        se il worker non è ancora entrato in exec()), questo slot risveglia il
+        main thread tramite una QWaitCondition. Il main thread attende con un
+        timeout limitato (2s) in _close_worker(): fitz è garantito chiuso sul
+        worker thread e il main thread non può mai bloccarsi senza limite.
+
+        Il flag _doc_closed (protetto dal mutex) evita la lost-wakeup race: se
+        questo slot gira PRIMA che il main thread chiami wait(), il main vede il
+        flag già True e non attende affatto."""
+        self._close_mutex.lock()
+        try:
+            if self._doc is not None:
+                try:
+                    self._doc.close()
+                except Exception:
+                    pass  # Best effort; we'll set _doc = None anyway
+                finally:
+                    self._doc = None
+            self._doc_closed = True
+            self._close_cond.wakeAll()
+        finally:
+            self._close_mutex.unlock()
 
 
 # ---------------------------------------------------------------------------
@@ -375,23 +407,45 @@ class PDFViewer(QWidget):
         except Exception as e:
             logger.error(f"Errore durante chiusura worker viewer: {e}", exc_info=True)
         finally:
-            # CRITICAL FIX (Ubuntu SIGABRT): Close the fitz document ON the worker
-            # thread BEFORE stopping it. This prevents cross-thread finalization of
-            # fitz resources that corrupts Python's condition variable state on Linux.
-            # Use BlockingQueuedConnection to ensure _close_doc runs synchronously on
-            # the worker thread before we proceed to quit() + wait().
+            # CRITICAL FIX (Ubuntu SIGABRT + Windows/py3.11 deadlock): chiudi il
+            # documento fitz SUL worker thread (mai sul main: la finalizzazione
+            # cross-thread di fitz aborta il processo su Linux), e attendi un ACK
+            # con timeout LIMITATO. QueuedConnection accoda la chiusura senza
+            # bloccare; la QWaitCondition (predicate-guarded) garantisce che fitz
+            # sia chiuso PRIMA di fermare il thread, ma con un tetto di 2s che
+            # evita il blocco indefinito causato da BlockingQueuedConnection
+            # quando l'event loop del worker non è ancora entrato in exec().
             if worker_snapshot is not None and thread_snapshot is not None:
                 try:
                     if thread_snapshot.isRunning():
                         logger.debug("Chiusura documento fitz sul worker thread...")
-                        QMetaObject.invokeMethod(
+                        worker_snapshot._doc_closed = False
+                        invoked = QMetaObject.invokeMethod(
                             worker_snapshot,
-                            "_close_doc",
-                            Qt.ConnectionType.BlockingQueuedConnection,
+                            "_close_doc_sync",
+                            Qt.ConnectionType.QueuedConnection,
                         )
+                        if not invoked:
+                            raise RuntimeError("invokeMethod(_close_doc_sync) ha restituito False")
+                        # Attesa bounded dell'ACK dal worker (fitz chiuso sul suo
+                        # thread). Il flag protetto dal mutex evita la lost-wakeup
+                        # race se il worker ha già chiuso prima di questo wait().
+                        worker_snapshot._close_mutex.lock()
+                        try:
+                            if not worker_snapshot._doc_closed:
+                                acked = worker_snapshot._close_cond.wait(
+                                    worker_snapshot._close_mutex, 2000
+                                )
+                                if not acked:
+                                    logger.warning(
+                                        "Timeout (2s) in attesa della chiusura del "
+                                        "documento fitz sul worker thread; proseguo."
+                                    )
+                        finally:
+                            worker_snapshot._close_mutex.unlock()
                 except Exception as e:
                     logger.warning(f"Errore chiusura documento fitz via invokeMethod: {e}")
-                    # Fallback: close on main thread if invokeMethod fails
+                    # Fallback: close on main thread if the worker hand-off failed.
                     try:
                         if worker_snapshot._doc:
                             worker_snapshot._doc.close()
