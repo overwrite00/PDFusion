@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "PDFusion"
-VERSION = "0.2.7"
+VERSION = "0.2.8"
 
 # Percorsi strutturali
 #

@@ -14,6 +14,18 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
+## [0.2.8] — 2026-07-08
+
+### Fixed
+
+- **CRITICAL**: Windows installer setup.exe and application window showing blank white icon instead of PDFusion icon
+  - Root cause #1 (setup.exe): `installer/windows/installer.nsi` had `MUI_ICON`/`MUI_UNICON` defines declared **after** `!include "MUI2.nsh"`. MUI2.nsh applies the icon during include time; if define doesn't exist yet, falls back to blank. Moved defines before include.
+  - Root cause #2 (running app): `src/main.py` never called `app.setWindowIcon()`. Without this, Qt doesn't assign icon to titlebar/taskbar/Alt-Tab regardless of how exe is compiled. Added call with icon path existence check.
+  - Root cause #3 (frozen builds): `src/utils/config.py` calculated `ASSETS_DIR` incorrectly in PyInstaller frozen builds. `__file__` in frozen code is synthetic path inside `sys._MEIPASS`; ascending 3 parents went **above** `_MEIPASS` instead of staying inside. Asset paths fell back silently (QIcon failed, templates not found). Added `sys.frozen` bifurcation to use `sys._MEIPASS` in compiled builds, `__file__`-based path in dev.
+  - All three bugs were independent and each needed fixing — any one alone leaves icon missing in either setup.exe or running application.
+
+---
+
 ## [0.2.7] — 2026-07-07
 
 ### Fixed
