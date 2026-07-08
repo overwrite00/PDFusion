@@ -23,6 +23,19 @@
   !define DIST_DIR   "${__FILEDIR__}\dist_staging"
 !endif
 
+; -----------------------------------------------------------------------
+; UI — MUI_ICON / MUI_UNICON MUST be defined BEFORE "!include MUI2.nsh".
+; MUI2.nsh applies "Icon ${MUI_ICON}" / "UninstallIcon ${MUI_UNICON}" to the
+; compiled EXE the moment it is included; if MUI_ICON is still undefined at
+; that point, MUI2.nsh silently falls back to its own default NSIS icon
+; (or none), which is exactly why the setup.exe kept showing a blank/white
+; icon even though the icon file itself was correct. See CLAUDE.md.
+; -----------------------------------------------------------------------
+!define MUI_ABORTWARNING
+!define MUI_ICON          "..\..\assets\icons\app.ico"
+!define MUI_UNICON        "..\..\assets\icons\app.ico"
+!define MUI_WELCOMEFINISHPAGE_BITMAP_NOSTRETCH
+
 ; Includi moderni UI
 !include "MUI2.nsh"
 
@@ -35,13 +48,6 @@ InstallDir      "${INSTALL_DIR}"
 InstallDirRegKey HKLM "${REG_KEY}" "InstallLocation"
 RequestExecutionLevel admin
 SetCompressor   /SOLID lzma
-
-; -----------------------------------------------------------------------
-; UI
-; -----------------------------------------------------------------------
-!define MUI_ABORTWARNING
-!define MUI_ICON          "..\..\assets\icons\app.ico"
-!define MUI_UNICON        "..\..\assets\icons\app.ico"
 !define MUI_WELCOMEFINISHPAGE_BITMAP_NOSTRETCH
 
 !insertmacro MUI_PAGE_WELCOME
