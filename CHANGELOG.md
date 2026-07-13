@@ -14,6 +14,22 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
+## [0.2.9] — 2026-07-13
+
+### Changed
+
+- **Dependencies**: Routine dependency updates
+  - pikepdf: 10.9.1 → 10.10.0 (PATCH via #78)
+  - ruff: 0.15.20 → 0.15.21 (PATCH via #79)
+
+### Testing
+
+- 369/370 tests pass locally after both updates
+- 1 pre-existing flaky test (`test_below_threshold_uses_simple` — memory-threshold timing, unrelated to dependency updates)
+- Ubuntu py3.13 CI showed a one-off thread-safety timing flake (`test_thumb_worker_snapshot_prevents_use_after_free`) on first run; confirmed as pre-existing CI flakiness (not caused by the pikepdf bump) via a clean rerun
+
+---
+
 ## [0.2.8] — 2026-07-08
 
 ### Fixed
