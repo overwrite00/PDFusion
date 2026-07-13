@@ -8,7 +8,7 @@ PyQt6==6.10.2
 PyMuPDF==1.28.0
 
 # PDF mutazioni strutturali (split, merge, protect, metadata)
-pikepdf==10.9.1
+pikepdf==10.10.0
 
 # PDF generazione contenuti (watermark, licenze, intestazioni)
 reportlab==5.0.0
