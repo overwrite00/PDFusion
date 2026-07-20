@@ -10,7 +10,16 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
-(No unreleased changes at this time.)
+### Changed
+
+- **Dependencies**: Routine dependency updates
+  - GitHub Actions: `actions/setup-python` v6 → v7 (ESM migration, pinned SHA commits) via #81
+  - ruff: 0.15.21 → 0.15.22 (PATCH — dev-only) via #82
+
+### Testing
+
+- 369/370 tests pass locally after both updates
+- 1 pre-existing flaky test (`test_below_threshold_uses_simple` — memory-threshold timing, unrelated)
 
 ---
 
