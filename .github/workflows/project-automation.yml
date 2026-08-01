@@ -113,15 +113,6 @@ jobs:
                 echo "    Details: $(echo "$RESPONSE" | jq '.errors // .message')"
                 exit 1
               fi
-
-              # Richiedi reviewer
-              echo "  - Requesting reviewer..."
-              curl -s -X POST \
-                -H "Authorization: token $TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                -d "{\"reviewers\":[\"${{ env.ASSIGNEE }}\"]}" \
-                "https://api.github.com/repos/$REPO/pulls/$PR_NUM/requested_reviewers" > /dev/null
-              echo "    Reviewer requested"
             fi
 
             # Se PR è stato chiuso

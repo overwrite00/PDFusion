@@ -1,6 +1,7 @@
 # === Claude memory files (private, not for GitHub) ===
 CLAUDE.md
 MEMORY.md
+AGENTS.md
 .claude/
 
 # === Python ===

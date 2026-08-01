@@ -15,11 +15,14 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 - **Dependencies**: Routine dependency updates
   - GitHub Actions: `actions/setup-python` v6 → v7 (ESM migration, pinned SHA commits) via #81
   - ruff: 0.15.21 → 0.15.22 (PATCH — dev-only) via #82
+  - ruff: 0.15.22 → 0.16.0 (MINOR — dev-only) via #83. Despite the version jump, no rule-set
+    regression: the project pins an explicit `[tool.ruff.lint] select` list, so ruff's much
+    larger default rule set (413 vs. 59) does not affect `ruff check src/ tests/` as run in CI
 
 ### Testing
 
-- 369/370 tests pass locally after both updates
-- 1 pre-existing flaky test (`test_below_threshold_uses_simple` — memory-threshold timing, unrelated)
+- 370/370 tests pass locally after all three updates (ruff 0.16.0 run explicitly verified: lint
+  clean, full suite green — no flaky failures this run)
 
 ---
 
