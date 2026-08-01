@@ -10,6 +10,10 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+---
+
+## [0.2.10] — 2026-08-01
+
 ### Changed
 
 - **Dependencies**: Routine dependency updates
@@ -18,11 +22,23 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   - ruff: 0.15.22 → 0.16.0 (MINOR — dev-only) via #83. Despite the version jump, no rule-set
     regression: the project pins an explicit `[tool.ruff.lint] select` list, so ruff's much
     larger default rule set (413 vs. 59) does not affect `ruff check src/ tests/` as run in CI
+- **Release process**: Formalized the beta (develop) → stable (main) release workflow
+  - `build-develop.yml` now pulls its pre-release notes from the CHANGELOG `[Unreleased]`
+    section, mirroring how `build-release.yml` already pulled from the versioned section
+  - GitHub release note templates (both workflows) translated from Italian to English
+  - `project-automation.yml`: added a heuristic that auto-labels manually opened PRs
+    (`type:*` from the conventional-commit title prefix, `scope:core`/`scope:frontend`/
+    `type:ci`/`dependencies`/`lang:python` from changed files) — Dependabot PRs were already
+    labeled via `dependabot.yml`, but manual PRs never received any label until now
+  - `project-automation.yml`: dropped the automatic reviewer request, redundant now that
+    `main`'s branch ruleset requires 0 approving reviews (single-developer project)
+  - Repo setting `delete_branch_on_merge` enabled — temporary/Dependabot branches are now
+    deleted automatically on merge
 
 ### Testing
 
-- 370/370 tests pass locally after all three updates (ruff 0.16.0 run explicitly verified: lint
-  clean, full suite green — no flaky failures this run)
+- 370/370 tests pass locally after all dependency updates (ruff 0.16.0 run explicitly
+  verified: lint clean, full suite green — no flaky failures this run)
 
 ---
 
