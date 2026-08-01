@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -78,7 +78,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -138,7 +138,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -226,18 +226,18 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: "PDFusion ${{ github.ref_name }}"
           body: |
-            ## Novità in ${{ github.ref_name }}
+            ## What's new in ${{ github.ref_name }}
 
             ${{ steps.changelog.outputs.notes }}
 
             ---
 
             ### Download
-            | Sistema | File |
+            | System | File |
             |---|---|
             | **Windows 10/11** | `PDFusion-*-windows-setup.exe` |
             | **Linux** | `PDFusion-*-linux.AppImage` |
             | **macOS 12+** | `PDFusion-*-macos.dmg` |
 
-            > **macOS**: se l'app non è firmata, fare tasto destro → "Apri" al primo avvio.
+            > **macOS**: if the app is unsigned, right-click → "Open" on first launch.
           files: dist/**/*

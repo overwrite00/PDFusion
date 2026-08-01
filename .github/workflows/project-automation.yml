@@ -22,6 +22,11 @@ jobs:
 
     steps:
       - name: "Assign and Add to Project"
+        env:
+          # Passata come env var (non interpolata direttamente nello script) per
+          # evitare script injection: il titolo PR è testo arbitrario controllato
+          # da chi apre la PR.
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           REPO="${{ github.repository }}"
           TOKEN="${{ secrets.GH_PROJECT_TOKEN }}"
@@ -114,14 +119,43 @@ jobs:
                 exit 1
               fi
 
-              # Richiedi reviewer
-              echo "  - Requesting reviewer..."
-              curl -s -X POST \
-                -H "Authorization: token $TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                -d "{\"reviewers\":[\"${{ env.ASSIGNEE }}\"]}" \
-                "https://api.github.com/repos/$REPO/pulls/$PR_NUM/requested_reviewers" > /dev/null
-              echo "    Reviewer requested"
+              # Auto-label (solo PR aperte manualmente — Dependabot si etichetta
+              # già da sé tramite dependabot.yml, non serve/non va duplicato qui)
+              if [ "${{ github.actor }}" != "dependabot[bot]" ]; then
+                echo "  - Auto-labeling..."
+
+                TITLE="$PR_TITLE"
+                LABELS=()
+
+                case "$TITLE" in
+                  fix:*|fix\(*|Fix:*|Fix\(*|hotfix:*|Hotfix:*) LABELS+=("type:bug") ;;
+                  feat:*|feat\(*|Feat:*|Feature:*) LABELS+=("type:feature") ;;
+                  docs:*|docs\(*|Doc:*|Doc\(*) LABELS+=("type:docs") ;;
+                  ci:*|ci\(*|CI:*) LABELS+=("type:ci") ;;
+                  *) LABELS+=("type:chore") ;;
+                esac
+
+                FILES=$(curl -s -H "Authorization: token $TOKEN" \
+                  "https://api.github.com/repos/$REPO/pulls/$PR_NUM/files?per_page=100" \
+                  | jq -r '.[].filename')
+
+                echo "$FILES" | grep -q '^src/ui/' && LABELS+=("scope:frontend"); true
+                echo "$FILES" | grep -qE '^src/(core|utils)/|^src/main\.py' && LABELS+=("scope:core"); true
+                echo "$FILES" | grep -qE '^\.github/workflows/|^\.github/dependabot\.yml' && LABELS+=("type:ci"); true
+                echo "$FILES" | grep -qE '(^|/)requirements(-dev)?\.txt$|(^|/)pyproject\.toml$' && LABELS+=("dependencies"); true
+                echo "$FILES" | grep -q '\.py$' && LABELS+=("lang:python"); true
+
+                UNIQUE_LABELS=$(printf '%s\n' "${LABELS[@]}" | sort -u)
+                echo "    Computed: $(echo "$UNIQUE_LABELS" | tr '\n' ' ')"
+
+                JSON_LABELS=$(echo "$UNIQUE_LABELS" | jq -R . | jq -s .)
+                curl -s -X POST \
+                  -H "Authorization: token $TOKEN" \
+                  -H "Accept: application/vnd.github+json" \
+                  -d "{\"labels\":$JSON_LABELS}" \
+                  "https://api.github.com/repos/$REPO/issues/$PR_NUM/labels" > /dev/null
+                echo "    Labels applied"
+              fi
             fi
 
             # Se PR è stato chiuso
