@@ -224,11 +224,11 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: "PDFusion ${{ github.ref_name }} (pre-release)"
           body: |
-            ## Pre-release di test — ${{ github.ref_name }}
+            ## Test pre-release — ${{ github.ref_name }}
 
-            Questa è una build automatica dal ramo **develop**. Non è una release stabile.
+            This is an automated build from the **develop** branch. It is not a stable release.
 
-            ### Novità (da CHANGELOG.md — sezione Unreleased)
+            ### What's new (from CHANGELOG.md — Unreleased section)
 
             ${{ steps.changelog.outputs.notes }}
 
