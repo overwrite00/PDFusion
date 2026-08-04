@@ -500,11 +500,28 @@ class TestPDFViewerThreadSafety:
 
     def test_close_worker_sets_worker_to_none_first(self, viewer, sample_pdf):
         """CRITICAL: _worker is set to None BEFORE accessing it."""
+        from PyQt6.QtWidgets import QApplication
+
         viewer.load_document(Path(sample_pdf))
         assert viewer._worker is not None
 
         # Mock the snapshot to track access
         original_worker = viewer._worker
+
+        # load_document() queues the first render() on the worker thread via
+        # QueuedConnection and returns immediately — it does NOT wait for the
+        # worker to actually open the fitz document. Without this wait, the
+        # test races with that queued render(): _close_worker()'s fallback can
+        # see _doc as still None and skip closing, while the queued render()
+        # opens it moments later, so the assertion below flakes intermittently.
+        # Waiting for "rendered" guarantees _doc exists before we close it.
+        rendered = []
+        original_worker.rendered.connect(lambda *args: rendered.append(args))
+        timeout = time.time() + 5.0
+        while not rendered and time.time() < timeout:
+            QApplication.processEvents()
+            time.sleep(0.01)
+        assert rendered, "worker did not render/open the document in time"
 
         viewer._close_worker()
 

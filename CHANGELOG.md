@@ -19,9 +19,22 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   `type:feature`, `docs:`/`[Docs]`→`type:docs`, `question:`/`[Question]`→`question`,
   default→`type:chore`
 
+### Fixed
+
+- **Flaky test**: `test_close_worker_sets_worker_to_none_first` intermittently failed because
+  `load_document()` queues the worker's first `render()` (which lazily opens the fitz document)
+  via `QueuedConnection` and returns immediately — the test called `_close_worker()` right after,
+  racing with that still-pending queued render. When `_close_worker()`'s fallback ran before the
+  document was actually opened, it correctly saw nothing to close, but the queued `render()` then
+  opened it moments later, so the final assertion flaked. Fixed by waiting for the worker's
+  `rendered` signal before closing, guaranteeing the document exists first. Test-only fix — no
+  production code changed.
+
 ### Testing
 
 - 370/370 tests pass locally after the ruff 0.16.1 bump; `ruff check src/ tests/` clean
+- Previously-flaky `test_close_worker_sets_worker_to_none_first` run 10x in isolation post-fix:
+  0 failures (one run took 5.7s, confirming the race window is real and was previously masked)
 
 ---
 
