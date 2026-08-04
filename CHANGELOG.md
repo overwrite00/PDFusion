@@ -10,6 +10,19 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **Dependencies**: ruff 0.16.0 → 0.16.1 (PATCH — dev-only) via #85
+- **Project automation**: `project-automation.yml` now auto-labels Issues too (previously only
+  Dependabot PRs and manually opened PRs were labeled; Issues never received any label from
+  automation). Same title-prefix heuristic style: `bug:`/`[Bug]`→`type:bug`, `feat:`/`[Feature]`→
+  `type:feature`, `docs:`/`[Docs]`→`type:docs`, `question:`/`[Question]`→`question`,
+  default→`type:chore`
+
+### Testing
+
+- 370/370 tests pass locally after the ruff 0.16.1 bump; `ruff check src/ tests/` clean
+
 ---
 
 ## [0.2.10] — 2026-08-01
