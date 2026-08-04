@@ -23,10 +23,11 @@ jobs:
     steps:
       - name: "Assign and Add to Project"
         env:
-          # Passata come env var (non interpolata direttamente nello script) per
-          # evitare script injection: il titolo PR è testo arbitrario controllato
-          # da chi apre la PR.
+          # Passate come env var (non interpolate direttamente nello script) per
+          # evitare script injection: il titolo PR/Issue è testo arbitrario
+          # controllato da chi apre la PR/Issue.
           PR_TITLE: ${{ github.event.pull_request.title }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
           REPO="${{ github.repository }}"
           TOKEN="${{ secrets.GH_PROJECT_TOKEN }}"
@@ -76,6 +77,28 @@ jobs:
               echo "    Details: $(echo "$RESPONSE" | jq '.errors // .message')"
               exit 1
             fi
+
+            # Auto-label — nessun automatismo etichettava mai le issue finora
+            echo "  - Auto-labeling..."
+
+            TITLE="$ISSUE_TITLE"
+            LABELS=()
+
+            case "$TITLE" in
+              bug:*|bug\(*|Bug:*|\[Bug\]*|\[bug\]*) LABELS+=("type:bug") ;;
+              feat:*|feat\(*|Feat:*|Feature:*|\[Feature\]*|\[feature\]*) LABELS+=("type:feature") ;;
+              docs:*|docs\(*|Doc:*|\[Docs\]*|\[docs\]*) LABELS+=("type:docs") ;;
+              question:*|Question:*|\[Question\]*|\[question\]*) LABELS+=("question") ;;
+              *) LABELS+=("type:chore") ;;
+            esac
+
+            JSON_LABELS=$(printf '%s\n' "${LABELS[@]}" | sort -u | jq -R . | jq -s .)
+            curl -s -X POST \
+              -H "Authorization: token $TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -d "{\"labels\":$JSON_LABELS}" \
+              "https://api.github.com/repos/$REPO/issues/$ISSUE_NUM/labels" > /dev/null
+            echo "    Labels applied: $(echo "$JSON_LABELS" | jq -r 'join(" ")')"
           fi
 
           # Se Pull Request
