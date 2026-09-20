@@ -12,29 +12,35 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ### Changed
 
-- **Dependencies**: ruff 0.16.0 → 0.16.1 (PATCH — dev-only) via #85
+- **Dependencies**: routine updates
+  - Runtime: PyMuPDF 1.28.0 → 1.28.2, pikepdf 10.10.0 → 10.12.0, reportlab 5.0.0 → 5.0.1,
+    pydantic-settings 2.14.2 → 2.15.0 (MINOR/PATCH) via #89. Note: `pydantic-settings` is not
+    imported anywhere in `src/` or `tests/`, so that bump is not exercised by the test suite.
+    PyMuPDF 1.28.2 prints a deprecation warning for `import fitz` ("use `import pymupdf`");
+    it is only a warning for now, but 12 modules in `src/` still use `import fitz`
+  - Dev-only: ruff 0.16.0 → 0.16.1 via #85, then 0.16.1 → 0.16.3 and pyinstaller 6.21.0 →
+    6.22.0 via #87 (verified with a real local PyInstaller build and a headless launch of the
+    frozen executable, since the test suite does not exercise packaging)
 - **Project automation**: `project-automation.yml` now auto-labels Issues too (previously only
   Dependabot PRs and manually opened PRs were labeled; Issues never received any label from
   automation). Same title-prefix heuristic style: `bug:`/`[Bug]`→`type:bug`, `feat:`/`[Feature]`→
   `type:feature`, `docs:`/`[Docs]`→`type:docs`, `question:`/`[Question]`→`question`,
   default→`type:chore`
 
-### Fixed
+### Known issues
 
-- **Flaky test**: `test_close_worker_sets_worker_to_none_first` intermittently failed because
-  `load_document()` queues the worker's first `render()` (which lazily opens the fitz document)
-  via `QueuedConnection` and returns immediately — the test called `_close_worker()` right after,
-  racing with that still-pending queued render. When `_close_worker()`'s fallback ran before the
-  document was actually opened, it correctly saw nothing to close, but the queued `render()` then
-  opened it moments later, so the final assertion flaked. Fixed by waiting for the worker's
-  `rendered` signal before closing, guaranteeing the document exists first. Test-only fix — no
-  production code changed.
+- **Intermittent test failure**: `test_close_worker_sets_worker_to_none_first` still fails in
+  roughly 1 of 3-4 full-suite runs (it never fails when run alone or with its own file). An
+  earlier attempt (waiting for the worker's `rendered` signal before closing) did not fix it: the
+  failure only moved to that wait, which times out, and `invokeMethod(_close_doc_sync)` returns
+  `False` in the same run. The root cause is not yet identified; no production code was changed.
 
 ### Testing
 
-- 370/370 tests pass locally after the ruff 0.16.1 bump; `ruff check src/ tests/` clean
-- Previously-flaky `test_close_worker_sets_worker_to_none_first` run 10x in isolation post-fix:
-  0 failures (one run took 5.7s, confirming the race window is real and was previously masked)
+- Full suite after these updates: 370/370 in most runs, with the intermittent failure above in
+  the others (same signature on unmodified `develop`, so unrelated to the dependency bumps);
+  the 179 `tests/core` tests that exercise PyMuPDF/pikepdf/reportlab pass; `ruff check src/ tests/`
+  clean
 
 ---
 
