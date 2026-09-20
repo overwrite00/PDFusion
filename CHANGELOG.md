@@ -10,6 +10,10 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+> This cycle was first published as the pre-releases `v0.2.11-beta1` and `v0.2.11-beta2`.
+> Because it drops support for Python 3.11 and 3.12 (a breaking change), the next release is
+> versioned **0.3.0**; its pre-releases restart at `v0.3.0-beta1`.
+
 ### Removed
 
 - **BREAKING — Python 3.11 and 3.12 are no longer supported.** PDFusion now requires Python 3.13
