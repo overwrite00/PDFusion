@@ -21,10 +21,10 @@ class ExtractPanel(BasePanelWidget):
 
     def _on_file_changed(self, path) -> None:
         if path:
-            import fitz
+            import pymupdf
 
             try:
-                doc = fitz.open(str(path))
+                doc = pymupdf.open(str(path))
                 self._range_input.set_total_pages(doc.page_count)
                 doc.close()
             except Exception:

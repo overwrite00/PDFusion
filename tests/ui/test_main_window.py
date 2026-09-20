@@ -38,8 +38,8 @@ def sample_pdf():
 
     if not pdf_path.exists():
         # Se non esiste, crea un PDF minimal
-        import fitz
-        doc = fitz.open()
+        import pymupdf
+        doc = pymupdf.open()
         page = doc.new_page()
         page.insert_text((50, 50), "Test Page")
         temp_path = fixture_dir / "sample.pdf"

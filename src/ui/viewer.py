@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import fitz
+import pymupdf
 from PyQt6.QtCore import (
     QMetaObject,
     QMutex,
@@ -41,7 +41,7 @@ class _RenderWorker(QObject):
         super().__init__()
         self._path = doc_path
         self._password = password
-        self._doc: fitz.Document | None = None
+        self._doc: pymupdf.Document | None = None
         self._closed = False  # impedisce riapertura dopo close()
         # Sincronizzazione della chiusura documento tra main thread e worker.
         # _close_doc_sync() chiude il doc SUL worker thread e sveglia il main
@@ -56,13 +56,13 @@ class _RenderWorker(QObject):
             if self._doc is None:
                 if self._closed:
                     return  # close() già chiamato: non riaprire
-                self._doc = fitz.open(self._path)
+                self._doc = pymupdf.open(self._path)
                 if self._password:
                     self._doc.authenticate(self._password)
             if page_idx < 0 or page_idx >= self._doc.page_count:
                 return
             page = self._doc[page_idx]
-            matrix = fitz.Matrix(zoom, zoom)
+            matrix = pymupdf.Matrix(zoom, zoom)
             pixmap = page.get_pixmap(matrix=matrix, alpha=False)
             img = QImage(
                 pixmap.samples,
@@ -289,7 +289,7 @@ class PDFViewer(QWidget):
 
         # Leggi il totale pagine velocemente
         try:
-            doc = fitz.open(self._doc_path)
+            doc = pymupdf.open(self._doc_path)
             if password:
                 doc.authenticate(password)
             self._total_pages = doc.page_count
@@ -420,13 +420,16 @@ class PDFViewer(QWidget):
                     if thread_snapshot.isRunning():
                         logger.debug("Chiusura documento fitz sul worker thread...")
                         worker_snapshot._doc_closed = False
-                        invoked = QMetaObject.invokeMethod(
+                        # PyQt6: invokeMethod() ritorna None in caso di successo e
+                        # SOLLEVA RuntimeError se l'invocazione fallisce (non ritorna
+                        # un bool). NON testare il valore di ritorno: `not None` è sempre
+                        # vero e farebbe scattare il fallback (chiusura sul main thread,
+                        # attesa ACK saltata) a ogni chiusura.
+                        QMetaObject.invokeMethod(
                             worker_snapshot,
                             "_close_doc_sync",
                             Qt.ConnectionType.QueuedConnection,
                         )
-                        if not invoked:
-                            raise RuntimeError("invokeMethod(_close_doc_sync) ha restituito False")
                         # Attesa bounded dell'ACK dal worker (fitz chiuso sul suo
                         # thread). Il flag protetto dal mutex evita la lost-wakeup
                         # race se il worker ha già chiuso prima di questo wait().
@@ -491,7 +494,7 @@ class PDFViewer(QWidget):
         ``qFatal()`` -> ``abort()`` -> SIGABRT (un segnale C non intercettabile).
 
         CRITICAL FIX: Never use pthread_cancel (terminate()) on Linux/macOS with
-        headless Qt when the thread may be blocked in fitz.get_pixmap().
+        headless Qt when the thread may be blocked in pymupdf.get_pixmap().
         The cancel remains pending inside non-cancel-safe C code, leaving
         the main thread's wait() permanently blocked. Instead, we use only
         cooperative quit() + a real blocking wait() on Linux/macOS. On Windows,

@@ -1,7 +1,7 @@
 """
 Test suite per validare cleanup di risorse (file handles) nei moduli core.
 
-Testa che fitz.Document e pikepdf.Pdf siano correttamente chiusi anche in caso
+Testa che pymupdf.Document e pikepdf.Pdf siano correttamente chiusi anche in caso
 di eccezione, prevenendo resource leak durante batch operations e PDF grandi.
 """
 
@@ -23,7 +23,7 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
 
-import fitz
+import pymupdf
 
 from core.compress import CompressConfig, CompressPreset, compress
 from core.headers_footers import HeaderFooterConfig, HeaderFooterSection, add_headers_footers
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 @pytest.fixture
-def temp_dir() -> Generator[Path, None, None]:
+def temp_dir() -> Generator[Path]:
     """Crea una directory temporanea per test."""
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
@@ -48,7 +48,7 @@ def temp_dir() -> Generator[Path, None, None]:
 def valid_pdf(temp_dir: Path) -> Path:
     """Crea un PDF valido di test con 3 pagine."""
     pdf_path = temp_dir / "valid.pdf"
-    doc = fitz.open()
+    doc = pymupdf.open()
 
     for i in range(3):
         page = doc.new_page()
@@ -64,7 +64,7 @@ def valid_pdf(temp_dir: Path) -> Path:
 def pdf_with_image(temp_dir: Path) -> Path:
     """Crea un PDF con immagine embedded."""
     pdf_path = temp_dir / "with_image.pdf"
-    doc = fitz.open()
+    doc = pymupdf.open()
 
     page = doc.new_page()
     # Crea una semplice immagine di test con PIL e convertila
@@ -80,7 +80,7 @@ def pdf_with_image(temp_dir: Path) -> Path:
         img_bytes.seek(0)
 
         # Inserisci l'immagine nella pagina
-        page.insert_image(fitz.Rect(50, 50, 250, 250), stream=img_bytes, ext="png")
+        page.insert_image(pymupdf.Rect(50, 50, 250, 250), stream=img_bytes, ext="png")
     except Exception:
         # Fallback: crea semplicemente una pagina con testo
         page.insert_text((50, 50), "Image placeholder", fontsize=12)
@@ -347,7 +347,7 @@ class TestExportImagesResourceCleanup:
 
         handles_before = count_open_file_handles()
 
-        with patch('fitz.Page.get_pixmap', side_effect=RuntimeError("Mock pixmap error")):
+        with patch('pymupdf.Page.get_pixmap', side_effect=RuntimeError("Mock pixmap error")):
             with pytest.raises(RuntimeError):
                 export_pages_as_images(valid_pdf, output_dir)
 
@@ -364,7 +364,7 @@ class TestExportImagesResourceCleanup:
 
         handles_before = count_open_file_handles()
 
-        with patch('fitz.Pixmap.save', side_effect=OSError("Mock save error")):
+        with patch('pymupdf.Pixmap.save', side_effect=OSError("Mock save error")):
             with pytest.raises(IOError):
                 export_pages_as_images(valid_pdf, output_dir)
 
@@ -491,7 +491,7 @@ class TestHeadersFootersResourceCleanup:
 
         handles_before = count_open_file_handles()
 
-        with patch('fitz.Page.show_pdf_page', side_effect=ValueError("Mock show error")):
+        with patch('pymupdf.Page.show_pdf_page', side_effect=ValueError("Mock show error")):
             with pytest.raises(ValueError):
                 add_headers_footers(valid_pdf, output_pdf, config)
 
@@ -578,7 +578,7 @@ class TestEdgeCases:
         # PyMuPDF non permette salvare PDF con zero pagine
         # Creiamo il minimo: una pagina vuota
         pdf_path = temp_dir / "single_page.pdf"
-        doc = fitz.open()
+        doc = pymupdf.open()
         doc.new_page()  # Aggiungi almeno una pagina
         doc.save(pdf_path)
         doc.close()
@@ -601,7 +601,7 @@ class TestEdgeCases:
     def test_large_pdf_simulation_closes_documents(self, temp_dir: Path) -> None:
         """Test: Simulazione PDF grande (molte pagine) chiude doc."""
         pdf_path = temp_dir / "large.pdf"
-        doc = fitz.open()
+        doc = pymupdf.open()
 
         # Crea 10 pagine
         for i in range(10):

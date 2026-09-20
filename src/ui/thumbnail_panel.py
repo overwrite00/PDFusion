@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import fitz
+import pymupdf
 from PyQt6.QtCore import (
     Q_ARG,
     QMetaObject,
@@ -40,7 +40,7 @@ class _ThumbWorker(QObject):
         super().__init__()
         self._path = doc_path
         self._password = password
-        self._doc: fitz.Document | None = None
+        self._doc: pymupdf.Document | None = None
         self._closed = False  # impedisce riapertura dopo close()
         # Sincronizzazione della chiusura documento tra main thread e worker
         # (vedi _close_doc_sync e _close_worker).
@@ -54,14 +54,14 @@ class _ThumbWorker(QObject):
             if self._doc is None:
                 if self._closed:
                     return  # close() già chiamato: non riaprire
-                self._doc = fitz.open(self._path)
+                self._doc = pymupdf.open(self._path)
                 if self._password:
                     self._doc.authenticate(self._password)
             if page_idx < 0 or page_idx >= self._doc.page_count:
                 return
             page = self._doc[page_idx]
             zoom = THUMB_DPI / 72.0
-            matrix = fitz.Matrix(zoom, zoom)
+            matrix = pymupdf.Matrix(zoom, zoom)
             pixmap = page.get_pixmap(matrix=matrix, alpha=False)
             img = QImage(
                 pixmap.samples,
@@ -287,13 +287,16 @@ class ThumbnailPanel(QWidget):
                     if thread_snapshot.isRunning():
                         logger.debug("Chiusura documento fitz sul worker thread (thumbnail)...")
                         worker_snapshot._doc_closed = False
-                        invoked = QMetaObject.invokeMethod(
+                        # PyQt6: invokeMethod() ritorna None in caso di successo e
+                        # SOLLEVA RuntimeError se l'invocazione fallisce (non ritorna
+                        # un bool). NON testare il valore di ritorno: `not None` è sempre
+                        # vero e farebbe scattare il fallback (chiusura sul main thread,
+                        # attesa ACK saltata) a ogni chiusura.
+                        QMetaObject.invokeMethod(
                             worker_snapshot,
                             "_close_doc_sync",
                             Qt.ConnectionType.QueuedConnection,
                         )
-                        if not invoked:
-                            raise RuntimeError("invokeMethod(_close_doc_sync) ha restituito False")
                         worker_snapshot._close_mutex.lock()
                         try:
                             if not worker_snapshot._doc_closed:
@@ -351,7 +354,7 @@ class ThumbnailPanel(QWidget):
         ``~QThread()`` running chiama ``qFatal()`` -> ``abort()`` -> SIGABRT.
 
         CRITICAL FIX: Never use pthread_cancel (terminate()) on Linux/macOS
-        when thread may be blocked in fitz.get_pixmap(). The cancel remains
+        when thread may be blocked in pymupdf.get_pixmap(). The cancel remains
         pending inside non-cancel-safe C code, causing permanent deadlock.
         On Linux/macOS: use only quit() + a real blocking wait().
         On Windows: terminate() is safe as fallback.

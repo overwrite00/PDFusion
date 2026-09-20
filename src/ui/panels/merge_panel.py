@@ -129,9 +129,9 @@ class MergePanel(BasePanelWidget):
     def _on_file_changed(self, path: Path | None) -> None:
         if path:
             try:
-                import fitz
+                import pymupdf
 
-                doc = fitz.open(str(path))
+                doc = pymupdf.open(str(path))
                 self._total_pages = doc.page_count
                 doc.close()
             except Exception:

@@ -7,7 +7,7 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import fitz  # PyMuPDF
+import pymupdf
 from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas as rl_canvas
 
@@ -85,7 +85,7 @@ def add_headers_footers(
     doc = None
     try:
         try:
-            doc = fitz.open(str(input_path))
+            doc = pymupdf.open(str(input_path))
         except Exception as exc:
             raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
@@ -136,7 +136,7 @@ def add_headers_footers(
             )
             overlay_doc = None
             try:
-                overlay_doc = fitz.open("pdf", overlay_bytes)
+                overlay_doc = pymupdf.open("pdf", overlay_bytes)
                 page.show_pdf_page(page_rect, overlay_doc, 0, overlay=True)
             finally:
                 if overlay_doc is not None:
