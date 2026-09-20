@@ -5,7 +5,7 @@ set -euo pipefail
 
 PYTHON_TARGET="3.13"
 PYTHON_TARGET_MINOR=13
-PYTHON_MIN_MINOR=11
+PYTHON_MIN_MINOR=13
 PYTHON_MAX_MINOR=13
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,7 +17,7 @@ _LANG="${LANG:-${LANGUAGE:-en}}"
 if [[ "$_LANG" == it* ]]; then
   MSG_CHECKING="Controllo ambiente..."
   MSG_PYTHON_FOUND="Python trovato:"
-  MSG_PYTHON_NOT_FOUND="Python 3.11–3.13 non trovato. Installa Python 3.13 e riprova."
+  MSG_PYTHON_NOT_FOUND="Python 3.13 non trovato. Installa Python 3.13 e riprova."
   MSG_VENV_CREATE="Creazione ambiente virtuale..."
   MSG_PIP_UPGRADE="Aggiornamento pip..."
   MSG_DEPS_INSTALL="Installazione dipendenze..."
@@ -27,7 +27,7 @@ if [[ "$_LANG" == it* ]]; then
 else
   MSG_CHECKING="Checking environment..."
   MSG_PYTHON_FOUND="Python found:"
-  MSG_PYTHON_NOT_FOUND="Python 3.11–3.13 not found. Install Python 3.13 and retry."
+  MSG_PYTHON_NOT_FOUND="Python 3.13 not found. Install Python 3.13 and retry."
   MSG_VENV_CREATE="Creating virtual environment..."
   MSG_PIP_UPGRADE="Upgrading pip..."
   MSG_DEPS_INSTALL="Installing dependencies..."
@@ -59,14 +59,13 @@ echo "$MSG_CHECKING"
 for candidate in \
     "python${PYTHON_TARGET}" \
     "python3.${PYTHON_TARGET_MINOR}" \
-    "python3.12" "python3.11" \
     "python3" "python"; do
   _try_python "$candidate" && break || true
 done
 
 # pyenv fallback
 if [ -z "$_RESOLVED_BIN" ] && [ -d "$HOME/.pyenv/versions" ]; then
-  for pyenv_python in "$HOME/.pyenv/versions"/3.1[1-3]*/bin/python3; do
+  for pyenv_python in "$HOME/.pyenv/versions"/3.13*/bin/python3; do
     [ -x "$pyenv_python" ] && _try_python "$pyenv_python" && break || true
   done
 fi

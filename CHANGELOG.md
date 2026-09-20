@@ -10,37 +10,56 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING — Python 3.11 and 3.12 are no longer supported.** PDFusion now requires Python 3.13
+  (`requires-python = ">=3.13,<3.14"`). The CI matrix is reduced to 3.13, ruff targets `py313`,
+  mypy targets 3.13, and the release/pre-release builds now bundle a 3.13 interpreter (they used
+  3.12 before). `start.sh` / `start.bat` only accept 3.13, and README, CONTRIBUTING and
+  `requirements.txt` are updated. End users of the installers are not affected by the version of
+  a system Python, but the bundled interpreter changes from 3.12 to 3.13.
+
 ### Changed
 
+- **PyMuPDF import**: all code and tests now use `import pymupdf` instead of the deprecated
+  `import fitz` (13 modules in `src/`, 3 test files). PyMuPDF 1.28.2 printed a deprecation warning
+  for `fitz` at startup; it no longer appears, including in the frozen executable.
 - **Dependencies**: routine updates
   - Runtime: PyMuPDF 1.28.0 → 1.28.2, pikepdf 10.10.0 → 10.12.0, reportlab 5.0.0 → 5.0.1,
     pydantic-settings 2.14.2 → 2.15.0 (MINOR/PATCH) via #89. Note: `pydantic-settings` is not
-    imported anywhere in `src/` or `tests/`, so that bump is not exercised by the test suite.
-    PyMuPDF 1.28.2 prints a deprecation warning for `import fitz` ("use `import pymupdf`");
-    it is only a warning for now, but 12 modules in `src/` still use `import fitz`
+    imported anywhere in `src/` or `tests/`, so that bump is not exercised by the test suite
   - Dev-only: ruff 0.16.0 → 0.16.1 via #85, then 0.16.1 → 0.16.3 and pyinstaller 6.21.0 →
-    6.22.0 via #87 (verified with a real local PyInstaller build and a headless launch of the
-    frozen executable, since the test suite does not exercise packaging)
+    6.22.0 via #87
+- **Typing**: `Generator[Path, None, None]` → `Generator[Path]` (ruff `UP043`, valid from 3.13)
 - **Project automation**: `project-automation.yml` now auto-labels Issues too (previously only
   Dependabot PRs and manually opened PRs were labeled; Issues never received any label from
   automation). Same title-prefix heuristic style: `bug:`/`[Bug]`→`type:bug`, `feat:`/`[Feature]`→
   `type:feature`, `docs:`/`[Docs]`→`type:docs`, `question:`/`[Question]`→`question`,
   default→`type:chore`
 
-### Known issues
+### Fixed
 
-- **Intermittent test failure**: `test_close_worker_sets_worker_to_none_first` still fails in
-  roughly 1 of 3-4 full-suite runs (it never fails when run alone or with its own file). An
-  earlier attempt (waiting for the worker's `rendered` signal before closing) did not fix it: the
-  failure only moved to that wait, which times out, and `invokeMethod(_close_doc_sync)` returns
-  `False` in the same run. The root cause is not yet identified; no production code was changed.
+- **Viewer and thumbnail workers never closed their PDF on the worker thread.**
+  `_close_worker()` (in `ui/viewer.py` and `ui/thumbnail_panel.py`) tested the return value of
+  `QMetaObject.invokeMethod()`. In PyQt6 that call returns `None` on success and raises
+  `RuntimeError` on failure, so the check (`if not invoked`) was always true: every close logged
+  a bogus "invokeMethod returned False" warning, skipped the bounded wait for the worker's
+  acknowledgement and closed the document on the main thread instead, racing with a still-queued
+  `render()`. The check is removed; the existing `except` already handles a real failure.
+  This is the root cause of the intermittent failures of
+  `test_close_worker_sets_worker_to_none_first` and
+  `test_thumb_worker_snapshot_prevents_use_after_free` (the latter also failed once in CI on
+  Ubuntu / Python 3.13 during the 0.2.9 release). Regression tests were added for both classes;
+  on the old code they fail every time.
+- The earlier attempt to fix that flake by waiting for the `rendered` signal in the test was based
+  on a wrong diagnosis and is reverted: the test is back to its original form, now deterministic.
 
 ### Testing
 
-- Full suite after these updates: 370/370 in most runs, with the intermittent failure above in
-  the others (same signature on unmodified `develop`, so unrelated to the dependency bumps);
-  the 179 `tests/core` tests that exercise PyMuPDF/pikepdf/reportlab pass; `ruff check src/ tests/`
-  clean
+- Full suite: 372/372 in 10 consecutive full runs after the fix (the same suite failed in
+  roughly 1 run out of 4 before it); `ruff check src/ tests/` clean
+- A real local PyInstaller 6.22.0 build on Python 3.13 succeeds and the frozen executable starts
+  headless; the pymupdf migration was verified there too, since pytest does not exercise packaging
 
 ---
 

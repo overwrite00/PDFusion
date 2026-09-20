@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-import fitz  # PyMuPDF
 import pikepdf
+import pymupdf
 from PIL import Image
 
 from utils.exceptions import PDFusionError, UnsupportedFormatError
@@ -85,8 +85,8 @@ def compress(
     pdf = None
     try:
         try:
-            doc = fitz.open(str(input_path))
-        except fitz.FileNotFoundError:
+            doc = pymupdf.open(str(input_path))
+        except pymupdf.FileNotFoundError:
             raise PDFusionError(f"File non trovato: {input_path}")
         except Exception as exc:
             raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
@@ -155,7 +155,7 @@ def compress(
     return output_path
 
 
-def _resample_images(doc: fitz.Document, config: CompressConfig) -> None:
+def _resample_images(doc: pymupdf.Document, config: CompressConfig) -> None:
     """Riduce la risoluzione delle immagini embedded al DPI target."""
     dpi = config.dpi
     quality = config.jpeg_quality
@@ -216,7 +216,7 @@ def _resample_images(doc: fitz.Document, config: CompressConfig) -> None:
                 continue
 
 
-def _flatten_annotations(doc: fitz.Document) -> None:
+def _flatten_annotations(doc: pymupdf.Document) -> None:
     """Appiattisce le annotazioni (stampa il loro aspetto nella pagina)."""
     for page in doc:
         annots = list(page.annots())

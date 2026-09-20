@@ -86,7 +86,7 @@ def _flush_qt_deletions():
         SIGABRT, a hard C signal no try/except can catch.
 
         CRITICAL: Never use terminate() (pthread_cancel) on Linux when thread
-        may be blocked in C code like fitz.get_pixmap(). The cancel remains
+        may be blocked in C code like pymupdf.get_pixmap(). The cancel remains
         pending inside non-cancel-safe code, causing permanent deadlock.
 
         On Linux: use only quit() + a real blocking wait(). If it times out,
@@ -258,7 +258,7 @@ def _flush_qt_deletions():
 
     # 3. Skip GC here - it was triggering background finalization of fitz resources
     #    that corrupted Python's condition variable state on Linux.
-    #    With the BlockingQueuedConnection fitz.close() fix in viewer.py and
+    #    With the BlockingQueuedConnection pymupdf.close() fix in viewer.py and
     #    thumbnail_panel.py, documents are now closed on the worker thread before
     #    it stops, eliminating cross-thread finalization. Let Python's normal GC
     #    handle orphaned widgets at its own pace - no more explicit gc.collect().
@@ -375,8 +375,8 @@ class TestRenderWorkerThreadSafety:
     def sample_pdf(self, tmp_path):
         """Create a minimal valid PDF for testing."""
         try:
-            import fitz
-            doc = fitz.open()
+            import pymupdf
+            doc = pymupdf.open()
             # Add a simple page
             page = doc.new_page()
             page.insert_text((10, 10), "Test Page")
@@ -479,8 +479,8 @@ class TestPDFViewerThreadSafety:
     def sample_pdf(self, tmp_path):
         """Create a minimal valid PDF for testing."""
         try:
-            import fitz
-            doc = fitz.open()
+            import pymupdf
+            doc = pymupdf.open()
             for i in range(3):
                 page = doc.new_page()
                 page.insert_text((10, 10), f"Test Page {i}")
@@ -500,34 +500,43 @@ class TestPDFViewerThreadSafety:
 
     def test_close_worker_sets_worker_to_none_first(self, viewer, sample_pdf):
         """CRITICAL: _worker is set to None BEFORE accessing it."""
-        from PyQt6.QtWidgets import QApplication
-
         viewer.load_document(Path(sample_pdf))
         assert viewer._worker is not None
 
         # Mock the snapshot to track access
         original_worker = viewer._worker
 
-        # load_document() queues the first render() on the worker thread via
-        # QueuedConnection and returns immediately — it does NOT wait for the
-        # worker to actually open the fitz document. Without this wait, the
-        # test races with that queued render(): _close_worker()'s fallback can
-        # see _doc as still None and skip closing, while the queued render()
-        # opens it moments later, so the assertion below flakes intermittently.
-        # Waiting for "rendered" guarantees _doc exists before we close it.
-        rendered = []
-        original_worker.rendered.connect(lambda *args: rendered.append(args))
-        timeout = time.time() + 5.0
-        while not rendered and time.time() < timeout:
-            QApplication.processEvents()
-            time.sleep(0.01)
-        assert rendered, "worker did not render/open the document in time"
-
         viewer._close_worker()
 
         # After _close_worker, _worker should be None
         assert viewer._worker is None
         # But we should have closed the document without error
+        assert original_worker._doc is None
+
+    def test_close_worker_closes_doc_on_worker_thread_without_fallback(
+        self, viewer, sample_pdf, caplog
+    ):
+        """Regression: _close_worker() must hand the close to the worker thread.
+
+        PyQt6's QMetaObject.invokeMethod() returns None on success and raises
+        RuntimeError on failure. _close_worker() used to test the return value
+        (``if not invoked``), which is always true for None, so EVERY close went
+        through the "invokeMethod failed" fallback: the fitz document was closed
+        on the main thread, racing with the worker's still-queued render(), and
+        the bounded ACK wait was skipped. That made ``_doc is None`` assertions
+        flaky and is exactly the cross-thread close the code tries to avoid.
+        """
+        viewer.load_document(Path(sample_pdf))
+        original_worker = viewer._worker
+
+        with caplog.at_level(logging.WARNING):
+            viewer._close_worker()
+
+        assert "via invokeMethod" not in caplog.text, caplog.text
+        assert "Timeout (2s)" not in caplog.text, caplog.text
+        # _doc_closed is only set by _close_doc_sync(), which runs on the worker
+        # thread; _close_worker() waits for it before stopping the thread.
+        assert original_worker._doc_closed is True
         assert original_worker._doc is None
 
     def test_close_worker_idempotency(self, viewer, sample_pdf):
@@ -724,8 +733,8 @@ class TestThumbnailPanelThreadSafety:
     def sample_pdf(self, tmp_path):
         """Create a minimal valid PDF for testing."""
         try:
-            import fitz
-            doc = fitz.open()
+            import pymupdf
+            doc = pymupdf.open()
             for i in range(5):
                 page = doc.new_page()
                 page.insert_text((10, 10), f"Page {i}")
@@ -748,6 +757,27 @@ class TestThumbnailPanelThreadSafety:
         # Worker should be cleared
         assert panel._worker is None
         # But document should be properly closed
+        assert original_worker._doc is None
+
+    def test_thumb_close_worker_closes_doc_on_worker_thread_without_fallback(
+        self, qapp, sample_pdf, caplog
+    ):
+        """Regression: same invokeMethod-returns-None bug as the viewer.
+
+        See TestPDFViewerThreadSafety.test_close_worker_closes_doc_on_worker_
+        thread_without_fallback: the close must run on the worker thread, not
+        through the main-thread fallback.
+        """
+        panel = ThumbnailPanel()
+        panel.load_document(Path(sample_pdf), total_pages=5)
+        original_worker = panel._worker
+
+        with caplog.at_level(logging.WARNING):
+            panel._close_worker()
+
+        assert "via invokeMethod" not in caplog.text, caplog.text
+        assert "Timeout (2s)" not in caplog.text, caplog.text
+        assert original_worker._doc_closed is True
         assert original_worker._doc is None
 
     def test_thumb_worker_idempotency(self, qapp, sample_pdf):
@@ -800,8 +830,8 @@ class TestConcurrentOperations:
     def sample_pdf(self, tmp_path):
         """Create a test PDF."""
         try:
-            import fitz
-            doc = fitz.open()
+            import pymupdf
+            doc = pymupdf.open()
             for i in range(5):
                 page = doc.new_page()
                 page.insert_text((10, 10), f"Page {i}")
@@ -875,8 +905,8 @@ class TestWindowsSpecificIssues:
     def sample_pdf(self, tmp_path):
         """Create a test PDF."""
         try:
-            import fitz
-            doc = fitz.open()
+            import pymupdf
+            doc = pymupdf.open()
             page = doc.new_page()
             page.insert_text((10, 10), "Windows Test")
             pdf_path = tmp_path / "windows_test.pdf"
@@ -957,8 +987,8 @@ class TestEdgeCases:
     def sample_pdf(self, tmp_path):
         """Create a test PDF."""
         try:
-            import fitz
-            doc = fitz.open()
+            import pymupdf
+            doc = pymupdf.open()
             page = doc.new_page()
             page.insert_text((10, 10), "Edge Case Test")
             pdf_path = tmp_path / "edge.pdf"

@@ -523,9 +523,9 @@ class MainWindow(QMainWindow):
                 break
 
     def _on_open_path(self, p: Path) -> None:
-        import fitz
+        import pymupdf
 
-        doc = fitz.open(str(p))
+        doc = pymupdf.open(str(p))
         try:
             needs_pwd = doc.needs_pass
         finally:

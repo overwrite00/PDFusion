@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
-import fitz  # PyMuPDF
+import pymupdf
 from PIL import Image
 from reportlab.pdfgen import canvas as rl_canvas
 
@@ -82,7 +82,7 @@ def apply_watermark(
         raise PDFusionError(f"Immagine watermark non trovata: {config.image_path}")
 
     try:
-        doc = fitz.open(str(input_path))
+        doc = pymupdf.open(str(input_path))
     except Exception as exc:
         raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
@@ -98,7 +98,7 @@ def apply_watermark(
             page = doc[page_idx]
             page_rect = page.rect
             overlay_bytes = _generate_overlay(config, page_rect.width, page_rect.height)
-            overlay_doc = fitz.open("pdf", overlay_bytes)
+            overlay_doc = pymupdf.open("pdf", overlay_bytes)
             page.show_pdf_page(page_rect, overlay_doc, 0, overlay=True)
             overlay_doc.close()
 
