@@ -5,13 +5,13 @@
 PyQt6==6.10.2
 
 # PDF rendering + overlay stamping
-PyMuPDF==1.28.0
+PyMuPDF==1.28.2
 
 # PDF mutazioni strutturali (split, merge, protect, metadata)
-pikepdf==10.10.0
+pikepdf==10.12.0
 
 # PDF generazione contenuti (watermark, licenze, intestazioni)
-reportlab==5.0.0
+reportlab==5.0.1
 
 # Elaborazione immagini
 Pillow==12.3.0
@@ -20,4 +20,4 @@ Pillow==12.3.0
 Jinja2==3.1.6
 
 # Validazione configurazione
-pydantic-settings==2.14.2
+pydantic-settings==2.15.0
