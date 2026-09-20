@@ -6,7 +6,7 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 
 [![Version](https://img.shields.io/badge/version-0.2.11-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue)]()
+[![Python](https://img.shields.io/badge/python-3.13-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
 [![Platform](https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
 [![Last Updated](https://img.shields.io/badge/last%20updated-2026--08--01-blue)]()
@@ -89,7 +89,7 @@ PDFusion is a feature-rich, offline-first PDF manipulation suite. With **16 inte
 
 | Requirement | Specification |
 |---|---|
-| **Python** | 3.11–3.13 |
+| **Python** | 3.13 |
 | **OS** | Windows 10+, macOS 11+, Linux (Debian/Ubuntu/Fedora) |
 | **RAM** | 2 GB minimum, 4 GB recommended |
 | **Disk Space** | ~300 MB (depends on installers) |
@@ -257,7 +257,7 @@ pyinstaller PDFusion.spec --noconfirm
 
 For detailed guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**:
 
-- ✓ Development setup (Python 3.11–3.13)
+- ✓ Development setup (Python 3.13)
 - ✓ Branch strategy (`feature/*` → `develop` → `main`)
 - ✓ Commit conventions (feat/fix/refactor/docs/test)
 - ✓ Code style (PEP 8, type hints, ruff, mypy)
@@ -329,14 +329,14 @@ PDFusion/
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
-| GUI | PyQt6 | 6.9.0+ |
-| PDF Rendering | PyMuPDF (fitz) | 1.25.5+ |
-| PDF Manipulation | pikepdf | 9.7.0+ |
-| PDF Generation | ReportLab | 4.4.1+ |
-| Image Processing | Pillow | 11.0.0+ |
-| Template Engine | Jinja2 | 3.1.0+ |
-| Packaging | PyInstaller | 6.13.0+ |
-| Testing | pytest, pytest-qt | 8.3.5+ |
+| GUI | PyQt6 | 6.10.2 |
+| PDF Rendering | PyMuPDF (`import pymupdf`) | 1.28.2 |
+| PDF Manipulation | pikepdf | 10.12.0 |
+| PDF Generation | ReportLab | 5.0.1 |
+| Image Processing | Pillow | 12.3.0 |
+| Template Engine | Jinja2 | 3.1.6 |
+| Packaging | PyInstaller | 6.22.0 |
+| Testing | pytest, pytest-qt | 9.1.1 / 4.5.0 |
 
 [⬆ Back to Top](#table-of-contents)
 
@@ -398,7 +398,7 @@ Contributions are welcome! Please follow these steps:
 <details>
 <summary><b>Q: Application won't start</b></summary>
 <br>
-<b>A:</b> Ensure Python 3.11+ is installed. Run <code>python --version</code> to verify.
+<b>A:</b> Ensure Python 3.13 is installed. Run <code>python --version</code> to verify.
 </details>
 
 <details>
@@ -478,7 +478,7 @@ SOFTWARE.
 
 [![GitHub](https://img.shields.io/badge/-GitHub-000?logo=github)](https://github.com/overwrite00/PDFusion)
 [![License](https://img.shields.io/badge/-MIT_License-blue)](LICENSE)
-[![Python](https://img.shields.io/badge/-Python_3.11%2B-blue?logo=python)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/-Python_3.13-blue?logo=python)](https://www.python.org/)
 
 *A powerful, open-source desktop application for PDF manipulation*
 

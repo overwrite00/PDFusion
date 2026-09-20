@@ -1,5 +1,5 @@
 # PDFusion — dipendenze runtime
-# Python 3.11–3.13
+# Python 3.13
 
 # GUI
 PyQt6==6.10.2
