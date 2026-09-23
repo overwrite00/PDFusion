@@ -1,12 +1,18 @@
 version: 2
+
+# `schedule.interval` sotto governa SOLO le version update PR ordinarie (minor/patch/major
+# non di sicurezza), ora mensili. I security update di Dependabot (vulnerabilità note via
+# Dependabot alerts) NON seguono questo schedule: GitHub li apre automaticamente in tempo
+# reale/settimanale appena una vulnerabilità viene rilevata, indipendentemente da `interval`
+# — richiedono solo che "Dependabot security updates" sia abilitato in Settings > Security.
+
 updates:
   # Python dependencies via pip
   - package-ecosystem: "pip"
     directory: "/"
     target-branch: "develop"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "04:00"
     open-pull-requests-limit: 5
     labels:
@@ -58,8 +64,7 @@ updates:
     directory: "/"
     target-branch: "develop"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "04:00"
     labels:
       - "dependencies"
