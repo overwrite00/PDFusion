@@ -29,11 +29,14 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   `import fitz` (13 modules in `src/`, 3 test files). PyMuPDF 1.28.2 printed a deprecation warning
   for `fitz` at startup; it no longer appears, including in the frozen executable.
 - **Dependencies**: routine updates
-  - Runtime: PyMuPDF 1.28.0 → 1.28.2, pikepdf 10.10.0 → 10.12.0, reportlab 5.0.0 → 5.0.1,
-    pydantic-settings 2.14.2 → 2.15.0 (MINOR/PATCH) via #89. Note: `pydantic-settings` is not
-    imported anywhere in `src/` or `tests/`, so that bump is not exercised by the test suite
-  - Dev-only: ruff 0.16.0 → 0.16.1 via #85, then 0.16.1 → 0.16.3 and pyinstaller 6.21.0 →
-    6.22.0 via #87
+  - Runtime: PyMuPDF 1.28.0 → 1.28.2, pikepdf 10.10.0 → 10.12.0 → 10.13.0.post1, reportlab
+    5.0.0 → 5.0.1, pydantic-settings 2.14.2 → 2.15.0 (MINOR/PATCH) via #89 and #91. Note:
+    `pydantic-settings` is not imported anywhere in `src/` or `tests/`, so that bump is not
+    exercised by the test suite
+  - Dev-only: ruff 0.16.0 → 0.16.1 → 0.16.3 → 0.16.8 and pyinstaller 6.21.0 → 6.22.0 → 6.22.3
+    via #85, #87, #92
+  - Dependabot version-update PRs (pip + github-actions) now open monthly instead of weekly;
+    security updates are unaffected and still open in real time
 - **Typing**: `Generator[Path, None, None]` → `Generator[Path]` (ruff `UP043`, valid from 3.13)
 - **Project automation**: `project-automation.yml` now auto-labels Issues too (previously only
   Dependabot PRs and manually opened PRs were labeled; Issues never received any label from
@@ -57,13 +60,19 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   on the old code they fail every time.
 - The earlier attempt to fix that flake by waiting for the `rendered` signal in the test was based
   on a wrong diagnosis and is reverted: the test is back to its original form, now deterministic.
+- **Metadata**: writing `author` set `dc:creator` in the XMP metadata as a plain string. Per the
+  XMP spec `dc:creator` is an ordered array (`rdf:Seq`); pikepdf >= 10.13.0 (bumped via #91) warns
+  (`XmpTypeWarning`) when it is assigned a `str` instead of a list. Fixed by wrapping it in a
+  single-element list. `docinfo /Author` — what `read_metadata`/`PDFMetadata.author` actually
+  reads back — is unaffected, still a plain string.
 
 ### Testing
 
-- Full suite: 372/372 in 10 consecutive full runs after the fix (the same suite failed in
-  roughly 1 run out of 4 before it); `ruff check src/ tests/` clean
-- A real local PyInstaller 6.22.0 build on Python 3.13 succeeds and the frozen executable starts
-  headless; the pymupdf migration was verified there too, since pytest does not exercise packaging
+- Full suite: 373/373 (372/372 in 10 consecutive full runs after the worker-close fix, plus one
+  new metadata regression test); `ruff check src/ tests/` clean
+- A real local PyInstaller build on Python 3.13 (6.22.0, then 6.22.3 via #92) succeeds and the
+  frozen executable starts headless; the pymupdf migration was verified there too, since pytest
+  does not exercise packaging
 
 ---
 
