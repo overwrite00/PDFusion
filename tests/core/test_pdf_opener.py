@@ -69,8 +69,11 @@ class TestOpenPdfSafePasswordHandling:
 
     def test_open_unencrypted_pdf_with_password_is_ignored(self, sample_pdf):
         """Test that password is safely ignored for unencrypted PDFs."""
-        # This should work without error - pikepdf ignores the password
-        pdf = open_pdf_safe(sample_pdf, password="anypassword")
+        # This should work without error - pikepdf ignores the password, but
+        # warns about it (expected here, not a bug): assert it explicitly so
+        # it does not show up as unaccounted noise in the pytest summary.
+        with pytest.warns(UserWarning, match="password was provided"):
+            pdf = open_pdf_safe(sample_pdf, password="anypassword")
         assert pdf is not None
         pdf.close()
 
