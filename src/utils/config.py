@@ -9,7 +9,7 @@ VERSION = "0.3.0"
 # CLAUDE.md → workflow di versioning). È l'UNICA fonte di verità per sapere se il
 # binario in esecuzione è una pre-release: il tag git non è disponibile a runtime
 # (specialmente nelle build PyInstaller frozen, dove non esiste una repo .git).
-VERSION_SUFFIX = "-beta3"
+VERSION_SUFFIX = ""
 FULL_VERSION = f"{VERSION}{VERSION_SUFFIX}"
 IS_PRERELEASE = bool(VERSION_SUFFIX)
 

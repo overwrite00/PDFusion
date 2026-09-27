@@ -8,12 +8,12 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
-## [Unreleased]
+## [0.3.0] — 2026-09-27
 
 > This cycle was first published as the pre-releases `v0.2.11-beta1` and `v0.2.11-beta2`.
-> Because it drops support for Python 3.11 and 3.12 (a breaking change), the next release is
-> versioned **0.3.0**; its pre-releases restart at `v0.3.0-beta1`. Continued as `v0.3.0-beta2`
-> and now `v0.3.0-beta3`.
+> Because it drops support for Python 3.11 and 3.12 (a breaking change), the release was
+> renumbered to **0.3.0** and its pre-releases restarted at `v0.3.0-beta1`, followed by
+> `v0.3.0-beta2` and `v0.3.0-beta3` before this stable promotion.
 
 ### Added
 
