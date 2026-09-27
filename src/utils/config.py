@@ -2,14 +2,14 @@ import sys
 from pathlib import Path
 
 APP_NAME = "PDFusion"
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 # Suffisso canale — "" per una release stabile (main), "-betaN" durante un ciclo
 # beta (develop). Va aggiornato a mano insieme a VERSION, nello stesso commit di
 # bump versione, e ripulito ("") al momento della promozione a stable (vedi
 # CLAUDE.md → workflow di versioning). È l'UNICA fonte di verità per sapere se il
 # binario in esecuzione è una pre-release: il tag git non è disponibile a runtime
 # (specialmente nelle build PyInstaller frozen, dove non esiste una repo .git).
-VERSION_SUFFIX = ""
+VERSION_SUFFIX = "-beta1"
 FULL_VERSION = f"{VERSION}{VERSION_SUFFIX}"
 IS_PRERELEASE = bool(VERSION_SUFFIX)
 

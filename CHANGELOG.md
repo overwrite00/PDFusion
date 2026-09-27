@@ -8,6 +8,8 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
+## [Unreleased]
+
 ## [0.3.0] — 2026-09-27
 
 > This cycle was first published as the pre-releases `v0.2.11-beta1` and `v0.2.11-beta2`.
