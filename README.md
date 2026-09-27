@@ -9,7 +9,7 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 [![Python](https://img.shields.io/badge/python-3.13-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
 [![Platform](https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
-[![Last Updated](https://img.shields.io/badge/last%20updated-2026--09--20-blue)]()
+[![Last Updated](https://img.shields.io/badge/last%20updated-2026--09--27-blue)]()
 
 ---
 

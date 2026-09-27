@@ -69,12 +69,18 @@ def apply_theme(app: QApplication) -> None:
 
     app.setPalette(palette)
 
-    # Carica il QSS dalla stessa directory e inietta i path assoluti delle icone SVG
+    # Carica il QSS dalla stessa directory e inietta i path assoluti delle icone SVG.
+    # ICONS_DIR va preso da utils.config (non ricalcolato da __file__ qui): in build
+    # PyInstaller frozen __file__.parent.parent.parent punta fuori da _MEIPASS,
+    # stesso bug già risolto per ASSETS_DIR/LICENSE_TEMPLATES_DIR (vedi config.py) —
+    # qui causava le frecce di QSpinBox mancanti/vuote solo nei binari compilati.
     from pathlib import Path
+
+    from utils.config import ICONS_DIR
 
     qss_path = Path(__file__).parent / "pdfusion.qss"
     if qss_path.exists():
-        icons_dir = Path(__file__).parent.parent.parent / "assets" / "icons"
+        icons_dir = ICONS_DIR
 
         def _url(name: str) -> str:
             """Converte un path in forward-slash per url() del QSS."""

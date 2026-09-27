@@ -12,7 +12,27 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 > This cycle was first published as the pre-releases `v0.2.11-beta1` and `v0.2.11-beta2`.
 > Because it drops support for Python 3.11 and 3.12 (a breaking change), the next release is
-> versioned **0.3.0**; its pre-releases restart at `v0.3.0-beta1`.
+> versioned **0.3.0**; its pre-releases restart at `v0.3.0-beta1`. Continued as `v0.3.0-beta2`
+> and now `v0.3.0-beta3`.
+
+### Added
+
+- **In-app update check**: PDFusion now checks GitHub Releases for a newer version, silently
+  at startup (throttled to once per 24h) and on demand via **? → Controlla aggiornamenti…**.
+  The check follows the running build's channel — a beta build compares against pre-releases,
+  a stable build only against stable releases — and treats a same-version beta→stable
+  promotion as an available update. When a newer release is found, a dialog shows its release
+  notes with **Scarica** (opens the matching installer asset for the current OS directly in
+  the system browser — PDFusion never downloads or executes anything itself), **Ignora questa
+  versione**, and **Più tardi**. Implemented as a pure-Python `utils/update_checker.py` (stdlib
+  `urllib`, no new dependency) plus a `QThread` worker in `ui/main_window.py`, following the
+  same worker pattern as `base_panel._Worker`.
+- **Version now shows its channel**: a new `VERSION_SUFFIX` constant in `config.py` (e.g.
+  `"-beta3"`, empty for a stable release) is combined into `FULL_VERSION`, shown in the window
+  title and the About dialog instead of the bare `VERSION`. `VERSION_SUFFIX` is updated by hand
+  together with `VERSION` as part of the existing versioning workflow, and cleared on stable
+  promotion.
+- **About dialog**: now shows a clickable link to the GitHub repository.
 
 ### Removed
 
@@ -65,6 +85,13 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   (`XmpTypeWarning`) when it is assigned a `str` instead of a list. Fixed by wrapping it in a
   single-element list. `docinfo /Author` — what `read_metadata`/`PDFMetadata.author` actually
   reads back — is unaffected, still a plain string.
+- **QSpinBox/QDoubleSpinBox up/down arrows rendered blank in compiled builds** (reported against
+  `v0.3.0-beta2`, visible in every panel with a spin box, e.g. "Modalità di divisione"). Same root
+  cause as the v0.2.6→v0.2.7 blank-icon bug: `styles/theme.py` recomputed the icons directory from
+  `Path(__file__).parent.parent.parent` instead of importing `ICONS_DIR` from `utils.config` — in a
+  frozen PyInstaller build this points outside `_MEIPASS`/`_internal/assets`, so the arrow SVGs
+  never loaded. Never reproduced in dev mode, only in the packaged installer. Fixed by importing
+  `ICONS_DIR` from `utils.config` instead of recomputing it.
 
 ### Testing
 
@@ -73,6 +100,18 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 - A real local PyInstaller build on Python 3.13 (6.22.0, then 6.22.3 via #92) succeeds and the
   frozen executable starts headless; the pymupdf migration was verified there too, since pytest
   does not exercise packaging
+- **Fixed a long-standing flaky memory test**: `test_below_threshold_uses_simple` (in
+  `tests/test_merge_chunked.py`) asserted on the *absolute* process RSS (`psutil`), which
+  accumulates monotonically over an entire pytest session (373 tests share one process) and so
+  depends on execution order rather than on `merge()` itself — it always passed in isolation but
+  occasionally failed in the full suite. `memory_tracker` now tracks a `delta_mb` (peak − baseline,
+  baseline taken immediately before the operation under test) and the assertion checks that delta
+  instead. Verified with 3 consecutive full-suite runs (373/373) after the fix.
+- Added a startup-time regression guard: `ui/main_window.py`'s automatic update check is disabled
+  when `PYTEST_CURRENT_TEST` is set, so instantiating `MainWindow()` in tests never makes a real
+  network request from a background thread (it did before this guard was added, and crashed the
+  test process during teardown — the same class of thread-lifecycle risk documented for the
+  fitz worker-close bugs above).
 
 ---
 

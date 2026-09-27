@@ -4,7 +4,7 @@ import gc
 import logging
 from pathlib import Path
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QCloseEvent, QDragEnterEvent, QDropEvent, QKeySequence
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -23,10 +23,34 @@ from ui.sidebar import Sidebar
 from ui.thumbnail_panel import ThumbnailPanel
 from ui.viewer import PDFViewer
 from ui.widgets.recent_files_widget import RecentFilesWidget
-from utils.config import APP_NAME, VERSION
+from utils.config import APP_NAME, FULL_VERSION
 from utils.recent_files import add_recent_file
+from utils.update_checker import ReleaseInfo, UpdateCheckError, fetch_latest_release
 
 logger = logging.getLogger(__name__)
+
+
+class _UpdateCheckWorker(QObject):
+    """Esegue il controllo aggiornamenti (chiamata di rete bloccante) su un QThread.
+
+    Segue lo stesso pattern QObject+QThread di ``base_panel._Worker``: risultati
+    consegnati alla GUI solo via segnali Qt (queued), mai chiamate cross-thread dirette.
+    """
+
+    finished = pyqtSignal(object)  # ReleaseInfo | None
+    error = pyqtSignal(str)
+
+    def __init__(self, include_prerelease: bool) -> None:
+        super().__init__()
+        self._include_prerelease = include_prerelease
+
+    @pyqtSlot()
+    def run(self) -> None:
+        try:
+            release = fetch_latest_release(self._include_prerelease)
+            self.finished.emit(release)
+        except UpdateCheckError as exc:
+            self.error.emit(str(exc))
 
 
 class MainWindow(QMainWindow):
@@ -37,7 +61,7 @@ class MainWindow(QMainWindow):
         self._pending_preview: Path | None = None  # file temp anteprima corrente
         self._temp_files: list[Path] = []  # tutti i temp creati nella sessione
 
-        self.setWindowTitle(f"{APP_NAME} {VERSION}")
+        self.setWindowTitle(f"{APP_NAME} {FULL_VERSION}")
         self.setMinimumSize(1100, 700)
         self.resize(1280, 800)
         self.setAcceptDrops(True)
@@ -46,6 +70,7 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._setup_menus()
         self._connect_signals()
+        self._maybe_auto_check_updates()
 
     # ------------------------------------------------------------------
     # UI setup
@@ -269,6 +294,12 @@ class MainWindow(QMainWindow):
 
         # Help
         help_menu = menubar.addMenu("?")
+        update_act = QAction("Controlla aggiornamenti…", self)
+        update_act.triggered.connect(lambda: self._check_for_updates(manual=True))
+        help_menu.addAction(update_act)
+
+        help_menu.addSeparator()
+
         about_act = QAction(f"Informazioni su {APP_NAME}", self)
         about_act.triggered.connect(self._on_about)
         help_menu.addAction(about_act)
@@ -319,7 +350,7 @@ class MainWindow(QMainWindow):
         self._cleanup_all_temps()  # elimina tutti i file temporanei della sessione
         self._reset_panels()  # resetta tutti i pannelli ai valori di default
         self._stack.setCurrentWidget(self._welcome)
-        self.setWindowTitle(f"{APP_NAME} {VERSION}")
+        self.setWindowTitle(f"{APP_NAME} {FULL_VERSION}")
         self._tb_prev_btn.setEnabled(False)
         self._tb_next_btn.setEnabled(False)
         self._save_act.setEnabled(False)
@@ -505,6 +536,97 @@ class MainWindow(QMainWindow):
         from ui.dialogs.about_dialog import AboutDialog
 
         AboutDialog(self).exec()
+
+    # ------------------------------------------------------------------
+    # Controllo aggiornamenti
+    # ------------------------------------------------------------------
+
+    def _maybe_auto_check_updates(self) -> None:
+        """Controllo silenzioso all'avvio, al massimo una volta ogni 24h.
+
+        Disabilitato sotto pytest (PYTEST_CURRENT_TEST è impostata automaticamente
+        da pytest per la durata di ogni test): senza questa guardia, ogni test che
+        istanzia MainWindow() avvierebbe una vera chiamata di rete su un QThread
+        di background, con lo stesso rischio di crash/hang in teardown già visto
+        per i worker fitz nei bug di thread-safety documentati in CLAUDE.md.
+        """
+        import os
+
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            return
+
+        from utils.update_checker import should_auto_check
+
+        if should_auto_check():
+            self._check_for_updates(manual=False)
+
+    def _check_for_updates(self, manual: bool) -> None:
+        from utils.config import IS_PRERELEASE
+
+        if manual:
+            self._set_status("Controllo aggiornamenti in corso…")
+
+        # Thread parentato a self (visibile al safety net app.findChildren(QThread)),
+        # stesso pattern QObject+QThread di base_panel._Worker.
+        self._update_thread = QThread(self)
+        self._update_worker = _UpdateCheckWorker(IS_PRERELEASE)
+        self._update_worker.moveToThread(self._update_thread)
+        self._update_thread.started.connect(self._update_worker.run)
+        self._update_worker.finished.connect(
+            lambda release: self._on_update_check_done(release, manual)
+        )
+        self._update_worker.error.connect(lambda msg: self._on_update_check_error(msg, manual))
+        self._update_worker.finished.connect(self._update_thread.quit)
+        self._update_worker.error.connect(self._update_thread.quit)
+        self._update_worker.finished.connect(self._update_worker.deleteLater)
+        self._update_worker.error.connect(self._update_worker.deleteLater)
+        self._update_thread.finished.connect(self._update_thread.deleteLater)
+        self._update_thread.start()
+
+    @pyqtSlot(object)
+    def _on_update_check_done(self, release: ReleaseInfo | None, manual: bool) -> None:
+        from utils.update_checker import get_skipped_tag, is_newer, mark_checked, set_skipped_tag
+
+        # Marca il controllo come eseguito solo in caso di risposta valida
+        # (successo, con o senza aggiornamento): un errore di rete NON deve
+        # far scattare il throttle di 24h, altrimenti un fallimento temporaneo
+        # ritarderebbe il prossimo tentativo automatico di un giorno intero.
+        mark_checked()
+
+        if release is None:
+            if manual:
+                QMessageBox.information(
+                    self, "Controllo aggiornamenti", "Nessuna release trovata per questo canale."
+                )
+            return
+
+        if not is_newer(FULL_VERSION, release.tag):
+            if manual:
+                QMessageBox.information(
+                    self,
+                    "Controllo aggiornamenti",
+                    f"Stai già usando l'ultima versione ({FULL_VERSION}).",
+                )
+            else:
+                self._set_status("Nessun aggiornamento disponibile")
+            return
+
+        if not manual and release.tag == get_skipped_tag():
+            return  # l'utente ha già scelto di ignorare questa versione
+
+        from ui.dialogs.update_dialog import UpdateAvailableDialog
+
+        dlg = UpdateAvailableDialog(release, FULL_VERSION, self)
+        dlg.exec()
+        if dlg.skip_requested():
+            set_skipped_tag(release.tag)
+
+    @pyqtSlot(str)
+    def _on_update_check_error(self, msg: str, manual: bool) -> None:
+        if manual:
+            QMessageBox.warning(self, "Controllo aggiornamenti", f"Controllo fallito:\n{msg}")
+        else:
+            logger.info(f"Controllo aggiornamenti automatico fallito: {msg}")
 
     def _set_status(self, msg: str) -> None:
         self._status.showMessage(msg, 5000)

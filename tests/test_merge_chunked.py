@@ -84,7 +84,19 @@ def _can_measure_memory_reliably() -> bool:
 
 @pytest.fixture
 def memory_tracker():
-    """Traccia memory usage durante i test (opzionale, richiede psutil)."""
+    """Traccia memory usage durante i test (opzionale, richiede psutil).
+
+    Misura il DELTA di RSS rispetto al primo snapshot ("baseline"), non la RSS
+    assoluta del processo. La RSS assoluta include tutto ciò che è già residente
+    nel processo pytest quando il test gira (PyQt6, PyMuPDF, reportlab, moduli e
+    fixture di centinaia di altri test nella stessa sessione) e su Windows/CPython
+    l'heap liberato non viene restituito subito all'OS: la RSS assoluta cresce
+    monotonicamente per tutta la sessione e dipende dall'ordine di esecuzione dei
+    test, non dall'operazione sotto test. Il delta baseline→peak isola invece la
+    memoria effettivamente allocata dall'operazione misurata, indipendentemente
+    da cosa è già caricato nel processo — è la quantità che i test devono
+    realmente asserire.
+    """
 
     class MemoryTracker:
         def __init__(self):
@@ -92,7 +104,8 @@ def memory_tracker():
             if HAS_PSUTIL:
                 self.process = psutil.Process()
             self.snapshots = []
-            self.peak_rss_mb = 0
+            self.baseline_mb: float | None = None
+            self.peak_rss_mb = 0.0
 
         def snapshot(self, label: str):
             if not HAS_PSUTIL:
@@ -101,13 +114,20 @@ def memory_tracker():
                 return
             mem = self.process.memory_info().rss / 1024 / 1024  # MB
             self.snapshots.append((label, mem))
+            if self.baseline_mb is None:
+                self.baseline_mb = mem
             self.peak_rss_mb = max(self.peak_rss_mb, mem)
             logger.info(f"Memory [{label}]: {mem:.1f} MB (peak: {self.peak_rss_mb:.1f} MB)")
 
         def report(self) -> dict:
+            delta_mb = (
+                (self.peak_rss_mb - self.baseline_mb) if self.baseline_mb is not None else 0.0
+            )
             return {
                 "snapshots": self.snapshots,
+                "baseline_mb": self.baseline_mb,
                 "peak_mb": self.peak_rss_mb,
+                "delta_mb": delta_mb,
             }
 
     return MemoryTracker()
@@ -196,14 +216,16 @@ class TestMergeChunkedHappyPath:
         with pikepdf.open(str(output)) as pdf:
             assert len(pdf.pages) == 1
 
-        # Memory peak dovrebbe essere bassa (solo se psutil è disponibile)
+        # L'aumento di memoria ATTRIBUIBILE al merge (non la RSS assoluta del
+        # processo, vedi docstring di memory_tracker) dovrebbe essere bassa per
+        # un merge di 1 pagina — solo se psutil è disponibile.
         # IMPORTANTE: su Linux headless (CI environment), psutil non misura correttamente
         # la memoria del processo. Quindi il test su memoria è skippato in headless.
         report = memory_tracker.report()
         logger.info(f"Simple merge memory report: {report}")
         if _can_measure_memory_reliably():
             # Solo su sistemi con display reale (Windows, macOS, Linux con Xvfb corretto)
-            assert report["peak_mb"] < 110  # Simple merge (1 page) should use <110MB
+            assert report["delta_mb"] < 20  # Simple merge (1 page) should add <20MB RSS
 
     def test_above_threshold_uses_chunked(self, large_pdf, tmp_path, memory_tracker):
         """Happy path 2: >500 pages → usa _merge_chunked."""
