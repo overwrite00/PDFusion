@@ -83,10 +83,10 @@ class InsertPanel(BasePanelWidget):
 
     def _on_file_changed(self, path) -> None:
         if path:
-            import fitz
+            import pymupdf
 
             try:
-                doc = fitz.open(str(path))
+                doc = pymupdf.open(str(path))
                 self._total_pages = doc.page_count
                 doc.close()
                 self._pos_spin.setMaximum(self._total_pages + 1)

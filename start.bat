@@ -10,7 +10,7 @@ for /f "tokens=2 delims==" %%L in (
 if /i "!_UILANG:~0,2!"=="it" (
   set "MSG_CHECKING=Controllo ambiente..."
   set "MSG_PYTHON_FOUND=Python trovato:"
-  set "MSG_PYTHON_NOT=Python 3.11-3.13 non trovato. Installa Python 3.13 da python.org e riprova."
+  set "MSG_PYTHON_NOT=Python 3.13 non trovato. Installa Python 3.13 da python.org e riprova."
   set "MSG_VENV=Creazione ambiente virtuale..."
   set "MSG_PIP_UPGRADE=Aggiornamento pip..."
   set "MSG_DEPS=Installazione dipendenze..."
@@ -19,7 +19,7 @@ if /i "!_UILANG:~0,2!"=="it" (
 ) else (
   set "MSG_CHECKING=Checking environment..."
   set "MSG_PYTHON_FOUND=Python found:"
-  set "MSG_PYTHON_NOT=Python 3.11-3.13 not found. Install Python 3.13 from python.org and retry."
+  set "MSG_PYTHON_NOT=Python 3.13 not found. Install Python 3.13 from python.org and retry."
   set "MSG_VENV=Creating virtual environment..."
   set "MSG_PIP_UPGRADE=Upgrading pip..."
   set "MSG_DEPS=Installing dependencies..."
@@ -37,7 +37,7 @@ echo !MSG_CHECKING!
 :: --- Trova Python (Launcher py prima, poi python.exe) ---
 where py >nul 2>&1
 if %errorlevel%==0 (
-  for %%V in (3.13 3.12 3.11) do (
+  for %%V in (3.13) do (
     if not defined PYTHON_BIN (
       py -%%V --version >nul 2>&1
       if !errorlevel!==0 (
@@ -50,7 +50,7 @@ if %errorlevel%==0 (
 if not defined PYTHON_BIN (
   where python >nul 2>&1
   if %errorlevel%==0 (
-    python -c "import sys; v=sys.version_info; exit(0 if 11<=v.minor<=13 else 1)" >nul 2>&1
+    python -c "import sys; v=sys.version_info; exit(0 if v.major==3 and v.minor==13 else 1)" >nul 2>&1
     if !errorlevel!==0 set "PYTHON_BIN=python"
   )
 )

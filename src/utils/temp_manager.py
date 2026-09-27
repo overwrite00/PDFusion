@@ -35,7 +35,7 @@ def cleanup_temp() -> None:
 
 
 @contextmanager
-def atomic_write(output_path: Path) -> Generator[Path, None, None]:
+def atomic_write(output_path: Path) -> Generator[Path]:
     """
     Context manager per la scrittura atomica cross-platform.
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-import fitz  # PyMuPDF
+import pymupdf
 
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 from utils.page_range_parser import parse_page_ranges, ranges_to_indices
@@ -54,7 +54,7 @@ def export_pages_as_images(
     doc = None
     try:
         try:
-            doc = fitz.open(str(input_path))
+            doc = pymupdf.open(str(input_path))
         except Exception as exc:
             raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
@@ -66,7 +66,7 @@ def export_pages_as_images(
 
         ext = config.format.value
         zoom = config.dpi / 72.0
-        matrix = fitz.Matrix(zoom, zoom)
+        matrix = pymupdf.Matrix(zoom, zoom)
 
         output_paths: list[Path] = []
         for page_idx in indices:

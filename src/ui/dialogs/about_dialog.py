@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from utils.config import APP_NAME, VERSION
+from utils.config import APP_NAME, FULL_VERSION, GITHUB_REPO_URL
 
 
 class AboutDialog(QDialog):
@@ -26,7 +26,7 @@ class AboutDialog(QDialog):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
-        version_lbl = QLabel(f"Versione {VERSION}", self)
+        version_lbl = QLabel(f"Versione {FULL_VERSION}", self)
         version_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         version_lbl.setObjectName("hintLabel")
         layout.addWidget(version_lbl)
@@ -51,6 +51,14 @@ class AboutDialog(QDialog):
         license_lbl.setOpenExternalLinks(True)
         license_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(license_lbl)
+
+        repo_lbl = QLabel(
+            f"Repository: <a href='{GITHUB_REPO_URL}'>{GITHUB_REPO_URL}</a>",
+            self,
+        )
+        repo_lbl.setOpenExternalLinks(True)
+        repo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(repo_lbl)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok, parent=self)
         buttons.accepted.connect(self.accept)

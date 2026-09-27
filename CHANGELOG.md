@@ -8,7 +8,110 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ---
 
-## [Unreleased]
+## [0.3.0] — 2026-09-27
+
+> This cycle was first published as the pre-releases `v0.2.11-beta1` and `v0.2.11-beta2`.
+> Because it drops support for Python 3.11 and 3.12 (a breaking change), the release was
+> renumbered to **0.3.0** and its pre-releases restarted at `v0.3.0-beta1`, followed by
+> `v0.3.0-beta2` and `v0.3.0-beta3` before this stable promotion.
+
+### Added
+
+- **In-app update check**: PDFusion now checks GitHub Releases for a newer version, silently
+  at startup (throttled to once per 24h) and on demand via **? → Controlla aggiornamenti…**.
+  The check follows the running build's channel — a beta build compares against pre-releases,
+  a stable build only against stable releases — and treats a same-version beta→stable
+  promotion as an available update. When a newer release is found, a dialog shows its release
+  notes with **Scarica** (opens the matching installer asset for the current OS directly in
+  the system browser — PDFusion never downloads or executes anything itself), **Ignora questa
+  versione**, and **Più tardi**. Implemented as a pure-Python `utils/update_checker.py` (stdlib
+  `urllib`, no new dependency) plus a `QThread` worker in `ui/main_window.py`, following the
+  same worker pattern as `base_panel._Worker`.
+- **Version now shows its channel**: a new `VERSION_SUFFIX` constant in `config.py` (e.g.
+  `"-beta3"`, empty for a stable release) is combined into `FULL_VERSION`, shown in the window
+  title and the About dialog instead of the bare `VERSION`. `VERSION_SUFFIX` is updated by hand
+  together with `VERSION` as part of the existing versioning workflow, and cleared on stable
+  promotion.
+- **About dialog**: now shows a clickable link to the GitHub repository.
+
+### Removed
+
+- **BREAKING — Python 3.11 and 3.12 are no longer supported.** PDFusion now requires Python 3.13
+  (`requires-python = ">=3.13,<3.14"`). The CI matrix is reduced to 3.13, ruff targets `py313`,
+  mypy targets 3.13, and the release/pre-release builds now bundle a 3.13 interpreter (they used
+  3.12 before). `start.sh` / `start.bat` only accept 3.13, and README, CONTRIBUTING and
+  `requirements.txt` are updated. End users of the installers are not affected by the version of
+  a system Python, but the bundled interpreter changes from 3.12 to 3.13.
+
+### Changed
+
+- **PyMuPDF import**: all code and tests now use `import pymupdf` instead of the deprecated
+  `import fitz` (13 modules in `src/`, 3 test files). PyMuPDF 1.28.2 printed a deprecation warning
+  for `fitz` at startup; it no longer appears, including in the frozen executable.
+- **Dependencies**: routine updates
+  - Runtime: PyMuPDF 1.28.0 → 1.28.2, pikepdf 10.10.0 → 10.12.0 → 10.13.0.post1, reportlab
+    5.0.0 → 5.0.1, pydantic-settings 2.14.2 → 2.15.0 (MINOR/PATCH) via #89 and #91. Note:
+    `pydantic-settings` is not imported anywhere in `src/` or `tests/`, so that bump is not
+    exercised by the test suite
+  - Dev-only: ruff 0.16.0 → 0.16.1 → 0.16.3 → 0.16.8 and pyinstaller 6.21.0 → 6.22.0 → 6.22.3
+    via #85, #87, #92
+  - Dependabot version-update PRs (pip + github-actions) now open monthly instead of weekly;
+    security updates are unaffected and still open in real time
+- **Typing**: `Generator[Path, None, None]` → `Generator[Path]` (ruff `UP043`, valid from 3.13)
+- **Project automation**: `project-automation.yml` now auto-labels Issues too (previously only
+  Dependabot PRs and manually opened PRs were labeled; Issues never received any label from
+  automation). Same title-prefix heuristic style: `bug:`/`[Bug]`→`type:bug`, `feat:`/`[Feature]`→
+  `type:feature`, `docs:`/`[Docs]`→`type:docs`, `question:`/`[Question]`→`question`,
+  default→`type:chore`
+
+### Fixed
+
+- **Viewer and thumbnail workers never closed their PDF on the worker thread.**
+  `_close_worker()` (in `ui/viewer.py` and `ui/thumbnail_panel.py`) tested the return value of
+  `QMetaObject.invokeMethod()`. In PyQt6 that call returns `None` on success and raises
+  `RuntimeError` on failure, so the check (`if not invoked`) was always true: every close logged
+  a bogus "invokeMethod returned False" warning, skipped the bounded wait for the worker's
+  acknowledgement and closed the document on the main thread instead, racing with a still-queued
+  `render()`. The check is removed; the existing `except` already handles a real failure.
+  This is the root cause of the intermittent failures of
+  `test_close_worker_sets_worker_to_none_first` and
+  `test_thumb_worker_snapshot_prevents_use_after_free` (the latter also failed once in CI on
+  Ubuntu / Python 3.13 during the 0.2.9 release). Regression tests were added for both classes;
+  on the old code they fail every time.
+- The earlier attempt to fix that flake by waiting for the `rendered` signal in the test was based
+  on a wrong diagnosis and is reverted: the test is back to its original form, now deterministic.
+- **Metadata**: writing `author` set `dc:creator` in the XMP metadata as a plain string. Per the
+  XMP spec `dc:creator` is an ordered array (`rdf:Seq`); pikepdf >= 10.13.0 (bumped via #91) warns
+  (`XmpTypeWarning`) when it is assigned a `str` instead of a list. Fixed by wrapping it in a
+  single-element list. `docinfo /Author` — what `read_metadata`/`PDFMetadata.author` actually
+  reads back — is unaffected, still a plain string.
+- **QSpinBox/QDoubleSpinBox up/down arrows rendered blank in compiled builds** (reported against
+  `v0.3.0-beta2`, visible in every panel with a spin box, e.g. "Modalità di divisione"). Same root
+  cause as the v0.2.6→v0.2.7 blank-icon bug: `styles/theme.py` recomputed the icons directory from
+  `Path(__file__).parent.parent.parent` instead of importing `ICONS_DIR` from `utils.config` — in a
+  frozen PyInstaller build this points outside `_MEIPASS`/`_internal/assets`, so the arrow SVGs
+  never loaded. Never reproduced in dev mode, only in the packaged installer. Fixed by importing
+  `ICONS_DIR` from `utils.config` instead of recomputing it.
+
+### Testing
+
+- Full suite: 373/373 (372/372 in 10 consecutive full runs after the worker-close fix, plus one
+  new metadata regression test); `ruff check src/ tests/` clean
+- A real local PyInstaller build on Python 3.13 (6.22.0, then 6.22.3 via #92) succeeds and the
+  frozen executable starts headless; the pymupdf migration was verified there too, since pytest
+  does not exercise packaging
+- **Fixed a long-standing flaky memory test**: `test_below_threshold_uses_simple` (in
+  `tests/test_merge_chunked.py`) asserted on the *absolute* process RSS (`psutil`), which
+  accumulates monotonically over an entire pytest session (373 tests share one process) and so
+  depends on execution order rather than on `merge()` itself — it always passed in isolation but
+  occasionally failed in the full suite. `memory_tracker` now tracks a `delta_mb` (peak − baseline,
+  baseline taken immediately before the operation under test) and the assertion checks that delta
+  instead. Verified with 3 consecutive full-suite runs (373/373) after the fix.
+- Added a startup-time regression guard: `ui/main_window.py`'s automatic update check is disabled
+  when `PYTEST_CURRENT_TEST` is set, so instantiating `MainWindow()` in tests never makes a real
+  network request from a background thread (it did before this guard was added, and crashed the
+  test process during teardown — the same class of thread-lifecycle risk documented for the
+  fitz worker-close bugs above).
 
 ---
 

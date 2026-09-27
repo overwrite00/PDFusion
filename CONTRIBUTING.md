@@ -17,7 +17,7 @@ Thank you for your interest in contributing to PDFusion! This guide will help yo
 
 ## Requirements
 
-- **Python**: 3.11, 3.12, or 3.13
+- **Python**: 3.13
 - **Git**: Recent version
 - **Operating System**: Windows 10+, macOS 11+, or Linux
 

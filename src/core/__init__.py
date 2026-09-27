@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 from utils.exceptions import PDFusionError
 
@@ -10,7 +10,7 @@ from utils.exceptions import PDFusionError
 def _open_pdf_with_password(
     path: Path,
     password: str | None = None,
-) -> fitz.Document:
+) -> pymupdf.Document:
     """
     Apre un file PDF, gestendo la password se necessaria.
 
@@ -25,8 +25,8 @@ def _open_pdf_with_password(
         PDFusionError: Se il file non esiste o la password è errata.
     """
     try:
-        doc = fitz.open(str(path))
-    except fitz.FileNotFoundError:
+        doc = pymupdf.open(str(path))
+    except pymupdf.FileNotFoundError:
         raise PDFusionError(f"File non trovato: {path}")
     except Exception as exc:
         raise PDFusionError(f"Errore apertura PDF: {path}") from exc

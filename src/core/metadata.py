@@ -115,6 +115,10 @@ def _set_field(
     else:
         info[docinfo_key] = value
         try:
-            xmp[xmp_key] = value
+            # dc:creator è un array ordinato (rdf:Seq) per spec XMP, non una
+            # stringa semplice: da pikepdf 10.13 assegnargli una str solleva
+            # XmpTypeWarning. docinfo /Author resta comunque una str (è la
+            # fonte usata da read_metadata/_get_str, invariata).
+            xmp[xmp_key] = [value] if xmp_key == "dc:creator" else value
         except Exception:
             pass

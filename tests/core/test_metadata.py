@@ -1,3 +1,5 @@
+import warnings
+
 from core.metadata import PDFMetadata, read_metadata, write_metadata
 
 
@@ -24,6 +26,20 @@ class TestWriteMetadata:
         assert meta.title == "Test Title"
         assert meta.author == "Test Author"
         assert meta.subject == "Test Subject"
+
+    def test_author_write_does_not_warn_xmp_type(self, sample_pdf, tmp_output):
+        """Regression: dc:creator is an XMP ordered array (rdf:Seq), not a
+        plain string. pikepdf >= 10.13 emits XmpTypeWarning if assigned a str
+        directly. docinfo /Author (what read_metadata/author actually reads)
+        must still round-trip correctly as a plain string.
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = write_metadata(
+                sample_pdf, PDFMetadata(author="Test Author"), tmp_output
+            )
+        meta = read_metadata(result)
+        assert meta.author == "Test Author"
 
     def test_partial_write(self, sample_pdf, tmp_output):
         result = write_metadata(sample_pdf, PDFMetadata(title="Only Title"), tmp_output)
