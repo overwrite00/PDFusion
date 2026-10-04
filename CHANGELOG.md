@@ -49,6 +49,13 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   the clean document. The override that records that file was named `_on_preview_done`, a hook that does
   not exist (the real one is `_on_preview_ready`), so it never ran and the second preview was applied to
   the file that already had the headers. Found by `mypy` (`"_on_preview_done" undefined in superclass`).
+- **Headers/footers, watermark and image export on a password-protected PDF without a password** failed
+  with a raw error instead of asking for the password: headers/footers with `AttributeError: 'NoneType'
+  object has no attribute 'get'` (an encrypted document that is not authenticated has no metadata),
+  watermark and image export with PyMuPDF's generic `ValueError: document closed or encrypted`. Every
+  other operation, and the wrong-password case of these three, already raised the clear
+  `PDFusionError("Password errata o mancante…")`; now they all do. Found by `mypy` (`Item "None" of
+  "Any | None" has no attribute "get"`), the other two by probing every PyMuPDF-based operation.
 - **Update check never offered the beta → stable promotion**: the beta channel only looked at
   pre-releases, so a user on `0.3.0-beta3` was never told about `v0.3.0`, although `is_newer()` and the
   0.3.0 notes describe exactly that case. The beta channel now considers pre-releases and stable
@@ -77,7 +84,9 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   output stays a valid, renderable PDF; a lower preset gives a smaller image; flattening iterates every page).
 - The Apply flow of the Split, Export images and Batch panels (folder choice, real worker on a `QThread`,
   real core, output files) and the headers/footers preview tracking had no tests; added 9.
-- Suite: 373 → 466 tests.
+- Protected-PDF behaviour (no, wrong and correct password) of headers/footers, watermark and image export
+  had no tests; added 9.
+- Suite: 373 → 475 tests.
 
 ### Documentation
 

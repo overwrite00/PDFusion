@@ -86,7 +86,9 @@ def apply_watermark(
     except Exception as exc:
         raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
-    if password and not doc.authenticate(password):
+    # Un PDF cifrato non autenticato non è leggibile: senza password va rifiutato subito con un
+    # messaggio chiaro (altrimenti PyMuPDF solleva un ValueError generico più avanti).
+    if (doc.needs_pass and not password) or (password and not doc.authenticate(password)):
         doc.close()
         raise PDFusionError("Password errata o mancante per aprire il PDF.")
 

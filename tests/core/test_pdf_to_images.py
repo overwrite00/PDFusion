@@ -1,4 +1,7 @@
+import pytest
+
 from core.pdf_to_images import ExportImagesConfig, ImageFormat, export_pages_as_images
+from utils.exceptions import PDFusionError
 
 
 class TestPdfToImages:
@@ -33,3 +36,21 @@ class TestPdfToImages:
         config = ExportImagesConfig()
         files = export_pages_as_images(sample_pdf, tmp_dir, config=config)
         assert all(f.exists() for f in files)
+
+
+class TestProtectedPdf:
+    """Password utente della fixture: 'test123'."""
+
+    def test_without_password_raises_a_clear_error(self, encrypted_pdf, tmp_dir):
+        with pytest.raises(PDFusionError, match="Password"):
+            export_pages_as_images(encrypted_pdf, tmp_dir, ExportImagesConfig())
+
+    def test_wrong_password_raises_a_clear_error(self, encrypted_pdf, tmp_dir):
+        with pytest.raises(PDFusionError, match="Password"):
+            export_pages_as_images(encrypted_pdf, tmp_dir, ExportImagesConfig(), "sbagliata")
+
+    def test_correct_password_works(self, encrypted_pdf, tmp_dir):
+        files = export_pages_as_images(
+            encrypted_pdf, tmp_dir, ExportImagesConfig(format=ImageFormat.PNG), "test123"
+        )
+        assert len(files) == 1 and files[0].exists()
