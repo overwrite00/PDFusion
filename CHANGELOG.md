@@ -10,6 +10,13 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+### Added
+
+- **Opt-out for the automatic update check**: a checkable **? → Controlla aggiornamenti all'avvio** menu
+  entry (on by default) turns the silent startup check off. The choice is persisted in
+  `~/.pdfusion/update_check.json` next to the throttle and "skip this version" state. The on-demand
+  **? → Controlla aggiornamenti…** check is unaffected.
+
 ### Changed
 
 - **Dependencies**: pikepdf 10.13.0.post1 → 10.14.0 via #94; ruff 0.16.8 → 0.16.9 (dev-only) via #95.
@@ -17,6 +24,22 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   (10.13 needed macOS 14+ on arm64). The macOS installer is built on an arm64 runner, so it was already
   Apple-Silicon-only; its minimum macOS is now **15** (it was 14, never the "11+" the README stated).
   The test suite and CI cannot exercise the DMG on macOS, so only the build is verified.
+
+### Fixed
+
+- **Update check never offered the beta → stable promotion**: the beta channel only looked at
+  pre-releases, so a user on `0.3.0-beta3` was never told about `v0.3.0`, although `is_newer()` and the
+  0.3.0 notes describe exactly that case. The beta channel now considers pre-releases and stable
+  releases (the stable channel still only stable ones; drafts are always skipped), and the release is
+  chosen by version instead of by the order GitHub lists them, so a hotfix published later on an older
+  line cannot hide a newer beta.
+
+### Testing
+
+- `utils/update_checker.py` had no tests; added 64 (tag parsing, `is_newer`, installer choice per OS, the
+  24h throttle, skipped tag, opt-out, `fetch_latest_release` against a fake `urlopen` including the
+  request itself) plus 8 UI tests for the new menu entry. They never touch the network or the real
+  `~/.pdfusion` folder.
 
 ### Documentation
 

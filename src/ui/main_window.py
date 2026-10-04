@@ -25,7 +25,13 @@ from ui.viewer import PDFViewer
 from ui.widgets.recent_files_widget import RecentFilesWidget
 from utils.config import APP_NAME, FULL_VERSION
 from utils.recent_files import add_recent_file
-from utils.update_checker import ReleaseInfo, UpdateCheckError, fetch_latest_release
+from utils.update_checker import (
+    ReleaseInfo,
+    UpdateCheckError,
+    fetch_latest_release,
+    is_auto_check_enabled,
+    set_auto_check_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -298,6 +304,14 @@ class MainWindow(QMainWindow):
         update_act.triggered.connect(lambda: self._check_for_updates(manual=True))
         help_menu.addAction(update_act)
 
+        # Opt-out del controllo automatico all'avvio (default attivo). Il valore iniziale
+        # va impostato PRIMA di collegare toggled, altrimenti scriverebbe lo stato subito.
+        self._auto_update_act = QAction("Controlla aggiornamenti all'avvio", self)
+        self._auto_update_act.setCheckable(True)
+        self._auto_update_act.setChecked(is_auto_check_enabled())
+        self._auto_update_act.toggled.connect(set_auto_check_enabled)
+        help_menu.addAction(self._auto_update_act)
+
         help_menu.addSeparator()
 
         about_act = QAction(f"Informazioni su {APP_NAME}", self)
@@ -542,7 +556,8 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _maybe_auto_check_updates(self) -> None:
-        """Controllo silenzioso all'avvio, al massimo una volta ogni 24h.
+        """Controllo silenzioso all'avvio, al massimo una volta ogni 24h, se non disattivato
+        dall'utente (? → "Controlla aggiornamenti all'avvio").
 
         Disabilitato sotto pytest (PYTEST_CURRENT_TEST è impostata automaticamente
         da pytest per la durata di ogni test): senza questa guardia, ogni test che

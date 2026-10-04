@@ -24,9 +24,11 @@ from utils.update_checker import (
     _parse_tag,
     fetch_latest_release,
     get_skipped_tag,
+    is_auto_check_enabled,
     is_newer,
     mark_checked,
     pick_asset_url,
+    set_auto_check_enabled,
     set_skipped_tag,
     should_auto_check,
 )
@@ -194,6 +196,64 @@ def test_save_state_failure_is_swallowed(monkeypatch, tmp_path):
     monkeypatch.setattr(uc, "UPDATE_CHECK_STATE_PATH", blocker / "update_check.json")
     mark_checked()  # non deve sollevare
     assert get_skipped_tag() is None
+
+
+# ---------------------------------------------------------------------------
+# Opt-out del controllo automatico all'avvio
+# ---------------------------------------------------------------------------
+
+
+def test_auto_check_is_enabled_by_default(state_file):
+    assert not state_file.exists()
+    assert is_auto_check_enabled() is True
+    assert should_auto_check() is True
+
+
+def test_disabling_auto_check_persists_and_blocks_should_auto_check(state_file):
+    set_auto_check_enabled(False)
+    assert json.loads(state_file.read_text(encoding="utf-8"))["auto_check_enabled"] is False
+    assert is_auto_check_enabled() is False
+    assert should_auto_check() is False  # anche senza alcun last_check
+
+
+def test_re_enabling_auto_check_restores_normal_throttle(state_file):
+    set_auto_check_enabled(False)
+    set_auto_check_enabled(True)
+    assert is_auto_check_enabled() is True
+    assert should_auto_check() is True
+    mark_checked()
+    assert should_auto_check() is False  # throttle 24h di nuovo in vigore
+
+
+def test_disabled_flag_survives_other_state_writes(state_file):
+    set_auto_check_enabled(False)
+    mark_checked()
+    set_skipped_tag("v0.3.1")
+    assert is_auto_check_enabled() is False
+    assert get_skipped_tag() == "v0.3.1"
+
+
+def test_other_state_survives_toggling_the_flag(state_file):
+    mark_checked()
+    set_skipped_tag("v0.3.1")
+    set_auto_check_enabled(False)
+    set_auto_check_enabled(True)
+    assert get_skipped_tag() == "v0.3.1"
+    assert should_auto_check() is False  # last_check non perso
+
+
+@pytest.mark.parametrize("junk", ["yes", 0, 1, None, [], {}])
+def test_non_boolean_flag_counts_as_enabled(state_file, junk):
+    state_file.parent.mkdir(parents=True)
+    state_file.write_text(json.dumps({"auto_check_enabled": junk}), encoding="utf-8")
+    assert is_auto_check_enabled() is True
+
+
+def test_manual_check_helpers_do_not_depend_on_the_flag(state_file):
+    # pick_asset_url / is_newer / fetch non leggono lo stato: l'opt-out riguarda solo
+    # il controllo automatico, quello manuale dal menu resta sempre disponibile.
+    set_auto_check_enabled(False)
+    assert is_newer("0.3.0", "v0.3.1") is True
 
 
 # ---------------------------------------------------------------------------
