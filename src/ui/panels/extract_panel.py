@@ -41,7 +41,7 @@ class ExtractPanel(BasePanelWidget):
             return None
         return {"ranges": ranges}
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.extract_pages import extract_pages
 
         extract_pages(input_path, config["ranges"], output_path, password or None)

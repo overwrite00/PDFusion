@@ -19,6 +19,14 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ### Changed
 
+- **`mypy` is now enforced in CI** (new `Types (mypy)` job) and is clean: 87 errors → 0 on the project
+  configuration, on win32, linux and darwin. The configuration was also wrong: `src/` contains an
+  `__init__.py`, so `mypy` named the modules `src.utils.x` while the code imports `utils.x`; with
+  `ignore_missing_imports` every internal import silently became `Any` and no type was checked across
+  modules. `mypy_path = "src"` + `explicit_package_bases` fix that, and `warn_unused_ignores` keeps
+  `# type: ignore` honest. Mostly PyQt6 stub noise (`X | None` for things that are never `None`), fixed
+  with explicit guards or by building objects explicitly; the real defects it pointed at are listed under
+  Fixed.
 - **Dependencies**: pikepdf 10.13.0.post1 → 10.14.0 via #94; ruff 0.16.8 → 0.16.9 (dev-only) via #95.
 - **macOS minimum version**: pikepdf 10.14.0 only ships macOS wheels for macOS 15+ on Apple Silicon
   (10.13 needed macOS 14+ on arm64). The macOS installer is built on an arm64 runner, so it was already
@@ -27,12 +35,19 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ### Removed
 
+- **`isort`** from `requirements-dev.txt` and from `dependabot.yml`. It was never part of CI, ordered
+  imports differently from ruff's `I` rules (running it produced lint errors CI rejects) and is made
+  redundant by them.
 - **`pydantic-settings`** (and, with it, `pydantic`, `pydantic-core`, `python-dotenv`, `typing-inspection`)
   from `requirements.txt` via #97. It was never imported anywhere in `src/` or `tests/`, so nothing
   changes for the application: a PyInstaller build without it has the same size and contents.
 
 ### Fixed
 
+- **`_ask_save_path()` dereferenced `_current_path` without checking it** (two `# type: ignore` hid it):
+  with no open document it raised `AttributeError`; it now returns `None`. Also removed the other
+  `# type: ignore[return-value]` in three panels by declaring that `_collect_config_impl` may return
+  `None`, which is what it does when the input is invalid.
 - **Compression crashed on any PDF with a high-resolution image**: `compress` called
   `Document.replace_image`, which does not exist in PyMuPDF (only `Page.replace_image` does), and the
   surrounding `except` only caught `OSError`/`ValueError`, so every PDF containing an image above the
@@ -86,18 +101,21 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   real core, output files) and the headers/footers preview tracking had no tests; added 9.
 - Protected-PDF behaviour (no, wrong and correct password) of headers/footers, watermark and image export
   had no tests; added 9.
-- Suite: 373 → 475 tests.
+- The UI code touched by the type clean-up had no tests; added 24: drag & drop of `DropZone` and
+  `MainWindow`, the zoom menu, the dispatch to the Reorder and Delete panels, the update dialog buttons,
+  the thumbnail reorder signal and `repolish()`. Writing them exposed a flaw in my own refactor
+  (`wheelEvent(None)` would have dereferenced a null pointer through `super()`), fixed before merging.
+- Suite: 373 → 499 tests.
 
 ### Documentation
 
 - README: macOS requirement corrected; new "Release Channels & Updates" section (beta vs stable, the
   in-app update check and what it sends); technology stack table updated to the pinned versions.
 - CONTRIBUTING: documents the branch/release flow and the changelog convention.
-- README and CONTRIBUTING no longer tell contributors to run `ruff format` or `isort`, and `mypy` is
-  described as informational. CI only enforces `ruff check src/ tests/`; `isort` orders imports
-  differently from ruff's `I` rules (following the old advice produced lint errors CI rejects),
-  `ruff format` would rewrite 34 files, and `mypy` currently reports errors (87 with the project
-  configuration), so the old checklists could not be satisfied.
+- README and CONTRIBUTING no longer tell contributors to run `ruff format` or `isort`: CI enforces
+  `ruff check src/ tests/` and now `mypy src/`; `isort` orders imports differently from ruff's `I` rules
+  (following the old advice produced lint errors CI rejects) and `ruff format` would rewrite 34 files.
+  CONTRIBUTING gained a short "Type checking with mypy" section.
 
 ---
 

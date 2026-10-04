@@ -14,7 +14,7 @@ from PyQt6.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-from PyQt6.QtGui import QImage, QKeyEvent, QPixmap, QWheelEvent
+from PyQt6.QtGui import QAction, QImage, QKeyEvent, QPixmap, QWheelEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -351,7 +351,9 @@ class PDFViewer(QWidget):
     def next_page(self) -> None:
         self.go_to_page(self._current_page + 1)
 
-    def wheelEvent(self, event: QWheelEvent) -> None:
+    def wheelEvent(self, event: QWheelEvent | None) -> None:
+        if event is None:
+            return  # mai None in pratica; super().wheelEvent(None) deferenzierebbe un puntatore nullo
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if event.angleDelta().y() > 0:
                 self._zoom_in()
@@ -360,7 +362,9 @@ class PDFViewer(QWidget):
         else:
             super().wheelEvent(event)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
+    def keyPressEvent(self, event: QKeyEvent | None) -> None:
+        if event is None:
+            return
         if event.key() in (Qt.Key.Key_Right, Qt.Key.Key_Down, Qt.Key.Key_PageDown):
             self.next_page()
         elif event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Up, Qt.Key.Key_PageUp):
@@ -616,10 +620,12 @@ class PDFViewer(QWidget):
         menu = QMenu(self)
         menu.setObjectName("zoomMenu")
         for i, label in enumerate(ZOOM_LABELS):
-            action = menu.addAction(label)
+            # QAction creata esplicitamente: menu.addAction(str) è tipizzato "QAction | None".
+            action = QAction(label, menu)
             action.setCheckable(True)
             action.setChecked(i == self._zoom_idx)
             action.setData(i)
+            menu.addAction(action)
         chosen = menu.exec(self._zoom_btn.mapToGlobal(self._zoom_btn.rect().bottomLeft()))
         if chosen is not None:
             self._set_zoom(chosen.data())

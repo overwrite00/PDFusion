@@ -64,7 +64,7 @@ class MetadataPanel(BasePanelWidget):
             creator=_val(self._creator),
         )
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.metadata import write_metadata
 
         write_metadata(input_path, config, output_path, password or None)

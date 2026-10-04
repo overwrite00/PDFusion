@@ -1,6 +1,7 @@
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QWidget
 
+from ui.qt_utils import repolish
 from utils.exceptions import InvalidPageRangeError
 from utils.page_range_parser import parse_page_ranges
 
@@ -91,5 +92,4 @@ class PageRangeInput(QWidget):
     def _set_valid(self, valid: bool) -> None:
         self._valid = valid
         self._edit.setProperty("invalid", not valid)
-        self._edit.style().unpolish(self._edit)
-        self._edit.style().polish(self._edit)
+        repolish(self._edit)

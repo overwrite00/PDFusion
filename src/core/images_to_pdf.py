@@ -72,7 +72,8 @@ def images_to_pdf(
     try:
         for _idx, img_path in enumerate(image_paths):
             try:
-                with Image.open(img_path) as pil_img:
+                with Image.open(img_path) as opened:
+                    pil_img: Image.Image = opened
                     # Converti in RGB se necessario (RGBA, P, ecc.)
                     if pil_img.mode not in ("RGB", "L"):
                         pil_img = pil_img.convert("RGB")
@@ -139,7 +140,7 @@ def _compute_page_size(
     if config.fit_mode == FitMode.FIXED_PAGE:
         return config.fixed_page_size
     if config.fit_mode == FitMode.FIT_PAGE:
-        return A4
+        return float(A4[0]), float(A4[1])  # A4 di reportlab non è tipizzato
     # ORIGINAL_SIZE
     pts_per_px = 72.0 / config.dpi
     return img.size[0] * pts_per_px, img.size[1] * pts_per_px

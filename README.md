@@ -261,7 +261,7 @@ pytest tests/core/test_compress.py -v
 python -m ruff check src/ tests/          # Check style
 python -m ruff check --fix src/ tests/    # Auto-fix what is fixable
 
-# Type checking (informational: not enforced by CI, the code base is not mypy-clean yet)
+# Type checking (enforced by CI)
 mypy src/
 
 # View coverage report
@@ -283,7 +283,7 @@ For detailed guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**:
 - ✓ Development setup (Python 3.13)
 - ✓ Branch strategy (`feature/*` → `develop` → `main`)
 - ✓ Commit conventions (feat/fix/refactor/docs/test)
-- ✓ Code style (PEP 8, type hints, `ruff check` as enforced by CI)
+- ✓ Code style (PEP 8, type hints; `ruff check` and `mypy`, both enforced by CI)
 - ✓ Testing (pytest, ≥70% coverage, unit + integration)
 - ✓ PR workflow (review, CI/CD checks)
 
@@ -291,7 +291,7 @@ For detailed guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**:
 
 - [ ] Tests pass: `pytest tests/ -q`
 - [ ] Lint, same as CI: `python -m ruff check src/ tests/`
-- [ ] Type hints on new code (`mypy src/` is informational, not enforced yet)
+- [ ] Type check, same as CI: `mypy src/`
 - [ ] Coverage: `pytest --cov=src --cov-report=term-missing`
 
 ### Project Structure

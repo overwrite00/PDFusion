@@ -171,7 +171,9 @@ class ThumbnailPanel(QWidget):
         self._list.setWrapping(False)
         self._list.setSpacing(4)
         self._list.currentRowChanged.connect(self._on_row_changed)
-        self._list.model().rowsMoved.connect(self._on_rows_moved)
+        model = self._list.model()
+        if model is not None:  # negli stub è "QAbstractItemModel | None"
+            model.rowsMoved.connect(self._on_rows_moved)
         layout.addWidget(self._list)
 
     # ------------------------------------------------------------------
@@ -249,9 +251,8 @@ class ThumbnailPanel(QWidget):
             self._request_thumb(row)
 
     def _on_rows_moved(self, *_) -> None:
-        new_order = [
-            self._list.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self._list.count())
-        ]
+        items = (self._list.item(i) for i in range(self._list.count()))
+        new_order = [item.data(Qt.ItemDataRole.UserRole) for item in items if item is not None]
         self.order_changed.emit(new_order)
 
     def _close_worker(self) -> None:

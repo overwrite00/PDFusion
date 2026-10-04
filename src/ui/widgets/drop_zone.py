@@ -4,6 +4,8 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import QFileDialog, QLabel, QVBoxLayout, QWidget
 
+from ui.qt_utils import repolish
+
 
 class DropZone(QWidget):
     """
@@ -42,30 +44,34 @@ class DropZone(QWidget):
     # Drag & Drop
     # ------------------------------------------------------------------
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            paths = [Path(u.toLocalFile()) for u in event.mimeData().urls()]
+    def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
+        if event is None:
+            return
+        mime = event.mimeData()
+        if mime is not None and mime.hasUrls():
+            paths = [Path(u.toLocalFile()) for u in mime.urls()]
             if any(p.suffix.lower() in self._accept_ext for p in paths):
                 event.acceptProposedAction()
                 self.setProperty("dragging", True)
-                self.style().unpolish(self)
-                self.style().polish(self)
+                repolish(self)
                 return
         event.ignore()
 
     def dragLeaveEvent(self, event) -> None:
         self.setProperty("dragging", False)
-        self.style().unpolish(self)
-        self.style().polish(self)
+        repolish(self)
 
-    def dropEvent(self, event: QDropEvent) -> None:
+    def dropEvent(self, event: QDropEvent | None) -> None:
         self.setProperty("dragging", False)
-        self.style().unpolish(self)
-        self.style().polish(self)
+        repolish(self)
+        if event is None:
+            return
 
+        mime = event.mimeData()
+        urls = mime.urls() if mime is not None else []
         paths = [
             Path(u.toLocalFile())
-            for u in event.mimeData().urls()
+            for u in urls
             if Path(u.toLocalFile()).suffix.lower() in self._accept_ext
         ]
         if paths:

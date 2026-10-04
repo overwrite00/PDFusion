@@ -69,8 +69,14 @@ directory = "htmlcov"
 
 [tool.mypy]
 python_version = "3.13"
+# src/ è la radice dei moduli (a runtime il codice importa "utils.x", "core.x", "ui.x"). Senza questi
+# due valori mypy chiama i moduli "src.utils.x": gli import interni non si risolvono e, con
+# ignore_missing_imports, diventano Any in silenzio, cioè nessun controllo di tipo tra moduli.
+mypy_path = "src"
+explicit_package_bases = true
 warn_return_any = true
 warn_unused_configs = true
+warn_unused_ignores = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = true

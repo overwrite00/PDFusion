@@ -109,7 +109,7 @@ def run_batch(
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
             future_map = {executor.submit(process_one, p): p for p in input_paths}
-            retry_queue = {}  # {path: retry_count}
+            retry_queue: dict[Path, int] = {}  # {path: retry_count}
 
             try:
                 for future in concurrent.futures.as_completed(
@@ -297,6 +297,7 @@ def _run_merge(input_paths: list[Path], output_path: Path, job: BatchJob) -> Non
 
     # Costruisci la lista di password per il merge
     # Se password_map è presente, usa quella; altrimenti fallback a job.password
+    passwords: list[str | None] | None
     if job.password_map:
         passwords = [job.password_map.get(path, job.password) for path in input_paths]
     else:

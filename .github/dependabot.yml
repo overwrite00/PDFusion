@@ -54,8 +54,6 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "mypy"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "isort"
-        update-types: ["version-update:semver-major"]
       - dependency-name: "pyinstaller"
         update-types: ["version-update:semver-major"]
 

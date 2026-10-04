@@ -131,13 +131,13 @@ class LicensePanel(BasePanelWidget):
     def _reset_state(self) -> None:
         self._cover_image_path = None
 
-    def _collect_config_impl(self) -> LicenseConfig:
+    def _collect_config_impl(self) -> LicenseConfig | None:
         author = self._author_edit.text().strip()
         if not author:
             from PyQt6.QtWidgets import QMessageBox
 
             QMessageBox.information(self, "Campo obbligatorio", "Inserisci il nome dell'autore.")
-            return None  # type: ignore[return-value]
+            return None
         return LicenseConfig(
             license_type=self._license_combo.currentData(),
             author=author,
@@ -147,7 +147,7 @@ class LicensePanel(BasePanelWidget):
             cover_image_path=self._cover_image_path,
         )
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.license_page import insert_license_page
 
         insert_license_page(input_path, output_path, config, password or None)

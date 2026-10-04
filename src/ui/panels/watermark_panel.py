@@ -179,7 +179,7 @@ class WatermarkPanel(BasePanelWidget):
             # Refresh preview when image is selected
             self._on_preview()
 
-    def _collect_config_impl(self) -> WatermarkConfig:
+    def _collect_config_impl(self) -> WatermarkConfig | None:
         is_text = self._tabs.currentIndex() == 0
 
         if is_text:
@@ -192,7 +192,7 @@ class WatermarkPanel(BasePanelWidget):
                 from PyQt6.QtWidgets import QMessageBox
 
                 QMessageBox.information(self, "Immagine mancante", "Seleziona un'immagine.")
-                return None  # type: ignore[return-value]
+                return None
 
         if self._radio_first_last.isChecked():
             page_sel = PageSelection.FIRST_AND_LAST
@@ -215,7 +215,7 @@ class WatermarkPanel(BasePanelWidget):
             page_selection=page_sel,
         )
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.watermark import apply_watermark
 
         apply_watermark(input_path, output_path, config, password or None)

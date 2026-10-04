@@ -3,6 +3,7 @@ from __future__ import annotations
 import gc
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QCloseEvent, QDragEnterEvent, QDropEvent, QKeySequence
@@ -11,6 +12,8 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMenu,
+    QMenuBar,
     QMessageBox,
     QPushButton,
     QSplitter,
@@ -32,6 +35,9 @@ from utils.update_checker import (
     is_auto_check_enabled,
     set_auto_check_enabled,
 )
+
+if TYPE_CHECKING:
+    from ui.panels.base_panel import BasePanelWidget
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +139,7 @@ class MainWindow(QMainWindow):
         self._stack.addWidget(self._welcome)
 
         # Carica i pannelli tool
-        self._panels: dict[str, QWidget] = {}
+        self._panels: dict[str, BasePanelWidget] = {}
         self._load_panels()
 
         # Status bar
@@ -267,10 +273,12 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _setup_menus(self) -> None:
-        menubar = self.menuBar()
+        # menuBar() e addMenu(str) non ritornano mai None (menuBar() crea la barra se manca): gli
+        # stub di PyQt6 li tipizzano comunque come Optional.
+        menubar = cast(QMenuBar, self.menuBar())
 
         # File
-        file_menu = menubar.addMenu("File")
+        file_menu = cast(QMenu, menubar.addMenu("File"))
         open_act = QAction("Apri…", self)
         open_act.setShortcut(QKeySequence.StandardKey.Open)
         open_act.triggered.connect(self._on_open)
@@ -299,7 +307,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(quit_act)
 
         # Help
-        help_menu = menubar.addMenu("?")
+        help_menu = cast(QMenu, menubar.addMenu("?"))
         update_act = QAction("Controlla aggiornamenti…", self)
         update_act.triggered.connect(lambda: self._check_for_updates(manual=True))
         help_menu.addAction(update_act)
@@ -397,6 +405,7 @@ class MainWindow(QMainWindow):
     def _on_document_loaded(self, total: int) -> None:
         # Se c'è un'anteprima attiva, carica le thumbnail dal file temporaneo
         # (altrimenti verrebbero caricate dall'originale con il conteggio sbagliato)
+        thumb_path: Path | None
         if self._pending_preview:
             thumb_path = self._pending_preview
             thumb_pwd = ""
@@ -418,8 +427,11 @@ class MainWindow(QMainWindow):
         self._thumbnails.set_current_page(page_idx)
         self._update_toolbar_nav()
         # Aggiorna il pannello attivo se è "delete_page"
-        if isinstance(self._stack.currentWidget(), type(self._panels.get("delete_page"))):
-            self._panels["delete_page"].set_current_page(page_idx)  # type: ignore
+        from ui.panels.delete_panel import DeletePanel
+
+        delete_panel = self._panels.get("delete_page")
+        if isinstance(delete_panel, DeletePanel) and self._stack.currentWidget() is delete_panel:
+            delete_panel.set_current_page(page_idx)
 
     def _on_render_error(self, msg: str) -> None:
         self._set_status(f"Errore rendering: {msg}")
@@ -461,8 +473,10 @@ class MainWindow(QMainWindow):
 
     def _on_reorder_from_thumbnail(self, new_order: list) -> None:
         # Il pannello Reorder applica automaticamente il riordino
+        from ui.panels.reorder_panel import ReorderPanel
+
         reorder_panel = self._panels.get("reorder")
-        if reorder_panel and self._current_path:
+        if isinstance(reorder_panel, ReorderPanel) and self._current_path:
             reorder_panel.apply_order(new_order, self._current_path, self._current_password)
 
     def _update_panels(self) -> None:
@@ -646,14 +660,15 @@ class MainWindow(QMainWindow):
     def _set_status(self, msg: str) -> None:
         self._status.showMessage(msg, 5000)
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            if any(u.toLocalFile().lower().endswith(".pdf") for u in urls):
+    def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
+        mime = event.mimeData() if event is not None else None
+        if event is not None and mime is not None and mime.hasUrls():
+            if any(u.toLocalFile().lower().endswith(".pdf") for u in mime.urls()):
                 event.acceptProposedAction()
 
-    def dropEvent(self, event: QDropEvent) -> None:
-        for url in event.mimeData().urls():
+    def dropEvent(self, event: QDropEvent | None) -> None:
+        mime = event.mimeData() if event is not None else None
+        for url in mime.urls() if mime is not None else []:
             path = Path(url.toLocalFile())
             if path.suffix.lower() == ".pdf" and path.exists():
                 self._on_open_path(path)
@@ -759,6 +774,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Errore durante shutdown: {e}", exc_info=True)
 
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent | None) -> None:
         self.shutdown()
-        event.accept()
+        if event is not None:
+            event.accept()

@@ -39,7 +39,7 @@ class ReorderPanel(BasePanelWidget):
             return None
         return {"order": self._new_order}
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.reorder import reorder_pages
 
         reorder_pages(input_path, config["order"], output_path, password or None)

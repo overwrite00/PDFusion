@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QObject, QThread
 from PyQt6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -27,8 +27,7 @@ class BatchPanel(BasePanelWidget):
         self._file_passwords: dict[Path, str | None] = {}  # per-file passwords
         self._supports_preview = False  # operazione multipla
         self._progress_dlg: ProgressDialog | None = None
-        self._thread: QThread | None = None
-        self._batch_worker = None  # mantiene il riferimento vivo durante il thread
+        self._batch_worker: QObject | None = None  # mantiene il riferimento vivo durante il thread
         self._setup_content()
 
     def _setup_content(self) -> None:
@@ -180,7 +179,6 @@ class BatchPanel(BasePanelWidget):
         files = list(self._files)
         dlg = self._progress_dlg
 
-        from PyQt6.QtCore import QObject
         from PyQt6.QtCore import pyqtSignal as _ps
 
         class _Worker(QObject):

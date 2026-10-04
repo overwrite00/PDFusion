@@ -98,7 +98,7 @@ class CompressPanel(BasePanelWidget):
             flatten_annotations=self._flatten_check.isChecked(),
         )
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.compress import compress
 
         compress(input_path, output_path, config, password or None)

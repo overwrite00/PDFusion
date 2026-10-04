@@ -45,7 +45,7 @@ class RotatePanel(BasePanelWidget):
         self._radio_range.toggled.connect(self._range_input.setEnabled)
         self._content_layout.addWidget(pages_group)
 
-    def _collect_config_impl(self) -> dict:
+    def _collect_config_impl(self) -> dict | None:
         angle = 90 if self._radio_90.isChecked() else (180 if self._radio_180.isChecked() else 270)
         if self._radio_all.isChecked():
             return {"angle": angle, "indices": []}
@@ -58,13 +58,13 @@ class RotatePanel(BasePanelWidget):
                     "Range non valido",
                     "Il range di pagine inserito non è valido.\nEsempio corretto: 1-3, 5, 7-9",
                 )
-                return None  # type: ignore[return-value]
+                return None
             from utils.page_range_parser import ranges_to_indices
 
             ranges = self._range_input.get_ranges()
             return {"angle": angle, "indices": ranges_to_indices(ranges) if ranges else []}
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.rotate import rotate_pages
 
         rotate_pages(
