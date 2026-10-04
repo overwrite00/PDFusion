@@ -17,13 +17,13 @@ import logging
 import sys
 import time
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from ui.thumbnail_panel import ThumbnailPanel
+from ui.thumbnail_panel import ThumbnailPanel, _ThumbWorker
 from ui.viewer import PDFViewer, _RenderWorker
 
 logger = logging.getLogger(__name__)
@@ -46,6 +46,31 @@ def _safe_qapplication_creation():
     if app is None:
         app = QApplication([])
     return app
+
+
+def _attach_running_worker(widget, worker_cls, pdf_path, *, open_doc: bool):
+    """Assegna a ``widget`` un worker con un QThread REALE in esecuzione, senza passare da
+    ``load_document()`` (che apre il documento in modo asincrono sul worker thread).
+
+    Il QThread è figlio del widget, come in produzione: così il backstop autouse
+    ``_flush_qt_deletions`` lo vede e lo ferma comunque (un QThread orfano ancora attivo
+    fa abortire Qt al GC). Se ``open_doc`` il documento viene aperto qui, sul MAIN thread:
+    chiuderlo sul main thread — ciò che fa il fallback di ``_close_worker`` — non è allora
+    la finalizzazione cross-thread di un documento nato sul worker, che su Linux può dare
+    SIGABRT.
+    """
+    import pymupdf
+    from PyQt6.QtCore import QThread
+
+    thread = QThread(widget)
+    worker = worker_cls(str(pdf_path))
+    if open_doc:
+        worker._doc = pymupdf.open(str(pdf_path))
+    worker.moveToThread(thread)
+    thread.start()
+    widget._thread = thread
+    widget._worker = worker
+    return worker, thread
 
 
 @pytest.fixture(autouse=True)
@@ -539,6 +564,40 @@ class TestPDFViewerThreadSafety:
         assert original_worker._doc_closed is True
         assert original_worker._doc is None
 
+    def test_close_worker_falls_back_to_main_thread_when_handoff_fails(
+        self, viewer, sample_pdf, caplog
+    ):
+        """Se invokeMethod solleva, _close_worker() chiude il documento sul main thread,
+        lo logga e ferma comunque il thread (nessuna eccezione verso il chiamante)."""
+        worker, thread = _attach_running_worker(viewer, _RenderWorker, sample_pdf, open_doc=True)
+
+        with patch("ui.viewer.QMetaObject") as qmo, caplog.at_level(logging.WARNING):
+            qmo.invokeMethod.side_effect = RuntimeError("boom")
+            viewer._close_worker()
+
+        assert "Errore chiusura documento fitz via invokeMethod: boom" in caplog.text
+        assert worker._doc is None  # chiuso dal fallback
+        assert viewer._worker is None and viewer._thread is None
+        assert not thread.isRunning()
+
+    def test_close_worker_warns_and_continues_when_worker_never_acknowledges(
+        self, viewer, sample_pdf, caplog
+    ):
+        """Se il worker non conferma la chiusura, l'attesa è limitata a 2 s: viene loggato
+        un warning e la chiusura prosegue (mai un blocco indefinito)."""
+        worker, thread = _attach_running_worker(viewer, _RenderWorker, sample_pdf, open_doc=False)
+        worker._close_cond = MagicMock()
+        worker._close_cond.wait.return_value = False  # timeout
+
+        with patch("ui.viewer.QMetaObject"), caplog.at_level(logging.WARNING):
+            viewer._close_worker()  # invokeMethod finto: _close_doc_sync non gira mai
+
+        worker._close_cond.wait.assert_called_once()
+        assert worker._close_cond.wait.call_args.args[1] == 2000
+        assert "Timeout (2s)" in caplog.text
+        assert viewer._worker is None and viewer._thread is None
+        assert not thread.isRunning()
+
     def test_close_worker_idempotency(self, viewer, sample_pdf):
         """Calling _close_worker twice should be safe."""
         viewer.load_document(Path(sample_pdf))
@@ -779,6 +838,38 @@ class TestThumbnailPanelThreadSafety:
         assert "Timeout (2s)" not in caplog.text, caplog.text
         assert original_worker._doc_closed is True
         assert original_worker._doc is None
+
+    def test_thumb_close_falls_back_to_main_thread_when_handoff_fails(
+        self, qapp, sample_pdf, caplog
+    ):
+        panel = ThumbnailPanel()
+        worker, thread = _attach_running_worker(panel, _ThumbWorker, sample_pdf, open_doc=True)
+
+        with patch("ui.thumbnail_panel.QMetaObject") as qmo, caplog.at_level(logging.WARNING):
+            qmo.invokeMethod.side_effect = RuntimeError("boom")
+            panel._close_worker()
+
+        assert "Errore chiusura documento fitz via invokeMethod (thumbnail): boom" in caplog.text
+        assert worker._doc is None
+        assert panel._worker is None and panel._thread is None
+        assert not thread.isRunning()
+
+    def test_thumb_close_warns_and_continues_when_worker_never_acknowledges(
+        self, qapp, sample_pdf, caplog
+    ):
+        panel = ThumbnailPanel()
+        worker, thread = _attach_running_worker(panel, _ThumbWorker, sample_pdf, open_doc=False)
+        worker._close_cond = MagicMock()
+        worker._close_cond.wait.return_value = False
+
+        with patch("ui.thumbnail_panel.QMetaObject"), caplog.at_level(logging.WARNING):
+            panel._close_worker()
+
+        worker._close_cond.wait.assert_called_once()
+        assert worker._close_cond.wait.call_args.args[1] == 2000
+        assert "Timeout (2s)" in caplog.text
+        assert panel._worker is None and panel._thread is None
+        assert not thread.isRunning()
 
     def test_thumb_worker_idempotency(self, qapp, sample_pdf):
         """Calling _close_worker multiple times on thumbnail panel should be safe."""
