@@ -89,13 +89,17 @@ def add_headers_footers(
         except Exception as exc:
             raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
+        # Un PDF cifrato non autenticato ha doc.metadata == None: senza password va rifiutato
+        # qui con un messaggio chiaro, come già avviene per la password errata.
+        if doc.needs_pass and not password:
+            raise PDFusionError("Password errata o mancante per aprire il PDF.")
         if password and not doc.authenticate(password):
             raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
         total = doc.page_count
 
         # Leggi metadati per le variabili {title} e {author}
-        meta = doc.metadata
+        meta = doc.metadata or {}
         title = document_title or meta.get("title", "")
         author = document_author or meta.get("author", "")
 

@@ -58,7 +58,9 @@ def export_pages_as_images(
         except Exception as exc:
             raise UnsupportedFormatError(f"File non valido: {input_path.name}") from exc
 
-        if password and not doc.authenticate(password):
+        # Senza password un PDF cifrato non è leggibile: messaggio chiaro invece del
+        # ValueError generico di PyMuPDF ("document closed or encrypted").
+        if (doc.needs_pass and not password) or (password and not doc.authenticate(password)):
             raise PDFusionError("Password errata o mancante per aprire il PDF.")
 
         total = doc.page_count

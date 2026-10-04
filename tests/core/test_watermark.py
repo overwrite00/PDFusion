@@ -8,6 +8,7 @@ from core.watermark import (
     WatermarkPosition,
     apply_watermark,
 )
+from utils.exceptions import PDFusionError
 
 
 class TestTextWatermark:
@@ -95,3 +96,25 @@ class TestImageWatermark:
         )
         with pytest.raises((PDFusionError, FileNotFoundError, Exception)):
             apply_watermark(sample_pdf, tmp_output, cfg)
+
+
+class TestProtectedPdf:
+    """Password utente della fixture: 'test123'. Senza password PyMuPDF solleva un ValueError
+    generico ("document closed or encrypted"); deve invece arrivare il PDFusionError chiaro."""
+
+    @staticmethod
+    def _cfg() -> WatermarkConfig:
+        return WatermarkConfig(mode=WatermarkMode.TEXT, text="RISERVATO")
+
+    def test_without_password_raises_a_clear_error(self, encrypted_pdf, tmp_output):
+        with pytest.raises(PDFusionError, match="Password"):
+            apply_watermark(encrypted_pdf, tmp_output, self._cfg())
+
+    def test_wrong_password_raises_a_clear_error(self, encrypted_pdf, tmp_output):
+        with pytest.raises(PDFusionError, match="Password"):
+            apply_watermark(encrypted_pdf, tmp_output, self._cfg(), password="sbagliata")
+
+    def test_correct_password_works(self, encrypted_pdf, tmp_output):
+        result = apply_watermark(encrypted_pdf, tmp_output, self._cfg(), password="test123")
+        with pikepdf.open(result) as pdf:
+            assert len(pdf.pages) == 1
