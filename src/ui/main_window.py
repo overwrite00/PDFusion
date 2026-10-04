@@ -714,8 +714,10 @@ class MainWindow(QMainWindow):
             logger.debug("Disconnessione segnali...")
             try:
                 self.destroyed.disconnect()
-            except RuntimeError:
-                pass  # Non era connesso
+            except (RuntimeError, TypeError):
+                # Nessuna connessione (PyQt6 solleva TypeError, non RuntimeError): succede
+                # alla seconda chiamata, perché la prima le ha già rimosse tutte.
+                pass
 
             # 2. Chiudi documenti
             logger.debug("Chiusura documenti...")
