@@ -33,6 +33,13 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ### Fixed
 
+- **Compression crashed on any PDF with a high-resolution image**: `compress` called
+  `Document.replace_image`, which does not exist in PyMuPDF (only `Page.replace_image` does), and the
+  surrounding `except` only caught `OSError`/`ValueError`, so every PDF containing an image above the
+  target DPI failed with `AttributeError`. It went unnoticed because the test fixtures only have small
+  images, which are skipped before that line. Now uses `Page.replace_image` (it replaces the image
+  object by xref, so it applies to every page using it) and `Image.Resampling.LANCZOS`. A 26 MB PDF with a
+  3000×3000 px image goes down to 0.5 MB (eBook preset) / 50 KB (screen preset). Found by `mypy`.
 - **Update check never offered the beta → stable promotion**: the beta channel only looked at
   pre-releases, so a user on `0.3.0-beta3` was never told about `v0.3.0`, although `is_newer()` and the
   0.3.0 notes describe exactly that case. The beta channel now considers pre-releases and stable
@@ -57,7 +64,9 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   raising (main-thread fallback) and the worker never acknowledging within 2 s — had no tests; added 4,
   using a real running `QThread` parented to the widget and a document opened on the main thread, so
   they cannot trigger the cross-thread finalisation that aborts on Linux.
-- Suite: 373 → 453 tests.
+- `compress` had no test with an image above the target DPI; added 4 (RGB and RGBA are downsampled and the
+  output stays a valid, renderable PDF; a lower preset gives a smaller image; flattening iterates every page).
+- Suite: 373 → 457 tests.
 
 ### Documentation
 

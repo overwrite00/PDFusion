@@ -180,7 +180,7 @@ def _resample_images(doc: pymupdf.Document, config: CompressConfig) -> None:
                 continue
 
             try:
-                pil_img = Image.open(io.BytesIO(img_bytes))
+                pil_img: Image.Image = Image.open(io.BytesIO(img_bytes))
             except (OSError, Image.UnidentifiedImageError):
                 # Formato immagine non supportato o dati corrotti
                 continue
@@ -201,7 +201,7 @@ def _resample_images(doc: pymupdf.Document, config: CompressConfig) -> None:
             new_h = max(1, int(orig_h * scale))
 
             try:
-                pil_img = pil_img.resize((new_w, new_h), Image.LANCZOS)
+                pil_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
                 if pil_img.mode == "RGBA":
                     pil_img = pil_img.convert("RGB")
 
@@ -209,7 +209,9 @@ def _resample_images(doc: pymupdf.Document, config: CompressConfig) -> None:
                 pil_img.save(out_buf, format="JPEG", quality=quality, optimize=True)
                 out_buf.seek(0)
 
-                doc.replace_image(xref, stream=out_buf.read())
+                # Document non ha replace_image (solo Page): sostituisce l'oggetto immagine
+                # per xref, quindi vale per tutte le pagine che lo usano.
+                page.replace_image(xref, stream=out_buf.read())
             except (OSError, ValueError):
                 # Errore durante ridimensionamento, conversione o salvataggio
                 # Salta l'immagine e continua con il resto del documento
@@ -218,7 +220,7 @@ def _resample_images(doc: pymupdf.Document, config: CompressConfig) -> None:
 
 def _flatten_annotations(doc: pymupdf.Document) -> None:
     """Appiattisce le annotazioni (stampa il loro aspetto nella pagina)."""
-    for page in doc:
+    for page in doc.pages():
         annots = list(page.annots())
         for annot in annots:
             annot.set_flags(0)
