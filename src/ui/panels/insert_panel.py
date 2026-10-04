@@ -113,7 +113,7 @@ class InsertPanel(BasePanelWidget):
             "source_path": self._source_path,
         }
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         pwd = password or None
         if config["mode"] == "blank":
             from core.insert_page import insert_blank_page

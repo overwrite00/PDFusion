@@ -134,5 +134,5 @@ class SplitPanel(BasePanelWidget):
         self._worker.error.connect(self._thread.quit)
         self._thread.start()
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         return output_path  # non usato — _on_apply override

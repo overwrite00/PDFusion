@@ -63,9 +63,11 @@ class DeletePanel(BasePanelWidget):
         self._content_layout.addWidget(warn)
 
         # Connessioni
-        self._radio_current.toggled.connect(
-            lambda on: self._page_spin.setEnabled(False) or self._range_input.setEnabled(False)
-        )
+        def _on_current_toggled(_checked: bool) -> None:
+            self._page_spin.setEnabled(False)
+            self._range_input.setEnabled(False)
+
+        self._radio_current.toggled.connect(_on_current_toggled)
         self._radio_number.toggled.connect(self._page_spin.setEnabled)
         self._radio_range.toggled.connect(self._range_input.setEnabled)
 
@@ -114,7 +116,7 @@ class DeletePanel(BasePanelWidget):
                 return None
             return {"mode": "ranges", "ranges": ranges}
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.delete_page import (
             delete_page_by_number,
             delete_pages,

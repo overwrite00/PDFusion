@@ -151,7 +151,7 @@ Describe how you tested your changes:
 ## 📋 Checklist
 
 - [ ] Code style (`ruff check src/ tests/`, same as CI)
-- [ ] Type hints on new code (`mypy` is informational, not enforced yet)
+- [ ] Type check (`mypy src/`, same as CI)
 - [ ] Docstrings for new functions/classes
 - [ ] CHANGELOG.md updated
 ```
@@ -185,11 +185,24 @@ python -m ruff check src/ tests/
 python -m ruff check --fix src/ tests/
 ```
 
-Do not run `isort` or `ruff format` over the code base: `isort` orders imports differently from
-ruff's "I" rules (CI would then reject them), and the code is not formatted with `ruff format`, so
-running it would rewrite many unrelated files and bury your change in noise.
+Import order is handled by ruff's "I" rules (`isort` is not used and not installed). Do not run
+`ruff format` over the code base: it is not enforced and would rewrite many unrelated files, burying
+your change in noise.
 
 **Configuration**: See `pyproject.toml` section `[tool.ruff]`
+
+### Type checking with mypy
+
+```bash
+python -m mypy src/    # this is what CI runs (job "Types (mypy)")
+```
+
+Configuration is in `pyproject.toml` (`[tool.mypy]`). `src/` is the module root (`mypy_path` +
+`explicit_package_bases`), so `from utils.x import y` is really checked instead of silently becoming
+`Any`. PyQt6's stubs type many things that are never `None` in practice (`style()`, `mimeData()`,
+`menuBar()`, `addAction(str)`, ...) as `X | None`: guard them with an `if ... is not None`, or build
+the object explicitly (`QAction(label, menu)`), instead of adding `# type: ignore` (unused ignores are
+reported as errors).
 
 ### Type Hints
 
@@ -379,6 +392,7 @@ Before pushing your PR:
 - [ ] You ran `git pull origin develop` for latest changes
 - [ ] You ran `python -m pytest tests/ -v` — all tests pass
 - [ ] You ran `python -m ruff check src/ tests/` — zero warnings (this is what CI runs)
+- [ ] You ran `python -m mypy src/` — no errors (this is what CI runs)
 - [ ] You wrote/updated tests for your changes
 - [ ] You added docstrings for new functions/classes
 - [ ] You updated CHANGELOG.md if necessary

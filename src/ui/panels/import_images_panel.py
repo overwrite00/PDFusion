@@ -100,7 +100,7 @@ class ImportImagesPanel(BasePanelWidget):
             "dpi": self._dpi_spin.value(),
         }
 
-    def _run_core(self, input_path, output_path, password, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
         from core.images_to_pdf import ImagesToPDFConfig, images_to_pdf
 
         images_to_pdf(

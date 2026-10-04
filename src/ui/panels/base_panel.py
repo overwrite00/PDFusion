@@ -115,6 +115,9 @@ class BasePanelWidget(QWidget, ConfigCollector):
         self._current_password: str = ""
         self._original_stem: str = ""
         self._supports_preview: bool = True
+        # Thread/worker dell'operazione in corso (impostati da _on_apply; None quando è inattiva)
+        self._thread: QThread | None = None
+        self._worker: _Worker | None = None
 
         # Initialize components
         self._file_monitor = FileMonitorManager(self)
@@ -255,6 +258,10 @@ class BasePanelWidget(QWidget, ConfigCollector):
         self._reset_state()  # hook: resetta variabili interne
         _clear_layout(self._content_layout)  # rimuove tutti i widget del form
         self._setup_content()  # ricrea il form con i valori di default
+
+    def _setup_content(self) -> None:
+        """Hook: ogni pannello costruisce qui il proprio form (richiamato anche da reset())."""
+        raise NotImplementedError
 
     def _reset_state(self) -> None:
         """
@@ -406,10 +413,10 @@ class BasePanelWidget(QWidget, ConfigCollector):
     def _ask_save_path(self) -> Path | None:
         # Usa il nome del file originale aperto dall'utente, non quello del temp
         # di anteprima (es. ".pdfusion_preview_xyz") che sarebbe fuorviante.
-        stem = self._original_stem or (
-            self._current_path.stem if self._current_path else "documento"  # type: ignore[union-attr]
-        )
-        suggested = self._current_path.parent / (stem + "_output.pdf")  # type: ignore[union-attr]
+        if self._current_path is None:
+            return None  # nessun documento aperto: niente da salvare (prima: AttributeError)
+        stem = self._original_stem or self._current_path.stem
+        suggested = self._current_path.parent / (stem + "_output.pdf")
         path, _ = QFileDialog.getSaveFileName(
             self,
             "Salva PDF come…",

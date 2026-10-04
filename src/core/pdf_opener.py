@@ -7,6 +7,7 @@ con gestione centralizzata degli errori e support per password.
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import pikepdf
 
@@ -55,7 +56,7 @@ def open_pdf_safe(
 
     try:
         # Costruisci kwargs in modo sicuro
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if password:
             kwargs["password"] = password
         if mode != "r":

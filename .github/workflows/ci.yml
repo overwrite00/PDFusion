@@ -47,6 +47,23 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: ruff check src/ tests/
 
+  types:
+    name: Types (mypy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      # mypy needs the runtime dependencies installed (PyQt6, PyMuPDF, pikepdf, ...) to check the
+      # calls into them, and the same pinned mypy as local development. The module roots
+      # (mypy_path / explicit_package_bases) are in pyproject.toml.
+      - run: pip install -r requirements-dev.txt
+      - run: mypy src/
+
   test:
     name: Test (${{ matrix.os }}, py${{ matrix.python-version }})
     needs: lint

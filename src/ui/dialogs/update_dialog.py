@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QLabel,
     QPlainTextEdit,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -61,11 +62,13 @@ class UpdateAvailableDialog(QDialog):
         layout.addSpacing(8)
 
         buttons = QDialogButtonBox(parent=self)
-        download_btn = buttons.addButton("Scarica", QDialogButtonBox.ButtonRole.AcceptRole)
-        skip_btn = buttons.addButton(
-            "Ignora questa versione", QDialogButtonBox.ButtonRole.DestructiveRole
-        )
-        later_btn = buttons.addButton("Più tardi", QDialogButtonBox.ButtonRole.RejectRole)
+        # Pulsanti creati esplicitamente: addButton(str, role) è tipizzato "QPushButton | None".
+        download_btn = QPushButton("Scarica", buttons)
+        skip_btn = QPushButton("Ignora questa versione", buttons)
+        later_btn = QPushButton("Più tardi", buttons)
+        buttons.addButton(download_btn, QDialogButtonBox.ButtonRole.AcceptRole)
+        buttons.addButton(skip_btn, QDialogButtonBox.ButtonRole.DestructiveRole)
+        buttons.addButton(later_btn, QDialogButtonBox.ButtonRole.RejectRole)
 
         download_btn.clicked.connect(self._on_download)
         skip_btn.clicked.connect(self._on_skip)
