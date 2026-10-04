@@ -257,12 +257,12 @@ pytest tests/core/test_compress.py -v
 ### Code Quality Checks
 
 ```bash
-# Type checking (recommended)
-mypy src/
+# Linting (enforced by CI; includes import sorting)
+python -m ruff check src/ tests/          # Check style
+python -m ruff check --fix src/ tests/    # Auto-fix what is fixable
 
-# Linting and formatting
-python -m ruff check src/     # Check style
-python -m ruff format src/    # Auto-fix style
+# Type checking (informational: not enforced by CI, the code base is not mypy-clean yet)
+mypy src/
 
 # View coverage report
 # After pytest: open htmlcov/index.html in browser
@@ -283,15 +283,15 @@ For detailed guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**:
 - ✓ Development setup (Python 3.13)
 - ✓ Branch strategy (`feature/*` → `develop` → `main`)
 - ✓ Commit conventions (feat/fix/refactor/docs/test)
-- ✓ Code style (PEP 8, type hints, ruff, mypy)
+- ✓ Code style (PEP 8, type hints, `ruff check` as enforced by CI)
 - ✓ Testing (pytest, ≥70% coverage, unit + integration)
 - ✓ PR workflow (review, CI/CD checks)
 
 **Quick PR Checklist:**
 
 - [ ] Tests pass: `pytest tests/ -q`
-- [ ] Type check: `mypy src/`
-- [ ] Formatting: `python -m ruff format src/`
+- [ ] Lint, same as CI: `python -m ruff check src/ tests/`
+- [ ] Type hints on new code (`mypy src/` is informational, not enforced yet)
 - [ ] Coverage: `pytest --cov=src --cov-report=term-missing`
 
 ### Project Structure
@@ -385,8 +385,8 @@ Contributions are welcome! Please follow these steps:
 ### Before Submitting PR
 
 - Run tests: `pytest tests/`
-- Check code style: `ruff check src/`
-- Format code: `ruff format src/`
+- Check code style, same as CI: `ruff check src/ tests/`
+- Auto-fix what is fixable (including import order): `ruff check --fix src/ tests/`
 
 [⬆ Back to Top](#table-of-contents)
 

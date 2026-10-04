@@ -25,6 +25,12 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   Apple-Silicon-only; its minimum macOS is now **15** (it was 14, never the "11+" the README stated).
   The test suite and CI cannot exercise the DMG on macOS, so only the build is verified.
 
+### Removed
+
+- **`pydantic-settings`** (and, with it, `pydantic`, `pydantic-core`, `python-dotenv`, `typing-inspection`)
+  from `requirements.txt` via #97. It was never imported anywhere in `src/` or `tests/`, so nothing
+  changes for the application: a PyInstaller build without it has the same size and contents.
+
 ### Fixed
 
 - **Update check never offered the beta → stable promotion**: the beta channel only looked at
@@ -33,6 +39,11 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   releases (the stable channel still only stable ones; drafts are always skipped), and the release is
   chosen by version instead of by the order GitHub lists them, so a hotfix published later on an older
   line cannot hide a newer beta.
+- **`MainWindow.shutdown()` was not idempotent** via #99: its first step, `self.destroyed.disconnect()`,
+  raises `TypeError` (not `RuntimeError`) in PyQt6 when the signal has no connections, so a second call
+  on the same window logged an error and skipped every remaining step. The first call, including the
+  real app close, was not affected; the second one happens in the tests and filled their logs with
+  errors that could hide real ones.
 
 ### Testing
 
@@ -40,12 +51,26 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   24h throttle, skipped tag, opt-out, `fetch_latest_release` against a fake `urlopen` including the
   request itself) plus 8 UI tests for the new menu entry. They never touch the network or the real
   `~/.pdfusion` folder.
+- `MainWindow.shutdown()` had no tests; added 4 (no error logged, every step runs in order, an open
+  document is closed and temp files are removed, calling it twice is clean).
+- The two failure branches of `_close_worker()` in the viewer and in the thumbnail panel — `invokeMethod`
+  raising (main-thread fallback) and the worker never acknowledging within 2 s — had no tests; added 4,
+  using a real running `QThread` parented to the widget and a document opened on the main thread, so
+  they cannot trigger the cross-thread finalisation that aborts on Linux.
+- Suite: 373 → 453 tests.
 
 ### Documentation
 
 - README: macOS requirement corrected; new "Release Channels & Updates" section (beta vs stable, the
   in-app update check and what it sends); technology stack table updated to the pinned versions.
 - CONTRIBUTING: documents the branch/release flow and the changelog convention.
+- README and CONTRIBUTING no longer tell contributors to run `ruff format` or `isort`, and `mypy` is
+  described as informational. CI only enforces `ruff check src/ tests/`; `isort` orders imports
+  differently from ruff's `I` rules (following the old advice produced lint errors CI rejects),
+  `ruff format` would rewrite 34 files, and `mypy` currently reports errors (87 with the project
+  configuration), so the old checklists could not be satisfied.
+
+---
 
 ## [0.3.0] — 2026-09-27
 

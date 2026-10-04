@@ -94,10 +94,9 @@ git checkout -b feature/feature-name
 # Run tests locally
 python -m pytest tests/ -v
 
-# Verify code style
-python -m isort src/                # Organize imports
-python -m ruff check src/           # Lint check
-python -m ruff format src/          # Auto-format
+# Verify code style (same check as CI; ruff's "I" rules also cover import order)
+python -m ruff check src/ tests/          # Lint check
+python -m ruff check --fix src/ tests/    # Auto-fix what is fixable
 ```
 
 ### 3. Commit Your Changes
@@ -151,8 +150,8 @@ Describe how you tested your changes:
 
 ## 📋 Checklist
 
-- [ ] Code style (ruff format, ruff check)
-- [ ] Type hints (mypy --strict)
+- [ ] Code style (`ruff check src/ tests/`, same as CI)
+- [ ] Type hints on new code (`mypy` is informational, not enforced yet)
 - [ ] Docstrings for new functions/classes
 - [ ] CHANGELOG.md updated
 ```
@@ -179,16 +178,16 @@ Describe how you tested your changes:
 ### Linting with Ruff
 
 ```bash
-# Verify style
-python -m isort src/ tests/
+# Verify style (this is what CI runs)
 python -m ruff check src/ tests/
 
-# Auto-fix common issues
+# Auto-fix common issues, including import order
 python -m ruff check --fix src/ tests/
-
-# Formatting
-python -m ruff format src/ tests/
 ```
+
+Do not run `isort` or `ruff format` over the code base: `isort` orders imports differently from
+ruff's "I" rules (CI would then reject them), and the code is not formatted with `ruff format`, so
+running it would rewrite many unrelated files and bury your change in noise.
 
 **Configuration**: See `pyproject.toml` section `[tool.ruff]`
 
@@ -379,8 +378,7 @@ Before pushing your PR:
 
 - [ ] You ran `git pull origin develop` for latest changes
 - [ ] You ran `python -m pytest tests/ -v` — all tests pass
-- [ ] You ran `python -m ruff check src/` — zero warnings
-- [ ] You ran `python -m ruff format src/` — code formatted
+- [ ] You ran `python -m ruff check src/ tests/` — zero warnings (this is what CI runs)
 - [ ] You wrote/updated tests for your changes
 - [ ] You added docstrings for new functions/classes
 - [ ] You updated CHANGELOG.md if necessary
