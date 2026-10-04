@@ -71,12 +71,22 @@ def is_newer(current_full_version: str, latest_tag: str) -> bool:
     return lat_beta > cur_beta
 
 
-def fetch_latest_release(include_prerelease: bool) -> ReleaseInfo | None:
-    """Interroga le release GitHub e ritorna la più recente per il canale richiesto.
+def _version_key(tag: str) -> tuple[tuple[int, ...], int, int]:
+    """Chiave d'ordinamento coerente con is_newer(): a parità di versione base la
+    release stabile batte qualsiasi beta, e tra beta vince il numero più alto."""
+    base, beta_n = _parse_tag(tag)
+    return base, (1 if beta_n is None else 0), (beta_n or 0)
 
-    include_prerelease=True cerca tra le pre-release (canale beta),
-    include_prerelease=False cerca tra le release stabili (canale stable).
-    Ritorna None se non esiste nessuna release di quel canale.
+
+def fetch_latest_release(include_prerelease: bool) -> ReleaseInfo | None:
+    """Interroga le release GitHub e ritorna la versione più alta per il canale richiesto.
+
+    include_prerelease=False (canale stable): considera solo le release stabili.
+    include_prerelease=True (canale beta): considera pre-release E stabili, così un utente
+    su una beta riceve anche la promozione a stable della stessa versione base (is_newer()
+    la tratta come aggiornamento). Le bozze (draft) sono sempre escluse.
+    La scelta si basa sulla versione, non sull'ordine di elenco dell'API.
+    Ritorna None se non esiste nessuna release adatta.
     Solleva UpdateCheckError per problemi di rete/parsing.
     """
     req = urllib.request.Request(
@@ -97,17 +107,18 @@ def fetch_latest_release(include_prerelease: bool) -> ReleaseInfo | None:
     if not isinstance(data, list):
         raise UpdateCheckError("Risposta GitHub inattesa")
 
+    best: ReleaseInfo | None = None
     for release in data:
         if not isinstance(release, dict) or release.get("draft"):
             continue
-        if bool(release.get("prerelease")) != include_prerelease:
+        if release.get("prerelease") and not include_prerelease:
             continue
         assets = [
             (a.get("name", ""), a.get("browser_download_url", ""))
             for a in release.get("assets", [])
             if isinstance(a, dict) and a.get("browser_download_url")
         ]
-        return ReleaseInfo(
+        candidate = ReleaseInfo(
             tag=release.get("tag_name", ""),
             name=release.get("name") or release.get("tag_name", ""),
             url=release.get("html_url", ""),
@@ -115,7 +126,9 @@ def fetch_latest_release(include_prerelease: bool) -> ReleaseInfo | None:
             prerelease=bool(release.get("prerelease")),
             assets=assets,
         )
-    return None
+        if best is None or _version_key(candidate.tag) > _version_key(best.tag):
+            best = candidate
+    return best
 
 
 def pick_asset_url(assets: list[tuple[str, str]]) -> str | None:
