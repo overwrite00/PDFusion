@@ -171,8 +171,28 @@ def _save_state(state: dict) -> None:
         pass
 
 
+def is_auto_check_enabled() -> bool:
+    """True se il controllo automatico all'avvio è attivo (default: attivo).
+
+    Un valore assente o non booleano nel file di stato conta come "attivo": solo una
+    scelta esplicita dell'utente (False) lo disattiva. Il controllo manuale dal menu
+    resta sempre disponibile.
+    """
+    value = _load_state().get("auto_check_enabled", True)
+    return value if isinstance(value, bool) else True
+
+
+def set_auto_check_enabled(enabled: bool) -> None:
+    state = _load_state()
+    state["auto_check_enabled"] = bool(enabled)
+    _save_state(state)
+
+
 def should_auto_check() -> bool:
-    """True se è passato più di _MIN_INTERVAL_HOURS dall'ultimo controllo automatico."""
+    """True se il controllo automatico è attivo E sono passate più di
+    _MIN_INTERVAL_HOURS dall'ultimo controllo automatico."""
+    if not is_auto_check_enabled():
+        return False
     last = _load_state().get("last_check")
     if not last:
         return True

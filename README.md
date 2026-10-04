@@ -145,12 +145,14 @@ The window title and the **About** dialog show the running version together with
 (for example `0.3.0` or `0.3.1-beta1`).
 
 **Update check.** PDFusion looks for a newer version on GitHub Releases at startup (at most once every
-24 hours) and on demand from **? → Controlla aggiornamenti…**. A beta build compares against
-pre-releases, a stable build only against stable releases. When a newer version exists, a dialog shows
+24 hours) and on demand from **? → Controlla aggiornamenti…**. The startup check can be turned off from
+**? → Controlla aggiornamenti all'avvio**; the on-demand check always stays available. A beta build is
+offered newer betas and the stable release that follows them; a stable build only stable releases.
+When a newer version exists, a dialog shows
 its release notes and offers to open the installer download in your browser — PDFusion never downloads
 or runs anything by itself. This is the only network request the application makes: it contacts
-`api.github.com` and sends no document data. The last check time and the "skip this version" choice
-are stored in `~/.pdfusion/update_check.json`.
+`api.github.com` and sends no document data. The last check time, the "skip this version" choice and
+the startup-check setting are stored in `~/.pdfusion/update_check.json`.
 
 [⬆ Back to Top](#table-of-contents)
 
