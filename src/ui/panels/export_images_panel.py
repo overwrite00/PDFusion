@@ -53,7 +53,7 @@ class ExportImagesPanel(BasePanelWidget):
     def _on_apply(self) -> None:
         if not self._current_path:
             return
-        config = self._collect_config()
+        config = self.collect_config()
 
         output_dir = QFileDialog.getExistingDirectory(
             self, "Seleziona cartella di output", str(self._current_path.parent)

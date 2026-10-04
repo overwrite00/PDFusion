@@ -90,7 +90,7 @@ class SplitPanel(BasePanelWidget):
     def _on_apply(self) -> None:
         if not self._current_path:
             return
-        config = self._collect_config()
+        config = self.collect_config()
         if config is None:
             return
 
