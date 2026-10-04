@@ -40,6 +40,15 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   images, which are skipped before that line. Now uses `Page.replace_image` (it replaces the image
   object by xref, so it applies to every page using it) and `Image.Resampling.LANCZOS`. A 26 MB PDF with a
   3000×3000 px image goes down to 0.5 MB (eBook preset) / 50 KB (screen preset). Found by `mypy`.
+- **The Apply button of the Split, Export images and Batch panels raised `AttributeError`**: their
+  `_on_apply()` called `self._collect_config()`, a name that does not exist (the `ConfigCollector` mixin
+  exposes `collect_config()`), a leftover of the refactor that extracted that mixin. The three tools did
+  nothing when applied. Found by `mypy` (`"SplitPanel" has no attribute "_collect_config"`).
+- **Headers/footers previews stacked on top of each other**: the panel is meant to ignore its own preview
+  file when the main window propagates it to every panel, so the next preview or Apply starts again from
+  the clean document. The override that records that file was named `_on_preview_done`, a hook that does
+  not exist (the real one is `_on_preview_ready`), so it never ran and the second preview was applied to
+  the file that already had the headers. Found by `mypy` (`"_on_preview_done" undefined in superclass`).
 - **Update check never offered the beta → stable promotion**: the beta channel only looked at
   pre-releases, so a user on `0.3.0-beta3` was never told about `v0.3.0`, although `is_newer()` and the
   0.3.0 notes describe exactly that case. The beta channel now considers pre-releases and stable
@@ -66,7 +75,9 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   they cannot trigger the cross-thread finalisation that aborts on Linux.
 - `compress` had no test with an image above the target DPI; added 4 (RGB and RGBA are downsampled and the
   output stays a valid, renderable PDF; a lower preset gives a smaller image; flattening iterates every page).
-- Suite: 373 → 457 tests.
+- The Apply flow of the Split, Export images and Batch panels (folder choice, real worker on a `QThread`,
+  real core, output files) and the headers/footers preview tracking had no tests; added 9.
+- Suite: 373 → 466 tests.
 
 ### Documentation
 

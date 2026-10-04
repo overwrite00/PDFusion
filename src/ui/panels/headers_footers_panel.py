@@ -296,13 +296,13 @@ class HeadersFootersPanel(BasePanelWidget):
     # ------------------------------------------------------------------
 
     @pyqtSlot(Path)
-    def _on_preview_done(self, tmp_path: Path) -> None:
+    def _on_preview_ready(self, tmp_path: Path) -> None:
         # Registra il temp SOLO se il file esiste ed è valido (successo).
         # Se il file è vuoto/assente, super() lo elimina e non emette il segnale:
         # _hf_last_output rimane al valore precedente, il che è corretto.
         if tmp_path.exists() and tmp_path.stat().st_size > 0:
             self._hf_last_output = tmp_path
-        super()._on_preview_done(tmp_path)
+        super()._on_preview_ready(tmp_path)
 
 
 # ---------------------------------------------------------------------------

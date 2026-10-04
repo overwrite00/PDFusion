@@ -156,7 +156,7 @@ class BatchPanel(BasePanelWidget):
         return {"operation": self._op_combo.currentData()}
 
     def _on_apply(self) -> None:
-        config = self._collect_config()
+        config = self.collect_config()
         if not config:
             return
 
