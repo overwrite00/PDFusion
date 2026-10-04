@@ -10,6 +10,20 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **Dependencies**: pikepdf 10.13.0.post1 → 10.14.0 via #94; ruff 0.16.8 → 0.16.9 (dev-only) via #95.
+- **macOS minimum version**: pikepdf 10.14.0 only ships macOS wheels for macOS 15+ on Apple Silicon
+  (10.13 needed macOS 14+ on arm64). The macOS installer is built on an arm64 runner, so it was already
+  Apple-Silicon-only; its minimum macOS is now **15** (it was 14, never the "11+" the README stated).
+  The test suite and CI cannot exercise the DMG on macOS, so only the build is verified.
+
+### Documentation
+
+- README: macOS requirement corrected; new "Release Channels & Updates" section (beta vs stable, the
+  in-app update check and what it sends); technology stack table updated to the pinned versions.
+- CONTRIBUTING: documents the branch/release flow and the changelog convention.
+
 ## [0.3.0] — 2026-09-27
 
 > This cycle was first published as the pre-releases `v0.2.11-beta1` and `v0.2.11-beta2`.

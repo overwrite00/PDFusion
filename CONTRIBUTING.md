@@ -159,6 +159,21 @@ Describe how you tested your changes:
 
 ---
 
+## Branches, Releases and Changelog
+
+- Every pull request — including Dependabot's — targets `develop`. `main` only receives merges from
+  `develop` (through a PR) and is never committed to directly.
+- `develop` publishes **pre-releases**: pushing a tag `vX.Y.Z-betaN` builds the installers for all
+  platforms and creates a GitHub pre-release whose notes are taken from the `## [Unreleased]` section
+  of `CHANGELOG.md`.
+- Once a beta is validated, `develop` is merged into `main`, the `[Unreleased]` section is renamed to
+  `## [X.Y.Z] — date`, and the tag `vX.Y.Z` creates the stable release.
+- Add your change under `## [Unreleased]` in `CHANGELOG.md`.
+- Pull requests and issues are assigned and labeled automatically. Start the title with a conventional
+  prefix (`fix:`, `feat:`, `docs:`, `ci:`, `chore:`) so the matching `type:*` label is applied.
+
+---
+
 ## Code Style
 
 ### Linting with Ruff

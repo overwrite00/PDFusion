@@ -9,7 +9,7 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 [![Python](https://img.shields.io/badge/python-3.13-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
 [![Platform](https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
-[![Last Updated](https://img.shields.io/badge/last%20updated-2026--09--27-blue)]()
+[![Last Updated](https://img.shields.io/badge/last%20updated-2026--10--04-blue)]()
 
 ---
 
@@ -90,9 +90,13 @@ PDFusion is a feature-rich, offline-first PDF manipulation suite. With **16 inte
 | Requirement | Specification |
 |---|---|
 | **Python** | 3.13 |
-| **OS** | Windows 10+, macOS 11+, Linux (Debian/Ubuntu/Fedora) |
+| **OS** | Windows 10+, macOS 15+ (Apple Silicon), Linux (Debian/Ubuntu/Fedora) |
 | **RAM** | 2 GB minimum, 4 GB recommended |
 | **Disk Space** | ~300 MB (depends on installers) |
+
+> **macOS:** the pre-built installer is for Apple Silicon (arm64) only and needs macOS 15 or newer,
+> a requirement of the bundled PDF library (`pikepdf` 10.14+). Intel Macs are not supported by the
+> installer.
 
 ---
 
@@ -130,6 +134,23 @@ Pre-built executables available in [Releases](https://github.com/overwrite00/PDF
 | **Windows** | `PDFusion-0.3.1-windows-setup.exe` | NSIS installer |
 | **macOS** | `PDFusion-0.3.1-macos.dmg` | Disk image |
 | **Linux** | `PDFusion-0.3.1-linux.AppImage` | Portable executable |
+
+### Release Channels & Updates
+
+- **Stable** — releases tagged `vX.Y.Z`, built from the `main` branch. Recommended for everyday use.
+- **Beta (pre-release)** — builds tagged `vX.Y.Z-betaN`, built from the `develop` branch and marked
+  *Pre-release* on the Releases page. A beta is promoted to stable only after it has been validated.
+
+The window title and the **About** dialog show the running version together with its channel
+(for example `0.3.0` or `0.3.1-beta1`).
+
+**Update check.** PDFusion looks for a newer version on GitHub Releases at startup (at most once every
+24 hours) and on demand from **? → Controlla aggiornamenti…**. A beta build compares against
+pre-releases, a stable build only against stable releases. When a newer version exists, a dialog shows
+its release notes and offers to open the installer download in your browser — PDFusion never downloads
+or runs anything by itself. This is the only network request the application makes: it contacts
+`api.github.com` and sends no document data. The last check time and the "skip this version" choice
+are stored in `~/.pdfusion/update_check.json`.
 
 [⬆ Back to Top](#table-of-contents)
 
@@ -331,11 +352,11 @@ PDFusion/
 |-----------|-----------|---------|
 | GUI | PyQt6 | 6.10.2 |
 | PDF Rendering | PyMuPDF (`import pymupdf`) | 1.28.2 |
-| PDF Manipulation | pikepdf | 10.12.0 |
+| PDF Manipulation | pikepdf | 10.14.0 |
 | PDF Generation | ReportLab | 5.0.1 |
 | Image Processing | Pillow | 12.3.0 |
 | Template Engine | Jinja2 | 3.1.6 |
-| Packaging | PyInstaller | 6.22.0 |
+| Packaging | PyInstaller | 6.22.3 |
 | Testing | pytest, pytest-qt | 9.1.1 / 4.5.0 |
 
 [⬆ Back to Top](#table-of-contents)
