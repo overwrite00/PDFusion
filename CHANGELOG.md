@@ -32,6 +32,12 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   `PIL` (where it is exported) instead of `PIL.Image`. PyMuPDF ships no type hints, so it is excluded from
   `no-untyped-call` with `untyped_calls_exclude = ["pymupdf"]`. Annotation-only change, no behaviour
   change; the same 499 tests pass, 3 runs in a row.
+- **Transitive runtime dependencies are now pinned** in `requirements.txt` (PyQt6-Qt6, PyQt6-sip, lxml,
+  packaging, MarkupSafe, charset-normalizer). Until now only the top-level packages were fixed, so a new
+  release of any of these could end up in the installers unnoticed. The versions are what pip resolves on
+  Windows, Linux (x86_64) and macOS (Apple Silicon): the same set, with cp313 wheels everywhere. Dependabot
+  keeps them current; PyQt6, PyQt6-Qt6 and PyQt6-sip move together (same `minor-and-patch` group).
+  Dev-only tools (pytest, mypy, PyInstaller) keep their transitives unpinned.
 - **Dependencies**: pikepdf 10.13.0.post1 → 10.14.0 via #94; ruff 0.16.8 → 0.16.9 (dev-only) via #95.
 - **macOS minimum version**: pikepdf 10.14.0 only ships macOS wheels for macOS 15+ on Apple Silicon
   (10.13 needed macOS 14+ on arm64). The macOS installer is built on an arm64 runner, so it was already
@@ -90,6 +96,9 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ### Testing
 
+- `tests/test_requirements_pinned.py` (14 tests): walks the installed dependency tree of `requirements.txt`
+  and fails if any runtime package, transitive ones included, is not pinned with `==` or if the pinned
+  version differs from the installed one.
 - `utils/update_checker.py` had no tests; added 64 (tag parsing, `is_newer`, installer choice per OS, the
   24h throttle, skipped tag, opt-out, `fetch_latest_release` against a fake `urlopen` including the
   request itself) plus 8 UI tests for the new menu entry. They never touch the network or the real

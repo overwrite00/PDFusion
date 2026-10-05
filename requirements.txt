@@ -18,3 +18,16 @@ Pillow==12.3.0
 
 # Template testi licenze
 Jinja2==3.1.6
+
+# Dipendenze transitive (installate da quelle sopra), fissate per avere build riproducibili:
+# senza, ogni nuova release di una di esse entra nel binario senza che nessuno la veda. Le versioni
+# sono quelle che pip risolve oggi su Windows, Linux (x86_64) e macOS (Apple Silicon): stesso insieme,
+# wheel cp313 disponibili ovunque. Dependabot le aggiorna come le altre; PyQt6, PyQt6-Qt6 e
+# PyQt6-sip vanno tenute allineate (stesso gruppo "minor-and-patch").
+# Le dipendenze dei soli strumenti di sviluppo (pytest, mypy, pyinstaller...) restano libere.
+PyQt6-Qt6==6.10.2
+PyQt6-sip==13.13.0
+lxml==6.1.3
+packaging==26.3
+MarkupSafe==3.0.4
+charset-normalizer==3.5.2
