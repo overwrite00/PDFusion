@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "PDFusion"
-VERSION = "0.3.1"
+VERSION = "0.4.0"
 # Suffisso canale — "" per una release stabile (main), "-betaN" durante un ciclo
 # beta (develop). Va aggiornato a mano insieme a VERSION, nello stesso commit di
 # bump versione, e ripulito ("") al momento della promozione a stable (vedi
