@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QGroupBox,
@@ -167,7 +168,7 @@ class MergePanel(BasePanelWidget):
     # Logica core
     # ------------------------------------------------------------------
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         if not self._insert_path:
             from PyQt6.QtWidgets import QMessageBox
 
@@ -188,7 +189,7 @@ class MergePanel(BasePanelWidget):
             "after_page": after_page,
         }
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         from core.merge import insert_pdf_at
 
         insert_pdf_at(

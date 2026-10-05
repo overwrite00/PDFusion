@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import QFormLayout, QLabel, QLineEdit, QWidget
 
@@ -64,7 +65,7 @@ class MetadataPanel(BasePanelWidget):
             creator=_val(self._creator),
         )
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         from core.metadata import write_metadata
 
         write_metadata(input_path, config, output_path, password or None)

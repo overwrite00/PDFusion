@@ -166,7 +166,7 @@ def _generate_overlay(
     config: HeaderFooterConfig,
     header: HeaderFooterSection,
     footer: HeaderFooterSection,
-    vars_: dict,
+    vars_: dict[str, str],
     width: float,
     height: float,
 ) -> bytes:
@@ -210,7 +210,7 @@ def _generate_overlay(
 def _draw_section(
     c: rl_canvas.Canvas,
     section: HeaderFooterSection,
-    vars_: dict,
+    vars_: dict[str, str],
     mx: float,
     y: float,
     page_width: float,
@@ -236,7 +236,7 @@ def _draw_section(
         c.drawString(page_width - mx - text_width, y, text)
 
 
-def _substitute(template: str, vars_: dict) -> str:
+def _substitute(template: str, vars_: dict[str, str]) -> str:
     try:
         return template.format(**vars_)
     except (KeyError, ValueError):

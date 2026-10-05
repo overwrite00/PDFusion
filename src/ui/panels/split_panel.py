@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -66,7 +67,7 @@ class SplitPanel(BasePanelWidget):
         self._radio_range.toggled.connect(lambda on: self._range_input.setEnabled(on))
         self._range_input.setEnabled(False)
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         if self._radio_n.isChecked():
             return {"mode": "n", "n": self._n_spin.value()}
         else:
@@ -107,7 +108,7 @@ class SplitPanel(BasePanelWidget):
 
         from ui.panels.base_panel import _Worker
 
-        def _do_split(input_path, out_path, pwd, cfg):
+        def _do_split(input_path: Path, out_path: Path, pwd: str, cfg: dict[str, Any]) -> Path:
             if cfg["mode"] == "n":
                 from core.split import split_every_n
 
@@ -134,5 +135,5 @@ class SplitPanel(BasePanelWidget):
         self._worker.error.connect(self._thread.quit)
         self._thread.start()
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         return output_path  # non usato — _on_apply override

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pikepdf
 import pymupdf
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from utils.exceptions import PDFusionError, UnsupportedFormatError
 from utils.temp_manager import atomic_write
@@ -181,7 +181,7 @@ def _resample_images(doc: pymupdf.Document, config: CompressConfig) -> None:
 
             try:
                 pil_img: Image.Image = Image.open(io.BytesIO(img_bytes))
-            except (OSError, Image.UnidentifiedImageError):
+            except (OSError, UnidentifiedImageError):
                 # Formato immagine non supportato o dati corrotti
                 continue
 

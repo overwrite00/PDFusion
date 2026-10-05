@@ -471,7 +471,7 @@ class MainWindow(QMainWindow):
             self._update_panels()
             self._update_toolbar_nav()
 
-    def _on_reorder_from_thumbnail(self, new_order: list) -> None:
+    def _on_reorder_from_thumbnail(self, new_order: list[int]) -> None:
         # Il pannello Reorder applica automaticamente il riordino
         from ui.panels.reorder_panel import ReorderPanel
 

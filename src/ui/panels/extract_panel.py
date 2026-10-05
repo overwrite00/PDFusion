@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import QLabel, QWidget
 
@@ -19,7 +20,7 @@ class ExtractPanel(BasePanelWidget):
         self._range_input = PageRangeInput(placeholder="es. 1-3, 5, 7-9")
         self._content_layout.addWidget(self._range_input)
 
-    def _on_file_changed(self, path) -> None:
+    def _on_file_changed(self, path: Path | None) -> None:
         if path:
             import pymupdf
 
@@ -30,7 +31,7 @@ class ExtractPanel(BasePanelWidget):
             except Exception:
                 pass
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         if not self._range_input.is_valid():
             return None
         ranges = self._range_input.get_ranges()
@@ -41,7 +42,7 @@ class ExtractPanel(BasePanelWidget):
             return None
         return {"ranges": ranges}
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         from core.extract_pages import extract_pages
 
         extract_pages(input_path, config["ranges"], output_path, password or None)

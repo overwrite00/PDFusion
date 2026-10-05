@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtWidgets import (
@@ -281,7 +282,7 @@ class HeadersFootersPanel(BasePanelWidget):
             else HeaderFooterSection(),
         )
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         from core.headers_footers import add_headers_footers
 
         # Usa sempre il base-path (documento pulito prima di qualsiasi H/F).

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -84,11 +85,11 @@ class ImportImagesPanel(BasePanelWidget):
     def _reset_state(self) -> None:
         self._images = []
 
-    def set_current_file(self, path, password="") -> None:
+    def set_current_file(self, path: Path | None, password: str = "") -> None:
         super().set_current_file(path, password)
         self._apply_btn.setEnabled(True)
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         if not self._images:
             from PyQt6.QtWidgets import QMessageBox
 
@@ -100,7 +101,7 @@ class ImportImagesPanel(BasePanelWidget):
             "dpi": self._dpi_spin.value(),
         }
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         from core.images_to_pdf import ImagesToPDFConfig, images_to_pdf
 
         images_to_pdf(

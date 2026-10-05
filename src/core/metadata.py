@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pikepdf
 
@@ -96,7 +97,7 @@ def _get_str(info: pikepdf.Dictionary, key: str) -> str | None:
 
 def _set_field(
     info: pikepdf.Dictionary,
-    xmp,
+    xmp: Any,
     docinfo_key: str,
     xmp_key: str,
     value: str | None,

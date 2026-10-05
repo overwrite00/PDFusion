@@ -12,6 +12,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from utils.config import GITHUB_REPO, PDFUSION_DIR
 
@@ -150,7 +151,7 @@ def pick_asset_url(assets: list[tuple[str, str]]) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _load_state() -> dict:
+def _load_state() -> dict[str, Any]:
     try:
         if UPDATE_CHECK_STATE_PATH.exists():
             data = json.loads(UPDATE_CHECK_STATE_PATH.read_text(encoding="utf-8"))
@@ -161,7 +162,7 @@ def _load_state() -> dict:
     return {}
 
 
-def _save_state(state: dict) -> None:
+def _save_state(state: dict[str, Any]) -> None:
     try:
         UPDATE_CHECK_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
         UPDATE_CHECK_STATE_PATH.write_text(

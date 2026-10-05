@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtCore import QObject, QThread
 from PyQt6.QtWidgets import (
@@ -86,7 +87,7 @@ class BatchPanel(BasePanelWidget):
         self._files = []
         self._file_passwords = {}
 
-    def set_current_file(self, path, password="") -> None:
+    def set_current_file(self, path: Path | None, password: str = "") -> None:
         super().set_current_file(path, password)
         self._apply_btn.setEnabled(True)
 
@@ -148,7 +149,7 @@ class BatchPanel(BasePanelWidget):
         self._files.clear()
         self._file_passwords.clear()
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         if not self._files:
             QMessageBox.information(self, "Nessun file", "Aggiungi almeno un PDF.")
             return None
@@ -185,8 +186,8 @@ class BatchPanel(BasePanelWidget):
             progress = _ps(int, int, str)
             finished = _ps(list)
 
-            def run(self_w):
-                def cb(done, total, name):
+            def run(self_w) -> None:
+                def cb(done: int, total: int, name: str) -> None:
                     self_w.progress.emit(done, total, name)
 
                 results = run_batch(files, job, progress_callback=cb)
@@ -202,7 +203,7 @@ class BatchPanel(BasePanelWidget):
         self._apply_btn.setEnabled(False)
         self._progress_dlg.exec()
 
-    def _on_batch_done(self, results) -> None:
+    def _on_batch_done(self, results: list[Any]) -> None:
         if self._progress_dlg:
             self._progress_dlg.finish()
         if self._thread:
@@ -223,5 +224,5 @@ class BatchPanel(BasePanelWidget):
             self._thread.quit()
         self._apply_btn.setEnabled(True)
 
-    def _run_core(self, *_) -> Path:
+    def _run_core(self, *_: Any) -> Path:
         return Path()  # non usato

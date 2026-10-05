@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -81,7 +82,7 @@ class InsertPanel(BasePanelWidget):
         self._source_path = None
         self._total_pages = 1
 
-    def _on_file_changed(self, path) -> None:
+    def _on_file_changed(self, path: Path | None) -> None:
         if path:
             import pymupdf
 
@@ -99,7 +100,7 @@ class InsertPanel(BasePanelWidget):
             self._source_path = Path(path)
             self._src_label.setText(Path(path).name)
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         mode = "blank" if self._radio_blank.isChecked() else "from_pdf"
         if mode == "from_pdf" and not self._source_path:
             from PyQt6.QtWidgets import QMessageBox
@@ -113,7 +114,7 @@ class InsertPanel(BasePanelWidget):
             "source_path": self._source_path,
         }
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         pwd = password or None
         if config["mode"] == "blank":
             from core.insert_page import insert_blank_page

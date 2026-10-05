@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -97,7 +98,7 @@ class ProtectPanel(BasePanelWidget):
             allow_forms=self._allow_forms.isChecked(),
         )
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         from core.protect import protect
 
         protect(input_path, output_path, config, password or None)

@@ -6,7 +6,9 @@ Responsibility: Render preview images from PDFs and manage worker thread lifecyc
 import logging
 import os
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
@@ -24,7 +26,7 @@ class _PreviewWorker(QObject):
     finished = pyqtSignal(Path)
     error = pyqtSignal(str)
 
-    def __init__(self, render_fn, *args, **kwargs) -> None:
+    def __init__(self, render_fn: Callable[..., Path], *args: Any, **kwargs: Any) -> None:
         super().__init__()
         self._render_fn = render_fn
         self._args = args
@@ -71,9 +73,9 @@ class PreviewRenderer(QObject):
 
     def render_preview(
         self,
-        render_fn,
+        render_fn: Callable[..., Path],
         input_path: Path,
-        config,
+        config: Any,
         password: str = "",
     ) -> Path | None:
         """Start an async preview render.

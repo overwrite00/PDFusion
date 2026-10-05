@@ -7,7 +7,7 @@ from enum import Enum
 from pathlib import Path
 
 import pymupdf
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from reportlab.pdfgen import canvas as rl_canvas
 
 from utils.exceptions import PDFusionError, UnsupportedFormatError
@@ -257,7 +257,7 @@ def _draw_image_watermark(
                 height=draw_h,
                 mask="auto",
             )
-    except Image.UnidentifiedImageError:
+    except UnidentifiedImageError:
         logger.warning(f"Immagine watermark non supportata: {config.image_path}")
     except OSError:
         logger.warning(f"Errore lettura immagine watermark: {config.image_path}")

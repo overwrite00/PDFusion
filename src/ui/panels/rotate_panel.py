@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QGroupBox,
@@ -45,7 +46,7 @@ class RotatePanel(BasePanelWidget):
         self._radio_range.toggled.connect(self._range_input.setEnabled)
         self._content_layout.addWidget(pages_group)
 
-    def _collect_config_impl(self) -> dict | None:
+    def _collect_config_impl(self) -> dict[str, Any] | None:
         angle = 90 if self._radio_90.isChecked() else (180 if self._radio_180.isChecked() else 270)
         if self._radio_all.isChecked():
             return {"angle": angle, "indices": []}
@@ -64,7 +65,7 @@ class RotatePanel(BasePanelWidget):
             ranges = self._range_input.get_ranges()
             return {"angle": angle, "indices": ranges_to_indices(ranges) if ranges else []}
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         from core.rotate import rotate_pages
 
         rotate_pages(
