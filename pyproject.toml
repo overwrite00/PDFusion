@@ -74,11 +74,11 @@ python_version = "3.13"
 # ignore_missing_imports, diventano Any in silenzio, cioè nessun controllo di tipo tra moduli.
 mypy_path = "src"
 explicit_package_bases = true
-warn_return_any = true
+# Modalità strict completa (include warn_return_any, warn_unused_ignores, disallow_untyped_defs, ...).
+strict = true
+# PyMuPDF non pubblica annotazioni di tipo: senza questa esclusione ogni chiamata a pymupdf darebbe
+# no-untyped-call, un errore che non dipende dal nostro codice e non si può correggere qui.
+untyped_calls_exclude = ["pymupdf"]
 warn_unused_configs = true
-warn_unused_ignores = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-check_untyped_defs = true
 ignore_missing_imports = true
 files = ["src"]

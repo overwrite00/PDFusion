@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
@@ -9,6 +11,7 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -25,10 +28,12 @@ from utils.exceptions import PDFusionError
 logger = logging.getLogger(__name__)
 
 
-def _clear_layout(layout) -> None:
+def _clear_layout(layout: QLayout) -> None:
     """Rimuove ricorsivamente tutti i widget e sub-layout da un layout Qt."""
     while layout.count():
         item = layout.takeAt(0)
+        if item is None:
+            break
         widget = item.widget()
         if widget is not None:
             widget.deleteLater()
@@ -56,7 +61,14 @@ class _Worker(QObject):
     finished = pyqtSignal(Path)
     error = pyqtSignal(str)
 
-    def __init__(self, fn, input_path: Path, output_path: Path, password: str, config) -> None:
+    def __init__(
+        self,
+        fn: Callable[..., Path],
+        input_path: Path,
+        output_path: Path,
+        password: str,
+        config: Any,
+    ) -> None:
         super().__init__()
         self._fn = fn
         self._input_path = input_path
@@ -275,11 +287,11 @@ class BasePanelWidget(QWidget, ConfigCollector):
     # Da implementare nelle sottoclassi
     # ------------------------------------------------------------------
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         """ConfigCollector interface: subclasses implement this to collect config."""
         return None
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         """Subclasses implement the actual PDF operation here."""
         raise NotImplementedError
 
@@ -351,7 +363,7 @@ class BasePanelWidget(QWidget, ConfigCollector):
         self._set_busy(True)
         self._run_operation(source_path, output_path, source_password, config)
 
-    def _run_operation(self, source_path: Path, output_path: Path, password: str, config) -> None:
+    def _run_operation(self, source_path: Path, output_path: Path, password: str, config: Any) -> None:
         """Run the main PDF operation in a background QThread.
 
         Usa un worker QObject su un QThread parentato al pannello: i risultati

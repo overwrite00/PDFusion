@@ -204,6 +204,11 @@ Configuration is in `pyproject.toml` (`[tool.mypy]`). `src/` is the module root 
 the object explicitly (`QAction(label, menu)`), instead of adding `# type: ignore` (unused ignores are
 reported as errors).
 
+The project runs `mypy` in `strict` mode: annotate every parameter and return type, give `dict`/`list`
+their type arguments, and use `Any` only where the type genuinely varies (e.g. the per-panel `config`
+object). PyMuPDF has no type hints, so calls into it are exempt from `no-untyped-call`
+(`untyped_calls_exclude`).
+
 ### Type Hints
 
 Use type hints for:

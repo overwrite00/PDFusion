@@ -4,6 +4,7 @@ Responsibility: Extract user inputs from UI widgets and validate them.
 """
 
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class ConfigCollector:
     from UI widgets and return a config object.
     """
 
-    def collect_config(self):
+    def collect_config(self) -> Any:
         """Collect and validate configuration.
 
         Returns:
@@ -32,7 +33,7 @@ class ConfigCollector:
             logger.warning(f"Config validation failed: {e}")
             return None
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         """Subclasses override this to collect config from UI widgets.
 
         Returns:
@@ -40,7 +41,7 @@ class ConfigCollector:
         """
         raise NotImplementedError
 
-    def _validate_config(self, config) -> None:
+    def _validate_config(self, config: Any) -> None:
         """Subclasses can override to validate config.
 
         Should raise ValueError if validation fails.

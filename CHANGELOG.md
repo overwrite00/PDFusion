@@ -27,6 +27,11 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   `# type: ignore` honest. Mostly PyQt6 stub noise (`X | None` for things that are never `None`), fixed
   with explicit guards or by building objects explicitly; the real defects it pointed at are listed under
   Fixed.
+- **`mypy` now runs in `strict` mode** (`strict = true` in `[tool.mypy]`): every function in `src/` is
+  fully annotated, generic types carry their arguments, and `UnidentifiedImageError` is imported from
+  `PIL` (where it is exported) instead of `PIL.Image`. PyMuPDF ships no type hints, so it is excluded from
+  `no-untyped-call` with `untyped_calls_exclude = ["pymupdf"]`. Annotation-only change, no behaviour
+  change; the same 499 tests pass, 3 runs in a row.
 - **Dependencies**: pikepdf 10.13.0.post1 → 10.14.0 via #94; ruff 0.16.8 → 0.16.9 (dev-only) via #95.
 - **macOS minimum version**: pikepdf 10.14.0 only ships macOS wheels for macOS 15+ on Apple Silicon
   (10.13 needed macOS 14+ on arm64). The macOS installer is built on an arm64 runner, so it was already

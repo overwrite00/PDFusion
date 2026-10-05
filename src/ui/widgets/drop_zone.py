@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+from PyQt6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent, QMouseEvent
 from PyQt6.QtWidgets import QFileDialog, QLabel, QVBoxLayout, QWidget
 
 from ui.qt_utils import repolish
@@ -57,7 +57,7 @@ class DropZone(QWidget):
                 return
         event.ignore()
 
-    def dragLeaveEvent(self, event) -> None:
+    def dragLeaveEvent(self, event: QDragLeaveEvent | None) -> None:
         self.setProperty("dragging", False)
         repolish(self)
 
@@ -82,8 +82,8 @@ class DropZone(QWidget):
     # Click → dialog selezione
     # ------------------------------------------------------------------
 
-    def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:
+        if event is not None and event.button() == Qt.MouseButton.LeftButton:
             self._open_file_dialog()
 
     def _open_file_dialog(self) -> None:

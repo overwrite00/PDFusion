@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import QLabel, QWidget
 
@@ -27,7 +28,7 @@ class ReorderPanel(BasePanelWidget):
         self._current_path = path
         self._current_password = password
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         if not self._new_order:
             from PyQt6.QtWidgets import QMessageBox
 
@@ -39,7 +40,7 @@ class ReorderPanel(BasePanelWidget):
             return None
         return {"order": self._new_order}
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         from core.reorder import reorder_pages
 
         reorder_pages(input_path, config["order"], output_path, password or None)

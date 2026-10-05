@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QGroupBox,
@@ -75,7 +76,7 @@ class DeletePanel(BasePanelWidget):
         self._current_page_idx = page_idx
         self._current_label.setText(f"Pagina {page_idx + 1}")
 
-    def _on_file_changed(self, path) -> None:
+    def _on_file_changed(self, path: Path | None) -> None:
         if path:
             import pymupdf
 
@@ -93,7 +94,7 @@ class DeletePanel(BasePanelWidget):
             self._current_label.setText("(nessun documento aperto)")
             self._current_page_idx = 0
 
-    def _collect_config_impl(self):
+    def _collect_config_impl(self) -> Any:
         if self._radio_current.isChecked():
             return {"mode": "current", "index": self._current_page_idx}
         elif self._radio_number.isChecked():
@@ -116,7 +117,7 @@ class DeletePanel(BasePanelWidget):
                 return None
             return {"mode": "ranges", "ranges": ranges}
 
-    def _run_core(self, input_path: Path, output_path: Path, password: str, config) -> Path:
+    def _run_core(self, input_path: Path, output_path: Path, password: str, config: Any) -> Path:
         from core.delete_page import (
             delete_page_by_number,
             delete_pages,

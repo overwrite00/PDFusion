@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import pymupdf
 from PyQt6.QtCore import (
@@ -250,7 +251,7 @@ class ThumbnailPanel(QWidget):
             self.page_clicked.emit(row)
             self._request_thumb(row)
 
-    def _on_rows_moved(self, *_) -> None:
+    def _on_rows_moved(self, *_: Any) -> None:
         items = (self._list.item(i) for i in range(self._list.count()))
         new_order = [item.data(Qt.ItemDataRole.UserRole) for item in items if item is not None]
         self.order_changed.emit(new_order)

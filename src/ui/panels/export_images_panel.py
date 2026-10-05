@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -43,7 +44,7 @@ class ExportImagesPanel(BasePanelWidget):
 
         self._content_layout.addLayout(form)
 
-    def _collect_config_impl(self) -> dict:
+    def _collect_config_impl(self) -> dict[str, Any]:
         return {
             "format": self._format_combo.currentData(),
             "dpi": self._dpi_spin.value(),
@@ -68,7 +69,7 @@ class ExportImagesPanel(BasePanelWidget):
 
         from ui.panels.base_panel import _Worker
 
-        def _do(input_path, out, pwd, cfg):
+        def _do(input_path: Path, out: Path, pwd: str, cfg: dict[str, Any]) -> Path:
             from core.pdf_to_images import export_pages_as_images
 
             result = export_pages_as_images(
@@ -95,5 +96,5 @@ class ExportImagesPanel(BasePanelWidget):
         self._worker.error.connect(self._thread.quit)
         self._thread.start()
 
-    def _run_core(self, *_) -> Path:
+    def _run_core(self, *_: Any) -> Path:
         return Path()  # non usato

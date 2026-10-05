@@ -4,6 +4,7 @@ import io
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from reportlab.lib import colors
@@ -162,7 +163,7 @@ def _register_fonts() -> None:
     font_manager.register_bundled_font()
 
 
-def _build_styles() -> dict:
+def _build_styles() -> dict[str, Any]:
     from utils.font_manager import get_font_manager
 
     getSampleStyleSheet()
@@ -189,14 +190,14 @@ def _build_styles() -> dict:
     }
 
 
-def _build_story(text: str, config: LicenseConfig, styles: dict, year: int) -> list:
+def _build_story(text: str, config: LicenseConfig, styles: dict[str, Any], year: int) -> list[Any]:
     import io as _io
 
     from reportlab.platypus import Image as RLImage
     from reportlab.platypus import PageBreak
 
     label = LICENSE_LABELS.get(config.license_type, "Licenza")
-    story: list = []
+    story: list[Any] = []
 
     # Immagine di copertina — occupa l'intera area contenuto; il testo va a pag. 2
     if config.cover_image_path and Path(config.cover_image_path).exists():
