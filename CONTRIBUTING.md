@@ -167,11 +167,15 @@ Describe how you tested your changes:
 - Every pull request — including Dependabot's — targets `develop`. `main` only receives merges from
   `develop` (through a PR) and is never committed to directly.
 - `develop` publishes **pre-releases**: pushing a tag `vX.Y.Z-betaN` builds the installers for all
-  platforms and creates a GitHub pre-release whose notes are taken from the `## [Unreleased]` section
-  of `CHANGELOG.md`.
-- Once a beta is validated, `develop` is merged into `main`, the `[Unreleased]` section is renamed to
-  `## [X.Y.Z] — date`, and the tag `vX.Y.Z` creates the stable release.
-- Add your change under `## [Unreleased]` in `CHANGELOG.md`.
+  platforms and creates a GitHub pre-release whose notes are the `## [X.Y.Z-betaN]` section of
+  `CHANGELOG.md` (only what changed since the previous beta).
+- Once a beta is validated, `develop` is merged into `main` and the tag `vX.Y.Z` creates the stable
+  release, whose notes are the `## [X.Y.Z] — date` section (everything since the previous stable release).
+- Release notes always come from the section named after the tag, extracted by
+  `.github/scripts/extract_release_notes.py`. If that section is missing or empty the release workflow
+  fails before building anything. `[Unreleased]` is never published.
+- Add your change under `## [Unreleased]` in `CHANGELOG.md`; the maintainer renames it to the version
+  section when tagging.
 - Pull requests and issues are assigned and labeled automatically. Start the title with a conventional
   prefix (`fix:`, `feat:`, `docs:`, `ci:`, `chore:`) so the matching `type:*` label is applied.
 

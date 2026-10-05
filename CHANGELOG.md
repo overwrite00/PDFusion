@@ -32,6 +32,14 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
   `PIL` (where it is exported) instead of `PIL.Image`. PyMuPDF ships no type hints, so it is excluded from
   `no-untyped-call` with `untyped_calls_exclude = ["pymupdf"]`. Annotation-only change, no behaviour
   change; the same 499 tests pass, 3 runs in a row.
+- **Release notes now come from the section of each release.** The beta workflow used the `[Unreleased]`
+  section (so a second beta would have repeated the first one's notes) and the stable workflow silently fell
+  back to generic text when the section was missing. Both now run `.github/scripts/extract_release_notes.py`:
+  tag `v0.4.0-beta1` → `## [0.4.0-beta1]`, tag `v0.4.0` → `## [0.4.0]`. A new `release-notes` job runs first
+  and fails the workflow if the section is missing or empty, before any of the long builds. The body is
+  written to a file (`body_path`) instead of being interpolated into the workflow. Convention: a beta section
+  lists only what changed since the previous beta; the stable section lists everything since the previous
+  stable release. The stable release text also said "macOS 12+"; it now says macOS 15+ (Apple Silicon).
 - **Transitive runtime dependencies are now pinned** in `requirements.txt` (PyQt6-Qt6, PyQt6-sip, lxml,
   packaging, MarkupSafe, charset-normalizer). Until now only the top-level packages were fixed, so a new
   release of any of these could end up in the installers unnoticed. The versions are what pip resolves on
@@ -96,6 +104,9 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ### Testing
 
+- `tests/test_release_notes_script.py` (19 tests): beta/stable/unreleased selection, no prefix or
+  regex-wildcard matches, missing and empty sections fail, CRLF, UTF-8 output on Windows, command-line exit
+  codes, and the real `CHANGELOG.md`.
 - `tests/test_requirements_pinned.py` (14 tests): walks the installed dependency tree of `requirements.txt`
   and fails if any runtime package, transitive ones included, is not pinned with `==` or if the pinned
   version differs from the installed one.
