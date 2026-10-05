@@ -10,10 +10,24 @@ permissions:
 
 jobs:
   # -----------------------------------------------------------------------
+  # Controllo preliminare: il CHANGELOG deve avere le note di QUESTA release.
+  # Se la sezione manca o è vuota il workflow si ferma qui, prima dei build lunghi.
+  # -----------------------------------------------------------------------
+  release-notes:
+    name: Check CHANGELOG notes for this beta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Extract notes from the CHANGELOG section of this tag
+        run: python3 .github/scripts/extract_release_notes.py "$GITHUB_REF_NAME"
+
+  # -----------------------------------------------------------------------
   # Windows — NSIS installer .exe
   # -----------------------------------------------------------------------
   build-windows:
     name: Build Windows installer
+    needs: release-notes
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -74,6 +88,7 @@ jobs:
   # -----------------------------------------------------------------------
   build-linux:
     name: Build Linux AppImage
+    needs: release-notes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -131,6 +146,7 @@ jobs:
   # -----------------------------------------------------------------------
   build-macos:
     name: Build macOS DMG
+    needs: release-notes
     runs-on: macos-latest
     env:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -191,31 +207,22 @@ jobs:
         with:
           path: dist/
 
-      - name: Extract release notes from CHANGELOG [Unreleased]
-        id: changelog
+      - name: Build release body from the CHANGELOG section of this tag
         run: |
-          # Le beta riportano il contenuto della sezione [Unreleased] del
-          # changelog di develop. Quando la beta viene promossa a stabile su
-          # main, questa stessa sezione viene rinominata con la versione e
-          # data della release (vedi CLAUDE.md — workflow di versioning).
-          if [ ! -f CHANGELOG.md ]; then
-            echo "⚠️  CHANGELOG.md not found, using generic release notes"
-            echo "notes<<EOF" >> $GITHUB_OUTPUT
-            echo "See commit history for changes in this release." >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          NOTES=$(awk "/^## \[Unreleased\]/{found=1; next} /^## \[/{if(found) exit} found{print}" CHANGELOG.md)
-
-          if [ -z "$NOTES" ]; then
-            echo "⚠️  No [Unreleased] entries in CHANGELOG, using generic notes"
-            NOTES="See commit history for changes in this pre-release."
-          fi
-
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "## Test pre-release — ${GITHUB_REF_NAME}"
+            echo
+            echo "This is an automated build from the **develop** branch. It is not a stable release."
+            echo
+            echo "### What's new (from CHANGELOG.md — section [${GITHUB_REF_NAME#v}])"
+            echo
+            python3 .github/scripts/extract_release_notes.py "$GITHUB_REF_NAME"
+            echo
+            echo "### Download"
+            echo '- **Windows**: `PDFusion-*-windows-setup.exe`'
+            echo '- **Linux**: `PDFusion-*-linux.AppImage`'
+            echo '- **macOS** (Apple Silicon, macOS 15+): `PDFusion-*-macos.dmg`'
+          } > release_body.md
 
       - name: Create GitHub pre-release
         uses: softprops/action-gh-release@v3
@@ -223,17 +230,5 @@ jobs:
           prerelease: true
           tag_name: ${{ github.ref_name }}
           name: "PDFusion ${{ github.ref_name }} (pre-release)"
-          body: |
-            ## Test pre-release — ${{ github.ref_name }}
-
-            This is an automated build from the **develop** branch. It is not a stable release.
-
-            ### What's new (from CHANGELOG.md — Unreleased section)
-
-            ${{ steps.changelog.outputs.notes }}
-
-            ### Download
-            - **Windows**: `PDFusion-*-windows-setup.exe`
-            - **Linux**: `PDFusion-*-linux.AppImage`
-            - **macOS**: `PDFusion-*-macos.dmg`
+          body_path: release_body.md
           files: dist/**/*

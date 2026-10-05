@@ -10,10 +10,24 @@ permissions:
 
 jobs:
   # -----------------------------------------------------------------------
+  # Controllo preliminare: il CHANGELOG deve avere le note di QUESTA release.
+  # Se la sezione manca o è vuota il workflow si ferma qui, prima dei build lunghi.
+  # -----------------------------------------------------------------------
+  release-notes:
+    name: Check CHANGELOG notes for this release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Extract notes from the CHANGELOG section of this tag
+        run: python3 .github/scripts/extract_release_notes.py "$GITHUB_REF_NAME"
+
+  # -----------------------------------------------------------------------
   # Windows — NSIS installer .exe
   # -----------------------------------------------------------------------
   build-windows:
     name: Build Windows installer
+    needs: release-notes
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -74,6 +88,7 @@ jobs:
   # -----------------------------------------------------------------------
   build-linux:
     name: Build Linux AppImage
+    needs: release-notes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -131,6 +146,7 @@ jobs:
   # -----------------------------------------------------------------------
   build-macos:
     name: Build macOS DMG
+    needs: release-notes
     runs-on: macos-latest
     env:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -191,33 +207,24 @@ jobs:
         with:
           path: dist/
 
-      - name: Extract release notes from CHANGELOG
-        id: changelog
+      - name: Build release body from the CHANGELOG section of this tag
         run: |
-          VERSION="${{ github.ref_name }}"
-          VERSION_CLEAN="${VERSION#v}"
-
-          # Check CHANGELOG.md exists
-          if [ ! -f CHANGELOG.md ]; then
-            echo "⚠️  CHANGELOG.md not found, using generic release notes"
-            echo "notes<<EOF" >> $GITHUB_OUTPUT
-            echo "See commit history for changes in this release." >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Extract notes for this version
-          NOTES=$(awk "/^## \[$VERSION_CLEAN\]/{found=1; next} /^## \[/{if(found) exit} found{print}" CHANGELOG.md)
-
-          # If version not found, use fallback
-          if [ -z "$NOTES" ]; then
-            echo "⚠️  No CHANGELOG entry for version $VERSION_CLEAN, using generic notes"
-            NOTES="See commit history for changes in this release."
-          fi
-
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "## What's new in ${GITHUB_REF_NAME}"
+            echo
+            python3 .github/scripts/extract_release_notes.py "$GITHUB_REF_NAME"
+            echo
+            echo "---"
+            echo
+            echo "### Download"
+            echo "| System | File |"
+            echo "|---|---|"
+            echo '| **Windows 10/11** | `PDFusion-*-windows-setup.exe` |'
+            echo '| **Linux** | `PDFusion-*-linux.AppImage` |'
+            echo '| **macOS 15+ (Apple Silicon)** | `PDFusion-*-macos.dmg` |'
+            echo
+            echo '> **macOS**: if the app is unsigned, right-click → "Open" on first launch.'
+          } > release_body.md
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
@@ -225,19 +232,5 @@ jobs:
           prerelease: false
           tag_name: ${{ github.ref_name }}
           name: "PDFusion ${{ github.ref_name }}"
-          body: |
-            ## What's new in ${{ github.ref_name }}
-
-            ${{ steps.changelog.outputs.notes }}
-
-            ---
-
-            ### Download
-            | System | File |
-            |---|---|
-            | **Windows 10/11** | `PDFusion-*-windows-setup.exe` |
-            | **Linux** | `PDFusion-*-linux.AppImage` |
-            | **macOS 12+** | `PDFusion-*-macos.dmg` |
-
-            > **macOS**: if the app is unsigned, right-click → "Open" on first launch.
+          body_path: release_body.md
           files: dist/**/*
