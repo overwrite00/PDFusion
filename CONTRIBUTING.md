@@ -58,6 +58,10 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
+Every runtime dependency, transitive ones included, is pinned with `==` in `requirements.txt`
+(`tests/test_requirements_pinned.py` enforces it). When you bump a package, re-install and keep the
+transitive block in step with what `pip` resolves.
+
 ### 4. Verify Setup
 
 ```bash
