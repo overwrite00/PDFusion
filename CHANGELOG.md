@@ -10,6 +10,13 @@ For planned features, see [ROADMAP.md](ROADMAP.md).
 
 ## [Unreleased]
 
+---
+
+## [0.4.0-beta1] — 2026-10-05
+
+> First pre-release of 0.4.0. The minor bump (instead of 0.3.1) is because this cycle adds a user-facing
+> feature: the opt-out for the startup update check. Everything since 0.3.0 is listed below.
+
 ### Added
 
 - **Opt-out for the automatic update check**: a checkable **? → Controlla aggiornamenti all'avvio** menu

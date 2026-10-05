@@ -4,12 +4,12 @@ A powerful, open-source desktop application for PDF manipulation built with PyQt
 
 ![PDFusion Interface](assets/hero.png)
 
-[![Version](https://img.shields.io/badge/version-0.3.1-blue)]()
+[![Version](https://img.shields.io/badge/version-0.4.0-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Python](https://img.shields.io/badge/python-3.13-blue)]()
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)]()
 [![Platform](https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
-[![Last Updated](https://img.shields.io/badge/last%20updated-2026--10--04-blue)]()
+[![Last Updated](https://img.shields.io/badge/last%20updated-2026--10--05-blue)]()
 
 ---
 
@@ -131,9 +131,9 @@ Pre-built executables available in [Releases](https://github.com/overwrite00/PDF
 
 | Platform | Installer | Type |
 |---|---|---|
-| **Windows** | `PDFusion-0.3.1-windows-setup.exe` | NSIS installer |
-| **macOS** | `PDFusion-0.3.1-macos.dmg` | Disk image |
-| **Linux** | `PDFusion-0.3.1-linux.AppImage` | Portable executable |
+| **Windows** | `PDFusion-0.4.0-windows-setup.exe` | NSIS installer |
+| **macOS** | `PDFusion-0.4.0-macos.dmg` | Disk image |
+| **Linux** | `PDFusion-0.4.0-linux.AppImage` | Portable executable |
 
 ### Release Channels & Updates
 
@@ -142,7 +142,7 @@ Pre-built executables available in [Releases](https://github.com/overwrite00/PDF
   *Pre-release* on the Releases page. A beta is promoted to stable only after it has been validated.
 
 The window title and the **About** dialog show the running version together with its channel
-(for example `0.3.0` or `0.3.1-beta1`).
+(for example `0.3.0` or `0.4.0-beta1`).
 
 **Update check.** PDFusion looks for a newer version on GitHub Releases at startup (at most once every
 24 hours) and on demand from **? → Controlla aggiornamenti…**. The startup check can be turned off from
